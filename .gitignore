@@ -1,0 +1,10 @@
+# directories
+data/
+Admin/
+Scripts/QGIS/
+Fieldwork/
+Presentations/
+StudyMaterialAndLiterature/
+
+# files
+*.Rhistory
