@@ -1,5 +1,6 @@
 # directories
-data/
+data/*
+!data/gjamTime_outputs
 Admin/
 Scripts/QGIS/
 Fieldwork/
