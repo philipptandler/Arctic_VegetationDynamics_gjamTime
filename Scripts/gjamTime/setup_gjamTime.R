@@ -314,90 +314,90 @@ normalize_gjamInput <- function(xdata, vars){
 
 ## DELETE THIS START ####
 
-# .getStandX_modified <- function (formula, xu, standRows, xmu = NULL, xsd = NULL, verbose = F) 
-# {
-#   cat("Debug: Inside .getStandX\n")
-#   if (length(standRows) == 0) {
-#     xs <- model.matrix(formula, data.frame(xu))
-#     colnames(xs)[1] <- "intercept"
-#     return(list(xstand = xs, xdataStand = xu, xmu = xmu, 
-#                 xsd = xsd, U2S = diag(ncol(xs))))
-#   }
-#   xu <- xdataStand <- as.data.frame(xu)
-#   cat("head xu: \n")
-#   print(head(xu))
-#   cat("dim xu:", dim(xu), "\n")
-#   inCols <- colnames(xu)
-#   print(inCols)
-#   ifact <- which(sapply(data.frame(xu), is.factor))
-#   if (is.null(xmu)) 
-#     xmu <- colMeans(xu[, standRows, drop = F], na.rm = T)
-#   if (is.null(xsd)) 
-#     xsd <- apply(xu[, standRows, drop = F], 2, sd, na.rm = T)
-#   xs <- xu
-#   wna <- which(sapply(xu, is.na), arr.ind = T)
-#   wni <- which(wna[, 2] %in% ifact)
-#   if (length(wni) > 0) {
-#     wni <- wna[wni, ]
-#     wna <- wna[-wni, ]
-#   }
-#   wna <- which(is.na(xu[, standRows]), arr.ind = T)
-#   if (length(wna) > 0) {
-#     xs[, standRows][wna] <- xmu[wna[, 2]]
-#     xu[, standRows][wna] <- xmu[wna[, 2]]
-#     if (length(wni) > 0) {
-#       fcol <- unique(wni[, 2])
-#       for (m in fcol) {
-#         mf <- levels(xu[, m])[1]
-#         wm <- wni[wni[, 2] == m, ]
-#         xu[wm] <- mf
-#       }
-#     }
-#   }
-#   sc <- standRows
-#   if (!is.character(sc)) 
-#     sc <- names(standRows)
-#   xs[, sc] <- t((t(xs[, sc, drop = F]) - xmu[sc])/xsd[sc])
-#   xdataStand[, sc] <- xs[, sc, drop = F]
-#   xs <- model.matrix(formula, data.frame(xs))
-#   colnames(xs)[1] <- "intercept"
-#   xu <- model.matrix(formula, xu)
-#   colnames(xs)[1] <- colnames(xu)[1] <- "intercept"
-#   bigSD <- apply(xs, 2, range)
-#   wk <- which(abs(bigSD) > 20, arr.ind = T)
-#   if (length(wk) > 0) {
-#     b <- paste0(colnames(bigSD)[wk[, 2]], collapse = ", ")
-#     toConsole("\nNote: Values in x more than 20 SDs from the mean of fitted data", 
-#               b, verbose)
-#     FLAG <- T
-#   }
-#   XX <- crossprod(xs)
-#   ssx <- try(solveRcpp(XX), T)
-#   if (inherits(ssx, "try-error")) {
-#     u2s <- diag(ncol(xs))
-#     attr(u2s, "valid") <- FALSE
-#   }
-#   else {
-#     u2s <- ssx %*% crossprod(xs, xu)
-#     u2s[abs(u2s) < 1e-10] <- 0
-#     attr(u2s, "valid") <- TRUE
-#   }
-#   rownames(u2s) <- colnames(xs)
-#   colnames(u2s) <- colnames(xu)
-#   if (length(wna) > 0) {
-#     xs[wna] <- 0
-#     xdataStand[wna] <- NA
-#   }
-#   list(xstand = xs, xdataStand = xdataStand, xmu = xmu, xsd = xsd, 
-#        U2S = u2s)
-# }
-# 
-# environment(.getStandX_modified) <- asNamespace('gjam')
-# assignInNamespace(".getStandX", .getStandX_modified, ns = "gjam")
-# 
-# # Restart R session or reload package
-# detach("package:gjam", unload=TRUE)
-# library(gjam)
+.getStandX_modified <- function (formula, xu, standRows, xmu = NULL, xsd = NULL, verbose = F)
+{
+  cat("Debug: Inside .getStandX\n")
+  if (length(standRows) == 0) {
+    xs <- model.matrix(formula, data.frame(xu))
+    colnames(xs)[1] <- "intercept"
+    return(list(xstand = xs, xdataStand = xu, xmu = xmu,
+                xsd = xsd, U2S = diag(ncol(xs))))
+  }
+  xu <- xdataStand <- as.data.frame(xu)
+  cat("head xu: \n")
+  print(head(xu))
+  cat("dim xu:", dim(xu), "\n")
+  inCols <- colnames(xu)
+  print(inCols)
+  ifact <- which(sapply(data.frame(xu), is.factor))
+  if (is.null(xmu))
+    xmu <- colMeans(xu[, standRows, drop = F], na.rm = T)
+  if (is.null(xsd))
+    xsd <- apply(xu[, standRows, drop = F], 2, sd, na.rm = T)
+  xs <- xu
+  wna <- which(sapply(xu, is.na), arr.ind = T)
+  wni <- which(wna[, 2] %in% ifact)
+  if (length(wni) > 0) {
+    wni <- wna[wni, ]
+    wna <- wna[-wni, ]
+  }
+  wna <- which(is.na(xu[, standRows]), arr.ind = T)
+  if (length(wna) > 0) {
+    xs[, standRows][wna] <- xmu[wna[, 2]]
+    xu[, standRows][wna] <- xmu[wna[, 2]]
+    if (length(wni) > 0) {
+      fcol <- unique(wni[, 2])
+      for (m in fcol) {
+        mf <- levels(xu[, m])[1]
+        wm <- wni[wni[, 2] == m, ]
+        xu[wm] <- mf
+      }
+    }
+  }
+  sc <- standRows
+  if (!is.character(sc))
+    sc <- names(standRows)
+  xs[, sc] <- t((t(xs[, sc, drop = F]) - xmu[sc])/xsd[sc])
+  xdataStand[, sc] <- xs[, sc, drop = F]
+  xs <- model.matrix(formula, data.frame(xs))
+  colnames(xs)[1] <- "intercept"
+  xu <- model.matrix(formula, xu)
+  colnames(xs)[1] <- colnames(xu)[1] <- "intercept"
+  bigSD <- apply(xs, 2, range)
+  wk <- which(abs(bigSD) > 20, arr.ind = T)
+  if (length(wk) > 0) {
+    b <- paste0(colnames(bigSD)[wk[, 2]], collapse = ", ")
+    toConsole("\nNote: Values in x more than 20 SDs from the mean of fitted data",
+              b, verbose)
+    FLAG <- T
+  }
+  XX <- crossprod(xs)
+  ssx <- try(solveRcpp(XX), T)
+  if (inherits(ssx, "try-error")) {
+    u2s <- diag(ncol(xs))
+    attr(u2s, "valid") <- FALSE
+  }
+  else {
+    u2s <- ssx %*% crossprod(xs, xu)
+    u2s[abs(u2s) < 1e-10] <- 0
+    attr(u2s, "valid") <- TRUE
+  }
+  rownames(u2s) <- colnames(xs)
+  colnames(u2s) <- colnames(xu)
+  if (length(wna) > 0) {
+    xs[wna] <- 0
+    xdataStand[wna] <- NA
+  }
+  list(xstand = xs, xdataStand = xdataStand, xmu = xmu, xsd = xsd,
+       U2S = u2s)
+}
+
+environment(.getStandX_modified) <- asNamespace('gjam')
+assignInNamespace(".getStandX", .getStandX_modified, ns = "gjam")
+
+# Restart R session or reload package
+detach("package:gjam", unload=TRUE)
+library(gjam)
 
 ## DELETE THIS END ####
 
@@ -478,10 +478,12 @@ fit_gjamTime <- function(setup,
     # from Nill 2022 Fig 6 https://doi.org/10.1016/j.rse.2022.113228
     # obs = a + b*pred
     # obs max = 10000,==> 10000 = a + b*predmax, here predmax in alpha_list
-    alpha_list <- list("sh" = 9832.673,
-                       "cf" = 18187.72,
-                       "hb" = 11384.09,
-                       "lc" = 24568.29) 
+    # dx/dt = rx + ax^2 -> x = 0 or x = (-r/a) =~ 10'000
+    # if r prior =~ 1, alpha prior =~~ -r/10000 =~~ -1/10000
+    alpha_list <- list("sh" = -1/9832.673,
+                       "cf" = -1/18187.72,
+                       "hb" = -1/11384.09,
+                       "lc" = -1/24568.29) 
     alphaSign  <- matrix(0, n_spec, n_spec)
     colnames(alphaSign) <- rownames(alphaSign) <- s_names
     for(i in 1:n_spec){
@@ -503,7 +505,7 @@ fit_gjamTime <- function(setup,
   outFolder <- get_outfolder(name)
 
   if(showPlot){
-    plotPars  <- list(PLOTALLY=T, trueValues = trueValues,
+    plotPars  <- list(PLOTALLY=T,
                       SAVEPLOTS = saveOutput, outFolder = outFolder)
     gjamPlot(output, plotPars)
   }
