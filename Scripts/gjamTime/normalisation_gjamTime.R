@@ -27,7 +27,7 @@ alldata <- get_geodata(varlist, dropgroup = TRUE, dropperiod = TRUE)
 
 ref_list <- list()
 ref_list_name <- "normalisation.rds"
-path_ref_list <- "data/gjamTime_data/"
+path_ref_list <- "Scripts/gjamTime/"
 path_ref_list_fullname <- paste0(path_ref_list, ref_list_name)
 if(file.exists(path_ref_list_fullname)){ref_list <- readRDS(path_ref_list_fullname)}
 

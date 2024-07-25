@@ -480,17 +480,17 @@ fit_gjamTime <- function(setup,
     # obs max = 10000,==> 10000 = a + b*predmax, here predmax in alpha_list
     # dx/dt = rx + ax^2 -> x = 0 or x = (-r/a) =~ 10'000
     # if r prior =~ 1, alpha prior =~~ -r/10000 =~~ -1/10000
-    alpha_list <- list("sh" = -1/9832.673,
-                       "cf" = -1/18187.72,
-                       "hb" = -1/11384.09,
-                       "lc" = -1/24568.29) 
-    alphaSign  <- matrix(0, n_spec, n_spec)
+    # alpha_list <- list("sh" = -1/9832.673,
+    #                    "cf" = -1/18187.72,
+    #                    "hb" = -1/11384.09,
+    #                    "lc" = -1/24568.29) 
+    alphaSign  <- matrix(-1, n_spec, n_spec)
     colnames(alphaSign) <- rownames(alphaSign) <- s_names
-    for(i in 1:n_spec){
-      var <- s_names[i]
-      alphaSign[var,var] <- alpha_list[[var]]
-      # alphaSign[var,var] <- -1
-    }
+    # for(i in 1:n_spec){
+    #   var <- s_names[i]
+    #   alphaSign[var,var] <- alpha_list[[var]]
+    #   # alphaSign[var,var] <- -1
+    # }
     priorList$alphaSign = alphaSign
   }
   tmp <- gjamTimePrior(xdata, ydata, edata, priorList)
@@ -524,7 +524,7 @@ fit_gjamTime <- function(setup,
 path_vars <- "data/gjamTime_data/"
 path_save <- "data/gjamtime_outputs/"
 ref_list_name <- "normalisation.rds"
-path_ref_list <- "data/gjamTime_data/"
+path_ref_list <- "Scripts/gjamTime/"
 
 # masterlist of all variables
 masterlist_variables <- list(
