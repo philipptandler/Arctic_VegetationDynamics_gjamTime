@@ -12,9 +12,9 @@ source("Scripts/gjamTime/setup_gjamTime.R")
 # periods and version must match between xvars_list and yvars_list !
 
 xvars_short <- list(
-  topography = c(),
+  topography = c("elev"),
   y = FALSE, # to get latitude
-  climate = c("tass", "prs")
+  climate = c("tass", "pr")
 )
 
 yvars_short <- list(

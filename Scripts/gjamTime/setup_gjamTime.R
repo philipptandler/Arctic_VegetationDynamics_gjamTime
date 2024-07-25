@@ -10,7 +10,7 @@ library(devtools)
 library(gjam)
 
 path_gjam <- "https://github.com/jimclarkatduke/gjam/blob/master/gjamTimeFunctions.R?raw=True"
-source_url(path_gjam)
+#source_url(path_gjam)
 
 ## Assertion Function ####
 
@@ -19,15 +19,14 @@ assert_geodata <- function(var_list){
   if(!all(names(var_list) %in% names(masterlist_variables))){
     stop("Invalid key encountered in variable-list")
   }
-  
   # existing names
-  if (!exists("vegetation", where = var_list)){var_list$vegetation = c()}
-  if (!exists("topography", where = var_list)){var_list$topography = c()}
+  # if (!exists("vegetation", where = var_list)){var_list$vegetation = c()}
+  # if (!exists("topography", where = var_list)){var_list$topography = c()}
   if (!exists("x", where = var_list)){var_list$x = FALSE}
   if (!exists("y", where = var_list)){var_list$y = FALSE}
-  if (!exists("climate", where = var_list)){var_list$climate = c()}
-  if (!exists("wildfire", where = var_list)){var_list$wildfire = c()}
-  if (!exists("soil", where = var_list)){var_list$soil = c()}
+  # if (!exists("climate", where = var_list)){var_list$climate = c()}
+  # if (!exists("wildfire", where = var_list)){var_list$wildfire = c()}
+  # if (!exists("soil", where = var_list)){var_list$soil = c()}
   # if (!exists("periods", where = var_list)){stop("No period specified")}
   # if (!exists("version", where = var_list)){var_list$version = "r100"}
   # length
@@ -120,7 +119,7 @@ assert_gjamCall <- function(call_list){
 
 
 ## helper function get files ####
-
+# returns a list of $files with filenames in data/gjamTime_data/ and $variables
 get_filenames <- function(period, var_list){
   vers <- var_list$version
   file_vec <- c()
@@ -174,6 +173,7 @@ get_geodata <- function(var_list, dropgroup = TRUE, dropperiod = TRUE){
   cat("loading dataframes ... \n")
   n_time <- length(var_list$periods)
   for(t in 1:n_time){
+    cat("loading period", var_list$periods[t],"\n")
     # get files and variables in same order
     file_var_list <- get_filenames(var_list$periods[t], var_list)
     # get files
@@ -184,6 +184,7 @@ get_geodata <- function(var_list, dropgroup = TRUE, dropperiod = TRUE){
     names(raster_this_period) <- file_var_list$variables
     
     # make dataframe
+    cat("      converting raster in dataframe \n")
     getxy <- (var_list$x | var_list$y)
     df <- as.data.frame(raster_this_period, xy = getxy,
                                         cells = TRUE, na.rm = NA)
@@ -200,7 +201,7 @@ get_geodata <- function(var_list, dropgroup = TRUE, dropperiod = TRUE){
     data_list[[t]] <- df
     cat(t, "out of", n_time,"dataframes loaded \n")
   }
-  
+  cat("unite dataframes \n")
   #conbine the dataframes
   combined_df <- do.call(rbind, data_list)
   # order
@@ -209,11 +210,11 @@ get_geodata <- function(var_list, dropgroup = TRUE, dropperiod = TRUE){
   
   # Get the current column names
   cols <- colnames(ordered_df)
-  
+
   # Define the new order of columns
   new_order <- c("cell", "period", cols[!cols %in% c("cell", "period")])
-  
-  # Reorder the columns
+
+    # Reorder the columns
   ordered_df <- ordered_df[, new_order]
   
   # Set row names starting from 1
@@ -298,6 +299,17 @@ fill_priorList <- function(all_vars, priorlist){
     priorlist$hi[[all_vars[i]]] <- hiValues[i]
   }
   return(priorlist)
+}
+
+# normalize xdata
+normalize_gjamInput <- function(xdata, vars){
+  #each column must be normalized with mean and sd
+  path_ref_list_fullname <- paste0(path_ref_list, ref_list_name)
+  ref_list <- readRDS(path_ref_list_fullname)
+  for(col in vars){
+    xdata[[col]] <- (xdata[[col]]-ref_list[[col]]$mean)/ref_list[[col]]$sd
+  }
+  return(xdata)
 }
 
 ## DELETE THIS START ####
@@ -387,7 +399,7 @@ fill_priorList <- function(all_vars, priorlist){
 # detach("package:gjam", unload=TRUE)
 # library(gjam)
 
-## DELETE THIS END ###
+## DELETE THIS END ####
 
 ## fit gjam function ####
 
@@ -417,17 +429,15 @@ fit_gjamTime <- function(setup,
   # prepare
   timeCol   <- "period" # Column that stores time
   groupCol  <- "cell" # column that stores the group ID
-  groupVars <- c("cell", # time invariant columns
-                 xvars_list$topography,
-                 xvars_list$soil) #TODO wildfire
-  if(xvars_list$x){groupVars <- c(groupVars, "lon")}
-  if(xvars_list$y){groupVars <- c(groupVars, "lat")}
-  allVars <- c(
-    xvars_list$topography,
-    xvars_list$soil,
-    xvars_list$climate,
-    xvars_list$wildfire
-    )
+  constVars <- c(xvars_list$topography,
+                 xvars_list$soil) #TODO wildfire when fitting
+  if(xvars_list$x){constVars <- c(constVars, "lon")}
+  if(xvars_list$y){constVars <- c(constVars, "lat")}
+  
+  groupVars <- c("cell", constVars)
+  allVars <- c(constVars, xvars_list$climate, xvars_list$wildfire)
+  
+  xdata <- normalize_gjamInput(xdata, allVars)
   missingEffort <- 0.1 # set this
   
   # fit missing values
@@ -511,6 +521,8 @@ fit_gjamTime <- function(setup,
 # paths
 path_vars <- "data/gjamTime_data/"
 path_save <- "data/gjamtime_outputs/"
+ref_list_name <- "normalisation.rds"
+path_ref_list <- "data/gjamTime_data/"
 
 # masterlist of all variables
 masterlist_variables <- list(
