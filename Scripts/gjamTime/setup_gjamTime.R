@@ -10,7 +10,7 @@ library(devtools)
 library(gjam)
 
 path_gjam <- "https://github.com/jimclarkatduke/gjam/blob/master/gjamTimeFunctions.R?raw=True"
-#source_url(path_gjam)
+source_url(path_gjam)
 
 ## Assertion Function ####
 
