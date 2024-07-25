@@ -1,4 +1,5 @@
-setwd("C:/Users/phili/Documents/Dateien_Philipp/EnvironmentalSciencesMSc/MasterThesis/")
+library(here)
+setwd(here::here())
 library(terra)
 library(mvtnorm)
 ##Prepare paths and masks ####

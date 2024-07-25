@@ -1,7 +1,7 @@
 # This Script sets up 
 library(terra)
-rootdir <- "C:/Users/phili/Documents/Dateien_Philipp/EnvironmentalSciencesMSc/MasterThesis/"
-setwd(rootdir)
+library(here)
+setwd(here::here())
 
 ## general definitions ####
 path_CHELSA_pastraw <- "data/CHELSA_climatedata/data_past_raw/"

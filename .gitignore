@@ -5,6 +5,8 @@ Scripts/QGIS/
 Fieldwork/
 Presentations/
 StudyMaterialAndLiterature/
+.Rproj.user/
 
 # files
 *.Rhistory
+Scripts/Processing/ExploreRasterData.R

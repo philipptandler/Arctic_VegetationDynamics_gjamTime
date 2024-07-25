@@ -1,7 +1,8 @@
 # This Scirpt prepares the ydata and xdata and fits the gjamTime function
 
 #set up environment:
-setwd("C:/Users/phili/Documents/Dateien_Philipp/EnvironmentalSciencesMSc/MasterThesis/")
+library(here)
+setwd(here::here())
 source("Scripts/gjamTime/setup_gjamTime.R")
 
 ## set parameters instructions ####
