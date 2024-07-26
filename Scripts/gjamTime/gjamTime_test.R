@@ -11,30 +11,24 @@ source("Scripts/gjamTime/setup_gjamTime.R")
 
 # periods and version must match between xvars_list and yvars_list !
 
-xvars_all <- list(
-  topography = c("elev", "slope", "aspect", "tpi"),
+xvars_short <- list(
+  topography = c("elev", "tpi", "slope", "aspect"),
   y = FALSE, # to get latitude
-  climate = c("tass", "tasw", "pr"),
-  soil = c("wvol")
+  climate = c("tass", "pr")
 )
-yvars_all <- list(
+yvars_short <- list(
   vegetation = c("sh", "cf", "hb", "lc")
 )
-try_big <- list(
-  name = "trybig",
-  version = "full",
-  periods = c("1984-1990",
-              "1991-1996",
-              "1997-2002",
-              "2003-2008",
-              "2009-2014",
-              "2015-2020"),
-  xvars = xvars_all,
-  yvars = yvars_all
+test1 <- list(
+  name = "test1",
+  version = "crop",
+  periods = c("1984-1990","1991-1996"),
+  xvars = xvars_short,
+  yvars = yvars_short
 )
 
-# try1 <- assert_gjamCall(try1)
-try_big <- assert_gjamCall(try_big)
+
+test1 <- assert_gjamCall(test1)
 
 
 # set model specifications:
@@ -45,20 +39,18 @@ termA <- TRUE    # include DD spp interaction term UA
 ## get xdata ####
 
 # choose variable set
-# try1$xdata <- get_geodata(try1$xvars, dropgroup = FALSE, dropperiod = FALSE)
-try_big$xdata <- get_geodata(try_big$xvars, dropgroup = FALSE, dropperiod = FALSE)
+test1$xdata <- get_geodata(test1$xvars, dropgroup = FALSE, dropperiod = FALSE)
 
 
 ## get ydata ####
 
 # choose variable set
-# try1$ydata <- get_geodata(try1$yvars, dropgroup = TRUE, dropperiod = TRUE)
-try_big$ydata <- get_geodata(try_big$yvars, dropgroup = TRUE, dropperiod = TRUE)
+test1$ydata <- get_geodata(test1$yvars, dropgroup = TRUE, dropperiod = TRUE)
 
 
 ## fit gjamTime ####
 
-output_try_big <- fit_gjamTime(setup = try_big,
+output_test1 <- fit_gjamTime(setup = test1,
                             termB = termB,
                             termR = termR,
                             termA = termA,
