@@ -12,12 +12,11 @@ source("Scripts/gjamTime/setup_gjamTime.R")
 # periods and version must match between xvars_list and yvars_list !
 
 xvars_short <- list(
-  topography = c("elev", "tpi", "slope", "aspect"),
-  y = FALSE, # to get latitude
-  climate = c("tass", "pr")
+  topography = c("tpi", "elev"),
+  y = FALSE # to get latitude
 )
 yvars_short <- list(
-  vegetation = c("sh", "cf", "hb", "lc")
+  vegetation = c("sh", "cf")
 )
 test1 <- list(
   name = "test1",
@@ -27,7 +26,7 @@ test1 <- list(
   yvars = yvars_short
 )
 
-
+# makes sure to have a valid input, initializes and prints call
 test1 <- assert_gjamCall(test1)
 
 
@@ -37,23 +36,21 @@ termR <- TRUE     # include DI population growth term VL
 termA <- TRUE    # include DD spp interaction term UA
 
 ## get xdata ####
-
-# choose variable set
+cat("loading xdata: \n")
 test1$xdata <- get_geodata(test1$xvars, dropgroup = FALSE, dropperiod = FALSE)
 
 
 ## get ydata ####
-
-# choose variable set
+cat("loading ydata: \n")
 test1$ydata <- get_geodata(test1$yvars, dropgroup = TRUE, dropperiod = TRUE)
 
 
 ## fit gjamTime ####
-
+cat("fitting data in gjam: \n")
 output_test1 <- fit_gjamTime(setup = test1,
                             termB = termB,
                             termR = termR,
                             termA = termA,
                             saveOutput = TRUE,
                             showPlot = TRUE)
-
+cat("fitting completed. \n")

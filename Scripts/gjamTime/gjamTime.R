@@ -33,7 +33,8 @@ try_big <- list(
   yvars = yvars_all
 )
 
-# try1 <- assert_gjamCall(try1)
+
+# makes sure to have a valid input, initializes and prints call
 try_big <- assert_gjamCall(try_big)
 
 
@@ -43,21 +44,17 @@ termR <- TRUE     # include DI population growth term VL
 termA <- TRUE    # include DD spp interaction term UA
 
 ## get xdata ####
-
-# choose variable set
-# try1$xdata <- get_geodata(try1$xvars, dropgroup = FALSE, dropperiod = FALSE)
+cat("loading xdata: \n")
 try_big$xdata <- get_geodata(try_big$xvars, dropgroup = FALSE, dropperiod = FALSE)
 
 
 ## get ydata ####
-
-# choose variable set
-# try1$ydata <- get_geodata(try1$yvars, dropgroup = TRUE, dropperiod = TRUE)
+cat("loading ydata: \n")
 try_big$ydata <- get_geodata(try_big$yvars, dropgroup = TRUE, dropperiod = TRUE)
 
 
 ## fit gjamTime ####
-
+cat("fitting data in gjam: \n")
 output_try_big <- fit_gjamTime(setup = try_big,
                             termB = termB,
                             termR = termR,

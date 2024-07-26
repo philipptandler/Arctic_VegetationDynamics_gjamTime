@@ -13,6 +13,32 @@ path_gjam <- "https://github.com/jimclarkatduke/gjam/blob/master/gjamTimeFunctio
 source_url(path_gjam)
 
 ## Assertion Function ####
+getvars <- function(varlist){
+  vars <- c()
+  for(name in names(varlist)){
+    var <- c()
+    if (name != "x" && name != "y" &&
+        name != "periods" && name != "version"){var <- varlist[[name]]}
+    if(name == "x" && varlist[[name]]){var <- c("lon")}
+    if(name == "y" && varlist[[name]]){var <- c("lat")}
+    vars <- c(vars, var)
+  }
+  return(vars)
+}
+
+
+print_call <- function(call){
+  insert <- "    "
+  cat(" \n")
+  cat("call: \n")
+  cat(insert, "name: ", call$name, "\n")
+  cat(insert, "periods: ", call$periods, "\n")
+  cat(insert, "version: ", call$version, "\n")
+  xvars <- getvars(call$xvars)
+  cat(insert, "xvariables: ", xvars, "\n")
+  yvars <- getvars(call$yvars)
+  cat(insert, "yvariables: ", yvars, "\n")
+}
 
 assert_geodata <- function(var_list){
   # valid names
@@ -20,15 +46,9 @@ assert_geodata <- function(var_list){
     stop("Invalid key encountered in variable-list")
   }
   # existing names
-  # if (!exists("vegetation", where = var_list)){var_list$vegetation = c()}
-  # if (!exists("topography", where = var_list)){var_list$topography = c()}
   if (!exists("x", where = var_list)){var_list$x = FALSE}
   if (!exists("y", where = var_list)){var_list$y = FALSE}
-  # if (!exists("climate", where = var_list)){var_list$climate = c()}
-  # if (!exists("wildfire", where = var_list)){var_list$wildfire = c()}
-  # if (!exists("soil", where = var_list)){var_list$soil = c()}
-  # if (!exists("periods", where = var_list)){stop("No period specified")}
-  # if (!exists("version", where = var_list)){var_list$version = "r100"}
+
   # length
   if(length(var_list$vegetation) == 0 &
      length(var_list$topography) == 0 &
@@ -114,6 +134,8 @@ assert_gjamCall <- function(call_list){
   call_list$xvars <- assert_geodata(call_list$xvars)
   call_list$yvars <- assert_geodata(call_list$yvars)
   
+  print_call(call_list)
+  
   return(call_list)
 }
 
@@ -170,10 +192,9 @@ get_geodata <- function(var_list, dropgroup = TRUE, dropperiod = TRUE){
   data_list <- list()
   
   # iterate over all periods
-  cat("loading dataframes ... \n")
   n_time <- length(var_list$periods)
   for(t in 1:n_time){
-    cat("loading period", var_list$periods[t],"\n")
+    cat("    loading period", var_list$periods[t])
     # get files and variables in same order
     file_var_list <- get_filenames(var_list$periods[t], var_list)
     # get files
@@ -184,10 +205,11 @@ get_geodata <- function(var_list, dropgroup = TRUE, dropperiod = TRUE){
     names(raster_this_period) <- file_var_list$variables
     
     # make dataframe
-    cat("      converting raster in dataframe \n")
     getxy <- (var_list$x | var_list$y)
+    cat(", converting to dataframe...")
     df <- as.data.frame(raster_this_period, xy = getxy,
                                         cells = TRUE, na.rm = NA)
+    cat("done. \n")
     # Rename x and y to lat and lon
     colnames(df)[colnames(df) == "x"] <- "lon"
     colnames(df)[colnames(df) == "y"] <- "lat"
@@ -199,9 +221,7 @@ get_geodata <- function(var_list, dropgroup = TRUE, dropperiod = TRUE){
     # add time
     df$period <- t
     data_list[[t]] <- df
-    cat(t, "out of", n_time,"dataframes loaded \n")
   }
-  cat("unite dataframes \n")
   #conbine the dataframes
   combined_df <- do.call(rbind, data_list)
   # order
@@ -227,8 +247,8 @@ get_geodata <- function(var_list, dropgroup = TRUE, dropperiod = TRUE){
   if (dropperiod) {
     ordered_df <- subset(ordered_df, select = -c(period))
   }
-  cat("done\n")
-  cat("returning dataframe of nrows =", nrow(ordered_df), ", ncols =", ncol(ordered_df), "\n")
+  cat("    done\n")
+  cat("    returning dataframe of nrows =", nrow(ordered_df), ", ncols =", ncol(ordered_df), "\n")
   
   # returning dataframe
   return(ordered_df)
@@ -312,94 +332,6 @@ normalize_gjamInput <- function(xdata, vars){
   return(xdata)
 }
 
-## DELETE THIS START ####
-
-.getStandX_modified <- function (formula, xu, standRows, xmu = NULL, xsd = NULL, verbose = F)
-{
-  cat("Debug: Inside .getStandX\n")
-  if (length(standRows) == 0) {
-    xs <- model.matrix(formula, data.frame(xu))
-    colnames(xs)[1] <- "intercept"
-    return(list(xstand = xs, xdataStand = xu, xmu = xmu,
-                xsd = xsd, U2S = diag(ncol(xs))))
-  }
-  xu <- xdataStand <- as.data.frame(xu)
-  cat("head xu: \n")
-  print(head(xu))
-  cat("dim xu:", dim(xu), "\n")
-  inCols <- colnames(xu)
-  print(inCols)
-  ifact <- which(sapply(data.frame(xu), is.factor))
-  if (is.null(xmu))
-    xmu <- colMeans(xu[, standRows, drop = F], na.rm = T)
-  if (is.null(xsd))
-    xsd <- apply(xu[, standRows, drop = F], 2, sd, na.rm = T)
-  xs <- xu
-  wna <- which(sapply(xu, is.na), arr.ind = T)
-  wni <- which(wna[, 2] %in% ifact)
-  if (length(wni) > 0) {
-    wni <- wna[wni, ]
-    wna <- wna[-wni, ]
-  }
-  wna <- which(is.na(xu[, standRows]), arr.ind = T)
-  if (length(wna) > 0) {
-    xs[, standRows][wna] <- xmu[wna[, 2]]
-    xu[, standRows][wna] <- xmu[wna[, 2]]
-    if (length(wni) > 0) {
-      fcol <- unique(wni[, 2])
-      for (m in fcol) {
-        mf <- levels(xu[, m])[1]
-        wm <- wni[wni[, 2] == m, ]
-        xu[wm] <- mf
-      }
-    }
-  }
-  sc <- standRows
-  if (!is.character(sc))
-    sc <- names(standRows)
-  xs[, sc] <- t((t(xs[, sc, drop = F]) - xmu[sc])/xsd[sc])
-  xdataStand[, sc] <- xs[, sc, drop = F]
-  xs <- model.matrix(formula, data.frame(xs))
-  colnames(xs)[1] <- "intercept"
-  xu <- model.matrix(formula, xu)
-  colnames(xs)[1] <- colnames(xu)[1] <- "intercept"
-  bigSD <- apply(xs, 2, range)
-  wk <- which(abs(bigSD) > 20, arr.ind = T)
-  if (length(wk) > 0) {
-    b <- paste0(colnames(bigSD)[wk[, 2]], collapse = ", ")
-    toConsole("\nNote: Values in x more than 20 SDs from the mean of fitted data",
-              b, verbose)
-    FLAG <- T
-  }
-  XX <- crossprod(xs)
-  ssx <- try(solveRcpp(XX), T)
-  if (inherits(ssx, "try-error")) {
-    u2s <- diag(ncol(xs))
-    attr(u2s, "valid") <- FALSE
-  }
-  else {
-    u2s <- ssx %*% crossprod(xs, xu)
-    u2s[abs(u2s) < 1e-10] <- 0
-    attr(u2s, "valid") <- TRUE
-  }
-  rownames(u2s) <- colnames(xs)
-  colnames(u2s) <- colnames(xu)
-  if (length(wna) > 0) {
-    xs[wna] <- 0
-    xdataStand[wna] <- NA
-  }
-  list(xstand = xs, xdataStand = xdataStand, xmu = xmu, xsd = xsd,
-       U2S = u2s)
-}
-
-environment(.getStandX_modified) <- asNamespace('gjam')
-assignInNamespace(".getStandX", .getStandX_modified, ns = "gjam")
-
-# Restart R session or reload package
-detach("package:gjam", unload=TRUE)
-library(gjam)
-
-## DELETE THIS END ####
 
 ## fit gjam function ####
 
@@ -441,6 +373,7 @@ fit_gjamTime <- function(setup,
   missingEffort <- 0.1 # set this
   
   # fit missing values
+  cat("    initialize xdata and ydata")
   tmp <- gjamFillMissingTimes(xdata, ydata, edata, groupCol, timeCol,
                               FILLMEANS = T, groupVars = groupVars,
                               typeNames = 'DA', missingEffort = 0.1)
@@ -454,6 +387,7 @@ fit_gjamTime <- function(setup,
   
   formula <- as.formula(paste("~ ", paste(allVars, collapse = " + ")))
 
+  cat("    setting priors \n")
   ##  set priorlist
   priorList <- list()
   if(termB){
@@ -499,8 +433,10 @@ fit_gjamTime <- function(setup,
   ## fit gjam
   modelList <- list(typeNames = 'DA', ng = 10000, burnin = 5000,  
                     timeList = timeList, effort = effort)
+  cat("    running gjam \n")
   output <- gjam(formula, xdata=xdata, ydata=ydata, modelList=modelList)
-
+  cat("    done. \n")
+  
   ## save and plot
   outFolder <- get_outfolder(name)
 
@@ -511,8 +447,8 @@ fit_gjamTime <- function(setup,
   }
   if(saveOutput){
     save(output, file = paste0(outFolder, "/output.rdata"))
+    cat("    output available in", outFolder, "\n")
   }
-
   ## return fitted gjam
   return(output)
 }
@@ -550,7 +486,7 @@ mastervector_call <- c("name", "version", "periods", "xvars", "yvars")
 
 ## print when script is called ####
 
-cat("Valid entries for variable list: \n")
-for(keyname in names(masterlist_variables)){
-  cat(keyname,": ", masterlist_variables[[keyname]], "\n")
-}
+# cat("Valid entries for variable list: \n")
+# for(keyname in names(masterlist_variables)){
+#   cat(keyname,": ", masterlist_variables[[keyname]], "\n")
+# }
