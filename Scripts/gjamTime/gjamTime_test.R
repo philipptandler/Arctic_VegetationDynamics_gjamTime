@@ -13,7 +13,8 @@ source("Scripts/gjamTime/setup_gjamTime.R")
 
 xvars_short <- list(
   topography = c("tpi", "elev"),
-  y = FALSE # to get latitude
+  y = FALSE, # to get latitude
+  climate = c("tass", "pr")
 )
 yvars_short <- list(
   vegetation = c("sh", "cf")
@@ -25,6 +26,9 @@ test1 <- list(
   xvars = xvars_short,
   yvars = yvars_short
 )
+# to track failures of .gjam
+tracking <- FALSE
+
 
 # makes sure to have a valid input, initializes and prints call
 test1 <- assert_gjamCall(test1)
@@ -47,10 +51,14 @@ test1$ydata <- get_geodata(test1$yvars, dropgroup = TRUE, dropperiod = TRUE)
 
 ## fit gjamTime ####
 cat("fitting data in gjam: \n")
+if(tracking){start_track_gjam()}
 output_test1 <- fit_gjamTime(setup = test1,
                             termB = termB,
                             termR = termR,
                             termA = termA,
                             saveOutput = TRUE,
                             showPlot = TRUE)
+if(tracking){stop_track_gjam()}
+
 cat("fitting completed. \n")
+

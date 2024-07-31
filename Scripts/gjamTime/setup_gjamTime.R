@@ -12,6 +12,7 @@ library(gjam)
 path_gjam <- "https://github.com/jimclarkatduke/gjam/blob/master/gjamTimeFunctions.R?raw=True"
 source_url(path_gjam)
 
+
 ## Assertion Function ####
 getvars <- function(varlist){
   vars <- c()
@@ -330,6 +331,18 @@ normalize_gjamInput <- function(xdata, vars){
     xdata[[col]] <- (xdata[[col]]-ref_list[[col]]$mean)/ref_list[[col]]$sd
   }
   return(xdata)
+}
+
+# tracking
+start_track_gjam <- function(){
+  source("Scripts/gjamTime/tracking_gjamTime.R")
+  environment(.gjamMod) <- asNamespace('gjam')
+  assignInNamespace(".gjam", .gjamMod, ns = "gjam")
+}
+stop_track_gjam <- function(){
+  # reload package
+  detach("package:gjam", unload=TRUE)
+  library(gjam)
 }
 
 
