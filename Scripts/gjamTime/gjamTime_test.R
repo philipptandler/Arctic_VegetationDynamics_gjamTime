@@ -27,7 +27,7 @@ test1 <- list(
   yvars = yvars_short
 )
 # to track failures of .gjam
-tracking <- FALSE
+tracking <- TRUE
 
 
 # makes sure to have a valid input, initializes and prints call
@@ -48,6 +48,8 @@ test1$xdata <- get_geodata(test1$xvars, dropgroup = FALSE, dropperiod = FALSE)
 cat("loading ydata: \n")
 test1$ydata <- get_geodata(test1$yvars, dropgroup = TRUE, dropperiod = TRUE)
 
+## loading Testdata ####
+load("testdata.Rdata")
 
 ## fit gjamTime ####
 cat("fitting data in gjam: \n")

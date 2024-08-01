@@ -362,6 +362,7 @@
   sg <- diag(.1,S)
   SO <- S
   cat("Reached3")
+  cat("Reached3agian \n")
   
   notOther <- c(1:S)
   sgOther  <- NULL
@@ -423,9 +424,11 @@
   }
   
   zeroRho <- uindex <- NULL
+  cat("Reached3.1")
   
   ############### time 
   if( TIME ){
+    cat("Reached3.2")
     
     if( !all(typeNames == 'DA') )stop( "gjamTime only implemented for DA (count) data" )
     
@@ -444,6 +447,7 @@
       if( !is.finite(mean(loAmat[wA])) )stop( 'values in loAmat not finite: check .getTimeIndex' )
     }
     if( termR & LPRIOR ){
+      cat("Reached3.3")
       Rmat   <- tmp$Rmat; Rpattern <- tmp$Rpattern;  wL <- tmp$wL; zR = tmp$zR;      
       Vmat   <- tmp$Vmat;    Rrows <- tmp$Rrows;  gindex <- tmp$gindex
       loRmat <- tmp$loRmat; hiRmat <- tmp$hiRmat
@@ -463,6 +467,7 @@
         }
       }
     }
+    cat("Reached3.4")
     if(termB){
       Brows  <- tmp$Brows; bg <- tmp$bg; Bpattern <- tmp$Bpattern
       wB     <- tmp$wB; zB <- tmp$zB; loB <- tmp$loB; hiB <- tmp$hiB
@@ -490,6 +495,7 @@
       bigx <- cbind(bigx, Umat[tindex[,2],])
       na <- nrow(Amat)
     }
+    cat("Reached3.5")
     
     bigc <- crossprod(bigx)
     diag(bigc) <- diag(bigc)*1.00001
@@ -526,6 +532,7 @@
       Rmat[1:length(Rmat)] <- as.vector( rinit*ones )
       colnames(Rmat) <- snames
     }
+    cat("Reached3.6")
     if(termA){
       ainit <- init
       loA   <- loAmat
@@ -2593,3 +2600,75 @@
   
   all
 }
+
+.rhoPriorMod <- function(lprior, w, x, tindex, xnames, 
+                      snames, other, notOther, timeLast = NULL){
+  
+  loRho <- lprior$lo
+  hiRho <- lprior$hi
+  rho   <- (loRho + hiRho)/2
+  
+  if(length(other) > 0)loRho[,other] <- hiRho[,other] <- NA
+  
+  lkeep    <- which(!is.na(loRho))
+  
+  M  <- nrow(rho)
+  rownames(rho)[1] <- 'intercept'
+  S  <- ncol(rho)
+  SS <- length(notOther)
+  n  <- nrow(x)
+  wz   <- w
+  
+  gindex <- kronecker(diag(S),rep(1,M)) 
+  gindex <- gindex[lkeep,]
+  
+  wg     <- which(gindex == 1,arr.ind=T)
+  # INCLUDE
+  cat("Reached .rhoprior \n")
+  cat("M:", M)
+  cat(" S: ", S)
+  cat(" rho:", rho)
+  cat(" lkeep:", lkeep)
+  wc     <- matrix(rep(1:M,S*M),S*M,S)[lkeep,]
+  cat("dimension wc:", dim(wc), "\n")
+  rowG   <- wc[wg]
+  gindex <- cbind(rowG,wg)
+  tmp    <- as.vector( t(outer(colnames(rho)[notOther],
+                               rownames(rho),paste,sep='_') ) )
+  rownames(gindex) <- tmp[lkeep]
+  cat(".rhoprior reached 1 \n")
+  
+  colX <- match(rownames(rho),colnames(x))
+  colX <- colX[rowG]
+  gindex <- cbind(colX, gindex)
+  colnames(gindex)[3:4] <- c('rowL','colW')
+  nV <- nrow(gindex)
+  cat(".rhoprior reached 2 \n")
+  
+  # Vmat is w[t-1,]*x[t,]
+  Vmat <- matrix(0,n,nV)
+  wz[wz < 0] <- 0
+  Vmat[tindex[,1],] <- wz[tindex[,1], gindex[,'colW']]*x[tindex[,1], gindex[,'colX']]
+  Vmat[timeLast,]   <- wz[timeLast, gindex[,'colW']]*x[timeLast, gindex[,'colX']]
+  
+  Rmat <- matrix(NA,nV,S)
+  rownames(Rmat) <- rownames(gindex)
+  loRmat <- hiRmat <- Rmat[,notOther]
+  cat(".rhoprior reached 3 \n")
+  
+  Rmat[ gindex[,c('rowL','colW')] ] <- rho[ gindex[,c('rowG','colW')] ]
+  
+  lo <- hi <- Rmat*0
+  lo[ gindex[,c('rowL','colW')] ] <- loRho[ gindex[,c('rowG','colW')] ]
+  hi[ gindex[,c('rowL','colW')] ] <- hiRho[ gindex[,c('rowG','colW')] ]
+  Rmat[ is.nan(Rmat) ] <- 0
+  cat(".rhoprior reached 4 \n")
+  
+  wL <- which(!is.na(Rmat[,notOther]),arr.ind=T)
+  # lo[is.na(lo)] <- 0
+  # hi[is.na(hi)] <- 0
+  
+  list(Rmat = Rmat, loRmat = lo[,notOther], hiRmat = hi[,notOther], wL = wL, 
+       gindex = gindex, Vmat = Vmat)
+}
+

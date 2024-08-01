@@ -310,10 +310,12 @@ get_outfolder <- function(name){
 # fill priorLists
 fill_priorList <- function(all_vars, priorlist){
   
+  # # Values to add corresponding to lo and hi
+  # loValues <- rep(-Inf, length(all_vars))
+  # hiValues <- rep(Inf, length(all_vars))
   # Values to add corresponding to lo and hi
-  loValues <- rep(-Inf, length(all_vars))
-  hiValues <- rep(Inf, length(all_vars))
-  
+  loValues <- rep(-100, length(all_vars))
+  hiValues <- rep(100, length(all_vars))
   # Add variables and their values dynamically
   for (i in seq_along(all_vars)) {
     priorlist$lo[[all_vars[i]]] <- loValues[i]
@@ -338,6 +340,8 @@ start_track_gjam <- function(){
   source("Scripts/gjamTime/tracking_gjamTime.R")
   environment(.gjamMod) <- asNamespace('gjam')
   assignInNamespace(".gjam", .gjamMod, ns = "gjam")
+  environment(.rhoPriorMod) <- asNamespace('gjam')
+  assignInNamespace(".rhoPrior", .rhoPriorMod, ns = "gjam")
 }
 stop_track_gjam <- function(){
   # reload package
@@ -381,15 +385,16 @@ fit_gjamTime <- function(setup,
   
   groupVars <- c("cell", constVars)
   allVars <- c(constVars, xvars_list$climate, xvars_list$wildfire)
-  
+  groupVars2 <- c("cell", allVars)
   xdata <- normalize_gjamInput(xdata, allVars)
   missingEffort <- 0.1 # set this
   
   # fit missing values
   cat("    initialize xdata and ydata")
   tmp <- gjamFillMissingTimes(xdata, ydata, edata, groupCol, timeCol,
-                              FILLMEANS = T, groupVars = groupVars,
+                              FILLMEANS = T, groupVars = groupVars2,
                               typeNames = 'DA', missingEffort = 0.1)
+  # TODO, replace NA with mean
   xdata  <- tmp$xdata
   ydata  <- tmp$ydata
   edata  <- tmp$edata
@@ -444,7 +449,7 @@ fit_gjamTime <- function(setup,
   timeList <- mergeList(tlist, tmp)
 
   ## fit gjam
-  modelList <- list(typeNames = 'DA', ng = 10000, burnin = 5000,  
+  modelList <- list(typeNames = 'DA', ng = 100, burnin = 50,  
                     timeList = timeList, effort = effort)
   cat("    running gjam \n")
   output <- gjam(formula, xdata=xdata, ydata=ydata, modelList=modelList)
