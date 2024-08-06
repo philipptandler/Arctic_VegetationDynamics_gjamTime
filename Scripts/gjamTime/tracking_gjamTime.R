@@ -193,7 +193,6 @@
       rm(ytmp)
     }
   }
-  cat("Reached1")
   tmp <- .buildYdata(ydata, typeNames)
   y   <- as.matrix( tmp$y )
   ydataNames <- tmp$ydataNames
@@ -302,8 +301,7 @@
     nlmiss  <- nrow(xmiss)
     xl <- tmp$x
   }
-  cat("Reached2")
-  
+
   tmp <- .gjamHoldoutSetup(holdoutIndex, holdoutN, n)
   holdoutIndex <- tmp$holdoutIndex; holdoutN <- tmp$holdoutN
   inSamples    <- tmp$inSamples;         nIn <- tmp$nIn
@@ -361,9 +359,7 @@
   sigmaDf  <- nIn - Q + S - 1   
   sg <- diag(.1,S)
   SO <- S
-  cat("Reached3")
-  cat("Reached3agian \n")
-  
+
   notOther <- c(1:S)
   sgOther  <- NULL
   if(length(other) > 0){                     
@@ -383,7 +379,7 @@
   rownames(beta) <- colnames(x)
   
   wB <- which(bg == 0, arr.ind=T)
-  
+  cat("Reached1: BPRIOR = ", BPRIOR, "\n")
   if( BPRIOR ){
     
     loB <- betaPrior$lo
@@ -424,21 +420,25 @@
   }
   
   zeroRho <- uindex <- NULL
-  cat("Reached3.1")
   
   ############### time 
+  cat("Reached2: TIME = ", TIME, "\n")
   if( TIME ){
-    cat("Reached3.2")
-    
+
     if( !all(typeNames == 'DA') )stop( "gjamTime only implemented for DA (count) data" )
     
     wB <- wL <- wA <- numeric(0)
     mua  <- mub <- mug <- muw <- w*0
     Umat <- Vmat <- Rmat <- Amat <- NULL
     Brows <- Rrows <- Arows <- Bpattern <- Rpattern <- Apattern <- NULL
-    
     tmp <- .getTimeIndex(timeList, other, notOther, xdata, x, xl, y, w,
                          termB, termR, termA)
+    cat("after .getTimeIndex -> .rhoPrior:\n")
+    cat("termA: ", termA, "\n")
+    cat("termR: ", termR, "\n")
+    cat("LPRIOR: ", LPRIOR, "\n")
+    cat("termB: ", termB, "\n")
+    
     if(termA){
       Amat   <- tmp$Amat; Apattern <- tmp$Apattern; wA <- tmp$wA; zA = tmp$zA;
       Umat   <- tmp$Umat;   uindex <- tmp$uindex; Arows <- tmp$Arows
@@ -447,7 +447,6 @@
       if( !is.finite(mean(loAmat[wA])) )stop( 'values in loAmat not finite: check .getTimeIndex' )
     }
     if( termR & LPRIOR ){
-      cat("Reached3.3")
       Rmat   <- tmp$Rmat; Rpattern <- tmp$Rpattern;  wL <- tmp$wL; zR = tmp$zR;      
       Vmat   <- tmp$Vmat;    Rrows <- tmp$Rrows;  gindex <- tmp$gindex
       loRmat <- tmp$loRmat; hiRmat <- tmp$hiRmat
@@ -467,7 +466,7 @@
         }
       }
     }
-    cat("Reached3.4")
+    
     if(termB){
       Brows  <- tmp$Brows; bg <- tmp$bg; Bpattern <- tmp$Bpattern
       wB     <- tmp$wB; zB <- tmp$zB; loB <- tmp$loB; hiB <- tmp$hiB
@@ -495,8 +494,7 @@
       bigx <- cbind(bigx, Umat[tindex[,2],])
       na <- nrow(Amat)
     }
-    cat("Reached3.5")
-    
+
     bigc <- crossprod(bigx)
     diag(bigc) <- diag(bigc)*1.00001
     bigi <- try( solveRcpp(bigc), silent = TRUE )
@@ -532,7 +530,6 @@
       Rmat[1:length(Rmat)] <- as.vector( rinit*ones )
       colnames(Rmat) <- snames
     }
-    cat("Reached3.6")
     if(termA){
       ainit <- init
       loA   <- loAmat
@@ -552,7 +549,7 @@
     
     rm(bigx, bigc, bigi, init)
   } 
-  cat("Reached4")
+  cat("Reached4\n")
   
   reductList <- .setupReduct(modelList, S, Q, n) 
   
@@ -572,7 +569,7 @@
   updateBeta <- .betaWrapper(REDUCT, TIME, notOther, betaLim=max(wmax)/2)
   
   ############ dimension reduction
-  cat("Reached5.0")
+  cat("Reached5\n")
   
   inSamp <- inSamples
   
@@ -616,8 +613,7 @@
     
     rndEff <- 0
   }
-  cat("Reached5.1")
-  
+
   out <- .param.fn( x[,xnames,drop=F], beta = bg[,notOther,drop=F], 
                     Y = w[,notOther], otherpar )  
   sg[notOther,notOther]    <- out$sg
@@ -684,8 +680,7 @@
   rownames(bg) <- xnames
   
   ############ ordinal data
-  cat("Reached5.2")
-  
+
   cutg <- tg <- numeric(0)
   
   if('OC' %in% typeCode){
@@ -745,8 +740,7 @@
   if('CC' %in% typeCode)ycount <- rowSums(y[,compCols])
   
   ############ X prediction
-  cat("Reached5.3")
-  
+
   bgg <- bg
   if( TIME & termR){
     tmp <- colnames( model.matrix(formula, xdata) )
@@ -814,8 +808,7 @@
   }
   
   ################################## XL prediction: variables in both beta and rho
-  cat("Reached5.4")
-  
+
   Qall <- Q - 1
   
   # all terms
@@ -875,7 +868,7 @@
   }
   
   ############  contrasts, predict F matrix
-  cat("Reached6")
+  cat("Reached6\n")
   
   if( termB ){
     tmp <- .setupFactors(xdata, xnames, factorBeta)
@@ -1628,15 +1621,13 @@
       if( termR & length(standRowsL) > 0 ){
         
         if( ncol(xl) > 1 ){
-          cat("Reached6.1")
-          
+
           Vunst <- Vmat
           wz    <- w
           wz[wz < 0] <- 0
           Vunst[tindex[,1],]  <- wz[drop = FALSE,tindex[,1],gindex[,'colW']]*
             xlUnstand[drop = FALSE,tindex[,1],xlnames][drop = FALSE,,gindex[,'rowG']]
-          cat("Reached6.2")
-          
+
           Y   <- w[,notOther] 
           Y[tindex[,1],] <- Y[tindex[,2],] - w[tindex[,1],]
           if(termA) Y <- Y - mua[,notOther] 
@@ -1646,22 +1637,20 @@
           
           sig <- sigmaerror
           if( !REDUCT ) sig <- sg[notOther,notOther]
-          cat("Reached6.2.1")
-          
-          
+          cat("entering updateBeta\n")
+
           RmatU[,notOther] <- updateBeta( X = Vunst[tindex[,1],], 
                                           Y = Y[tindex[,1],notOther], sig = sig, 
                                           beta = RmatU[,notOther],
                                           PRIOR = LPRIOR,
                                           rows = Rrows, pattern = Rpattern, 
                                           lo = loRmat, hi = hiRmat, sinv = sinv, wF = wL )
-          cat("Reached6.2.2")
+          cat("exit updateBeta\n")
           
           lgibbsUn[g,] <- RmatU[wL]          # unstandardized
         }
       }
     }
-    cat("Reached 6.3\n")
     if( TRAITS ){
       Atrait <- bgU%*%t(specTrait[,colnames(yp)])  # unstandardized
       bTraitUnstGibbs[g,] <- Atrait
@@ -1875,7 +1864,7 @@
   otherpar$Q <- Q
   otherpar$snames <- snames
   otherpar$xnames <- xnames
-  cat("Reached7")
+  cat("Reached7\n")
   
   presence <- presence/ntot
   
@@ -2092,7 +2081,7 @@
       Ase[wA] <- tmp2
     }
   }
-  cat("Reached8")
+  cat("Reached8\n")
   
   yMu <- ypred/ntot
   if('CA' %in% typeNames){
@@ -2280,7 +2269,7 @@
   }
   
   tMu <- tSd <- tMuOrd <- btMu <- btSe <- stMu <- stSe <- numeric(0)
-  cat("Reached9")
+  cat("Reached9\n")
   
   if(TRAITS){
     
@@ -2589,7 +2578,7 @@
   wk <- sapply( prediction, length )
   prediction <- prediction[ wk > 0 ]
   
-  cat("Reached10")
+  cat("Reached10\n")
   
   all <- list(chains = chains, fit = fit, inputs = inputs, missing = missing,
               modelList = modelList, parameters = parameters,
@@ -2601,8 +2590,190 @@
   all
 }
 
+.getTimeIndex <- function(timeList, other, notOther, xdata, x, xl, y, w,
+                          termB, termR, termA ){
+  cat("entering .getTimeIndex()\n")
+  cat("\ttypeof()\t< ")
+  Q <- ncol(x)
+  n <- nrow(x)
+  xnames <- colnames(x)
+  snames <- colnames(y)
+  loBeta <- hiBeta <- alphaPrior <- Rmat <- Rpattern <- wL <- gindex <- 
+    Vmat <- Rrows <- loRmat <- hiRmat <- Arows <- Amat <- Apattern <- wA <- 
+    Umat <- uindex <- loAmat <- hiAmat <- aindex <- Brows <- bg <- Bpattern <- 
+    wB <- loB <- hiB <- zB <- zA <- zR <- NULL
+  
+  timeZero <- timeList$timeZero
+  timeLast <- timeList$timeLast
+  
+  if(length(timeZero) != length(timeLast))
+    stop('timeZero and timeLast different lengths')
+  times    <- timeList$times
+  
+  if(is.null(times))
+    stop(' column name "times" needed for time-series model' )
+  timeZero <- which(xdata[,'times'] == 0)
+  if(length(timeZero) == 0)stop(' must have time zero in xdata[,time] ')
+  
+  timeLast <- timeZero - 1
+  timeLast <- timeLast[-1]
+  timeLast <- c(timeLast,nrow(xdata))
+  
+  w2 <- which(timeLast - timeZero < 2)
+  if(length(w2) > 0)
+    stop('some sequences have only 2 time intervals, need at least 3')
+  
+  ix <- 1:n
+  t1 <- ix[-timeZero]
+  t0 <- t1 - 1
+  t2 <- t1 + 1
+  tindex <- cbind(t0,t1,t2)
+  S  <- ncol(y)
+  
+  ns <- length(timeZero)
+  nt <- nrow(tindex)
+  i1 <- i2 <- numeric(0)
+  
+  for(k in 1:ns){
+    
+    tl <- timeLast[k]
+    sk <- timeZero[k]
+    wk <- which(tindex[,1] >= sk & tindex[,2] <= tl)
+    k1 <- wk[ seq(1, length(wk), by = 2) ] #location in tindex, by 2
+    k2 <- k1 + 1
+    k2 <- k2[ k2 <= nt ]
+    k2 <- k2[ tindex[k2,2] <= tl ]
+    i1 <- c(i1, k1)
+    i2 <- c(i2, k2)
+  }
+  
+  maxTime <- max(xdata$times)
+  inSamples <- tindex[,2]
+  
+  if(termB){ # beta
+    
+    if('betaPrior' %in% names(timeList)){
+      bm    <- model.frame( timeList$formulaBeta, xdata )
+      int   <- attr( attributes(bm)$terms, 'intercept' )
+      bnames <- attr( attributes(bm)$terms, "term.labels")
+      if( int == 1 )bnames <- c( 'intercept', bnames )
+      loBeta <- timeList$betaPrior$lo
+      hiBeta <- timeList$betaPrior$hi
+      beta   <- (loBeta + hiBeta)/2
+      beta[ is.nan(beta) | beta == -Inf | beta == Inf ] <- 0
+      
+      bg <- matrix( 0, length(bnames), ncol(beta) )
+      rownames(bg) <- bnames
+      colnames(bg) <- colnames(beta)
+      lo <- bg - 100
+      hi <- bg + 100
+      
+      lo[ rownames(loBeta), ] <- loBeta
+      hi[ rownames(hiBeta), ] <- hiBeta
+      bg[ rownames(beta), ] <- beta
+      
+      loBeta <- lo
+      hiBeta <- hi
+      beta   <- bg
+      
+    } else{
+      beta <- matrix(0,Q,S)
+      rownames(beta) <- colnames(x)
+      BPRIOR <- F
+    }
+    
+    tmp <- .betaPrior(beta, notOther, loBeta, hiBeta)
+    bg <- tmp$beta; loB <- tmp$loB;   hiB <- tmp$hiB
+    wB <- tmp$wB;    zB <- tmp$zB; BPRIOR <- tmp$BPRIOR
+    bg[is.nan(bg) | bg == -Inf | bg == Inf] <- 0
+    
+    tmp   <- .getPattern(bg[,notOther,drop=F], wB)
+    Brows <- tmp$rows
+    Bpattern <- tmp$pattern
+    bg[!is.finite(bg)] <- 0
+  }
+  
+  if(termA){ # alpha
+    
+    if( 'alphaPrior' %in% names(timeList) ){
+      loAlpha <- timeList$alphaPrior$lo
+      hiAlpha <- timeList$alphaPrior$hi
+      loAlpha[is.na(loAlpha) | is.na(hiAlpha)] <- hiAlpha[is.na(loAlpha) | is.na(hiAlpha)] <- 0
+    } else{
+      alpha <- diag(NA,S)
+      diag(alpha) <- -1
+    }
+    
+    tmp <- .alphaPrior(w, tindex, ap = timeList$alphaPrior, notOther)
+    Amat <- tmp$Amat; loAmat <- tmp$loAmat; hiAmat <- tmp$hiAmat
+    wA   <- tmp$wA; # Umat <- tmp$Umat; umat <- tmp$umat
+    uindex <- tmp$uindex; aindex <- tmp$aindex
+    
+    U <- nrow(Amat)
+    Umat <- matrix(0,n,U)
+    wz   <- w
+    wz[wz < 0] <- 0
+    
+    Umat <- wz[,uindex[,1]]*wz[,uindex[,2]] # note: tindex[,2] makes this w[t-1,]*w[t-1,]
+    
+    tmp      <- .getPattern(loAmat, wA)
+    Arows    <- tmp$rows
+    Apattern <- uindex
+    #  Apattern[ Apattern[,2] == Apattern[,1], 2] <- NA
+    
+    Amat[!is.finite(Amat)] <- 0
+    zA <- which(Amat == 0)
+    
+    wrow <- max(wA[,1])
+    wcol <- max(wA[,2])
+    
+    Apattern <- Apattern[ Apattern[,1] %in% c(1:wrow),]
+    Apattern <- Apattern[ !Apattern[,1] > wcol,]
+    # Apattern[Apattern %in% other] <- NA
+    Apattern <- Apattern[1:wrow,]
+  }
+  
+  if(termR){ # rho
+    
+    if( 'rhoPrior' %in% names(timeList) ){
+      lprior <- timeList$rhoPrior
+      lprior$lo[ is.na(lprior$lo) | is.na(lprior$hi) ] <- 0
+      lprior$hi[ is.na(lprior$lo) | is.na(lprior$hi) ] <- 0
+    } else{
+      lprior <- timeList$betaPrior
+    }
+    xlnames <- colnames(xl)
+    tmp <- .rhoPrior(lprior, w, xl, tindex, xlnames, 
+                     snames, other, notOther, timeLast)
+    
+    Rmat <- tmp$Rmat; loRmat <- tmp$loRmat; hiRmat <- tmp$hiRmat
+    wL <- tmp$wL; gindex <- tmp$gindex; Vmat <- tmp$Vmat
+    zR <- which( is.na(Rmat) )
+    
+    ltmp <- matrix(NA,nrow(Rmat),length(notOther))
+    ltmp[wL] <- 1
+    
+    tmp <- .getPattern(ltmp, wL)
+    Rrows <- tmp$rows
+    Rpattern <- tmp$pattern
+    Rmat[!is.finite(Rmat)] <- 0
+  }
+  
+  # tindex <- tindex[!tindex[, 2] %in% timeLast, ]
+  
+  list(Rmat = Rmat, Rpattern = Rpattern, wL = wL, gindex = gindex,
+       Vmat = Vmat, Rrows = Rrows, loRmat = loRmat, hiRmat = hiRmat,
+       Arows = Arows, Amat = Amat, Apattern = Apattern, wA = wA, 
+       Umat = Umat, uindex = uindex,loAmat = loAmat, hiAmat = hiAmat,
+       aindex = aindex, Brows = Brows, bg = bg, Bpattern = Bpattern, wB = wB, 
+       loB = loB, hiB = hiB, zB = zB, zA = zA, zR = zR, timeZero = timeZero, 
+       timeLast = timeLast, maxTime = maxTime, inSamples = inSamples, 
+       tindex = tindex, i1 = i1, i2 = i2)
+}
+
 .rhoPriorMod <- function(lprior, w, x, tindex, xnames, 
                       snames, other, notOther, timeLast = NULL){
+  cat("Reached .rhoprior function \n")
   
   loRho <- lprior$lo
   hiRho <- lprior$hi
@@ -2624,13 +2795,14 @@
   
   wg     <- which(gindex == 1,arr.ind=T)
   # INCLUDE
-  cat("Reached .rhoprior \n")
-  cat("M:", M)
-  cat(" S: ", S)
-  cat(" rho:", rho)
-  cat(" lkeep:", lkeep)
+  cat("M:", M, "\n")
+  cat(" S: ", S, "\n")
+  cat(" rho:", rho, "\n")
+  cat(" lkeep:", lkeep, "\n")
   wc     <- matrix(rep(1:M,S*M),S*M,S)[lkeep,]
   cat("dimension wc:", dim(wc), "\n")
+  cat("matrix wc:\n")
+  print(wc)
   rowG   <- wc[wg]
   gindex <- cbind(rowG,wg)
   tmp    <- as.vector( t(outer(colnames(rho)[notOther],
@@ -2667,8 +2839,11 @@
   wL <- which(!is.na(Rmat[,notOther]),arr.ind=T)
   # lo[is.na(lo)] <- 0
   # hi[is.na(hi)] <- 0
-  
+  cat("list:\n")
+  print(list(Rmat = Rmat, loRmat = lo[,notOther], hiRmat = hi[,notOther], wL = wL, 
+             gindex = gindex, Vmat = Vmat))
   list(Rmat = Rmat, loRmat = lo[,notOther], hiRmat = hi[,notOther], wL = wL, 
        gindex = gindex, Vmat = Vmat)
 }
+
 

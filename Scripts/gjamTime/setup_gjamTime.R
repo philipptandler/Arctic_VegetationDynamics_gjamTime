@@ -27,7 +27,6 @@ getvars <- function(varlist){
   return(vars)
 }
 
-
 print_call <- function(call){
   insert <- "    "
   cat(" \n")
@@ -314,8 +313,8 @@ fill_priorList <- function(all_vars, priorlist){
   # loValues <- rep(-Inf, length(all_vars))
   # hiValues <- rep(Inf, length(all_vars))
   # Values to add corresponding to lo and hi
-  loValues <- rep(-100, length(all_vars))
-  hiValues <- rep(100, length(all_vars))
+  loValues <- rep(-10, length(all_vars))
+  hiValues <- rep(10, length(all_vars))
   # Add variables and their values dynamically
   for (i in seq_along(all_vars)) {
     priorlist$lo[[all_vars[i]]] <- loValues[i]
@@ -349,6 +348,21 @@ stop_track_gjam <- function(){
   library(gjam)
 }
 
+# fillmeans
+fillmeans <- function(df, vars){
+  groupVec <- df$groups
+  for(col in vars){
+    colVec <- df[[col]]
+    # create vector means with groupmeans
+    means <- tapply(colVec, groupVec, mean, na.rm = TRUE)
+    means <- as.vector(means[as.character(groupVec)])
+    #replace is.na with groupmeans
+    colVec[is.na(colVec)] <- means[is.na(colVec)]
+    #write col
+    df[[col]] <- colVec
+  }
+  return(df)
+}
 
 ## fit gjam function ####
 
@@ -358,7 +372,7 @@ fit_gjamTime <- function(setup,
                          termA = TRUE,
                          saveOutput = TRUE,
                          showPlot = TRUE){
-
+  # setting up environment
   xdata <- as.data.frame(setup$xdata)
   ydata <- as.matrix(setup$ydata)
   rownames(ydata) <- NULL
@@ -368,7 +382,7 @@ fit_gjamTime <- function(setup,
   xvars_list <- setup$xvars
   yvars_list <- setup$yvars
   name <- setup$name
-
+  
   ## Missing values in time series data
 
   # check if there are missing values
@@ -385,17 +399,17 @@ fit_gjamTime <- function(setup,
   
   groupVars <- c("cell", constVars)
   allVars <- c(constVars, xvars_list$climate, xvars_list$wildfire)
-  groupVars2 <- c("cell", allVars)
+  # groupVars2 <- c("cell", allVars) #TODO solve
   xdata <- normalize_gjamInput(xdata, allVars)
   missingEffort <- 0.1 # set this
   
   # fit missing values
   cat("    initialize xdata and ydata")
   tmp <- gjamFillMissingTimes(xdata, ydata, edata, groupCol, timeCol,
-                              FILLMEANS = T, groupVars = groupVars2,
+                              FILLMEANS = T, groupVars = groupVars,
                               typeNames = 'DA', missingEffort = 0.1)
-  # TODO, replace NA with mean
   xdata  <- tmp$xdata
+  xdata <- fillmeans(xdata, allVars)
   ydata  <- tmp$ydata
   edata  <- tmp$edata
   tlist  <- tmp$timeList
@@ -404,14 +418,15 @@ fit_gjamTime <- function(setup,
   effort <- list(columns = 1:n_spec, values = edata)
   
   formula <- as.formula(paste("~ ", paste(allVars, collapse = " + ")))
-
+  # formula <- as.formula(paste("~ 1"))
+  
   cat("    setting priors \n")
   ##  set priorlist
   priorList <- list()
   if(termB){
     # set priordistribution (intercept = (-Inf, Inf) and all other vars = (-Inf, Inf))
-    betaPrior  <- list(lo = list(intercept = -Inf),
-                       hi = list(intercept = Inf) )
+    betaPrior  <- list(lo = list(intercept = -10),
+                       hi = list(intercept = 10) )
     betaPrior <- fill_priorList(allVars, betaPrior)
     formulaBeta <- formula
     priorList$formulaBeta = formulaBeta
@@ -477,7 +492,7 @@ fit_gjamTime <- function(setup,
 # paths
 path_vars <- "data/gjamTime_data/"
 path_save <- "data/gjamtime_outputs/"
-ref_list_name <- "normalisation.rds"
+ref_list_name <- "normalization.rds"
 path_ref_list <- "Scripts/gjamTime/"
 
 # masterlist of all variables

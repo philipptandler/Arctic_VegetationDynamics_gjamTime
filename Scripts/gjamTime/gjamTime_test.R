@@ -29,15 +29,13 @@ test1 <- list(
 # to track failures of .gjam
 tracking <- TRUE
 
-
-# makes sure to have a valid input, initializes and prints call
-test1 <- assert_gjamCall(test1)
-
-
 # set model specifications:
 termB <- FALSE    # include immigration/emigration term XB
 termR <- TRUE     # include DI population growth term VL
 termA <- TRUE    # include DD spp interaction term UA
+
+# makes sure to have a valid input, initializes and prints call
+test1 <- assert_gjamCall(test1)
 
 ## get xdata ####
 cat("loading xdata: \n")
