@@ -247,7 +247,6 @@ get_geodata <- function(var_list, dropgroup = TRUE, dropperiod = TRUE){
   if (dropperiod) {
     ordered_df <- subset(ordered_df, select = -c(period))
   }
-  cat("    done\n")
   cat("    returning dataframe of nrows =", nrow(ordered_df), ", ncols =", ncol(ordered_df), "\n")
   
   # returning dataframe
@@ -312,9 +311,8 @@ fill_priorList <- function(all_vars, priorlist){
   # # Values to add corresponding to lo and hi
   # loValues <- rep(-Inf, length(all_vars))
   # hiValues <- rep(Inf, length(all_vars))
-  # Values to add corresponding to lo and hi
-  loValues <- rep(-10, length(all_vars))
-  hiValues <- rep(10, length(all_vars))
+  loValues <- rep(-100, length(all_vars))
+  hiValues <- rep(100, length(all_vars))
   # Add variables and their values dynamically
   for (i in seq_along(all_vars)) {
     priorlist$lo[[all_vars[i]]] <- loValues[i]
@@ -324,12 +322,22 @@ fill_priorList <- function(all_vars, priorlist){
 }
 
 # normalize xdata
-normalize_gjamInput <- function(xdata, vars){
+normalize_gjamInput_ref <- function(xdata, vars){
   #each column must be normalized with mean and sd
   path_ref_list_fullname <- paste0(path_ref_list, ref_list_name)
   ref_list <- readRDS(path_ref_list_fullname)
   for(col in vars){
     xdata[[col]] <- (xdata[[col]]-ref_list[[col]]$mean)/ref_list[[col]]$sd
+  }
+  return(xdata)
+}
+normalize_gjamInput_this <- function(xdata, vars){
+  #each column must be normalized with mean and sd
+  for(col in vars){
+    mu <- mean(xdata[[col]])
+    sd <- sd(xdata[[col]])
+    if(sd == 0){(xdata[[col]]-mu)}
+    else{xdata[[col]] <- (xdata[[col]]-mu)/sd}
   }
   return(xdata)
 }
@@ -341,6 +349,12 @@ start_track_gjam <- function(){
   assignInNamespace(".gjam", .gjamMod, ns = "gjam")
   environment(.rhoPriorMod) <- asNamespace('gjam')
   assignInNamespace(".rhoPrior", .rhoPriorMod, ns = "gjam")
+  environment(.getTimeIndexMod) <- asNamespace('gjam')
+  assignInNamespace(".getTimeIndex", .getTimeIndexMod, ns = "gjam")
+  environment(.betaWrapperMod) <- asNamespace('gjam')
+  assignInNamespace(".betaWrapper", .betaWrapperMod, ns = "gjam")
+  environment(.tnormMVNmatrixMod) <- asNamespace('gjam')
+  assignInNamespace(".tnormMVNmatrix", .tnormMVNmatrixMod, ns = "gjam")
 }
 stop_track_gjam <- function(){
   # reload package
@@ -370,8 +384,11 @@ fit_gjamTime <- function(setup,
                          termB = FALSE,
                          termR = TRUE,
                          termA = TRUE,
+                         normalize = TRUE,
+                         # normalize = "ref" for normalizing to ref period 2015-2020
                          saveOutput = TRUE,
                          showPlot = TRUE){
+  
   # setting up environment
   xdata <- as.data.frame(setup$xdata)
   ydata <- as.matrix(setup$ydata)
@@ -389,26 +406,38 @@ fit_gjamTime <- function(setup,
   check_dataframe(ydata)
   check_dataframe(xdata)
 
-  # prepare
+  # prepare input
   timeCol   <- "period" # Column that stores time
   groupCol  <- "cell" # column that stores the group ID
+  
+  # constVars are time invariant
   constVars <- c(xvars_list$topography,
                  xvars_list$soil) #TODO wildfire when fitting
   if(xvars_list$x){constVars <- c(constVars, "lon")}
   if(xvars_list$y){constVars <- c(constVars, "lat")}
   
-  groupVars <- c("cell", constVars)
-  allVars <- c(constVars, xvars_list$climate, xvars_list$wildfire)
-  # groupVars2 <- c("cell", allVars) #TODO solve
-  xdata <- normalize_gjamInput(xdata, allVars)
-  missingEffort <- 0.1 # set this
+  # allVars are all predictor Variables
+  allVars <- c(constVars,
+               xvars_list$climate,
+               xvars_list$wildfire)
+  
+  # data normalization
+  if(normalize == "ref"){
+    xdata <- normalize_gjamInput_ref(xdata, allVars)
+  }else if(is.logical(normalize) && normalize){
+    xdata <- normalize_gjamInput_this(xdata, allVars)
+  }else{stop("no valid normalization method")}
   
   # fit missing values
-  cat("    initialize xdata and ydata")
+  missingEffort <- 0.1 # set this
+  # groupVars are the time invariant columns, which includes the group ID 'cell'
+  groupVars <- c("cell", constVars)
+  cat("    initialize xdata and ydata \n")
   tmp <- gjamFillMissingTimes(xdata, ydata, edata, groupCol, timeCol,
                               FILLMEANS = T, groupVars = groupVars,
                               typeNames = 'DA', missingEffort = 0.1)
   xdata  <- tmp$xdata
+  # fill means of not group varaibles manually
   xdata <- fillmeans(xdata, allVars)
   ydata  <- tmp$ydata
   edata  <- tmp$edata
@@ -417,14 +446,15 @@ fit_gjamTime <- function(setup,
   n_spec <- ncol(ydata)
   effort <- list(columns = 1:n_spec, values = edata)
   
-  formula <- as.formula(paste("~ ", paste(allVars, collapse = " + ")))
-  # formula <- as.formula(paste("~ 1"))
+  # defining the formula
+  # formula <- as.formula(paste("~ ", paste(allVars, collapse = " + ")))
+  formula <- as.formula(paste("~ tpi + elev"))
   
   cat("    setting priors \n")
   ##  set priorlist
   priorList <- list()
   if(termB){
-    # set priordistribution (intercept = (-Inf, Inf) and all other vars = (-Inf, Inf))
+    # set priordistribution (intercept = (-Inf, Inf) and all other vars = (-100, 100))
     betaPrior  <- list(lo = list(intercept = -10),
                        hi = list(intercept = 10) )
     betaPrior <- fill_priorList(allVars, betaPrior)
@@ -433,8 +463,8 @@ fit_gjamTime <- function(setup,
     priorList$betaPrior = betaPrior
   }
   if(termR){
-    # set priordistribution (intercept = (-1,1), all other vars = (-Inf, Inf))
-    rhoPrior  <- list(lo = list(intercept = 0),
+    # set priordistribution (intercept = (-1,1), all other vars = (-100, 100))
+    rhoPrior  <- list(lo = list(intercept = -2),
                       hi = list(intercept = 2) )
     rhoPrior <- fill_priorList(allVars, rhoPrior)
     formulaRho <- formula
@@ -442,34 +472,19 @@ fit_gjamTime <- function(setup,
     priorList$rhoPrior = rhoPrior
   }
   if(termA){
-    # from Nill 2022 Fig 6 https://doi.org/10.1016/j.rse.2022.113228
-    # obs = a + b*pred
-    # obs max = 10000,==> 10000 = a + b*predmax, here predmax in alpha_list
-    # dx/dt = rx + ax^2 -> x = 0 or x = (-r/a) =~ 10'000
-    # if r prior =~ 1, alpha prior =~~ -r/10000 =~~ -1/10000
-    # alpha_list <- list("sh" = -1/9832.673,
-    #                    "cf" = -1/18187.72,
-    #                    "hb" = -1/11384.09,
-    #                    "lc" = -1/24568.29) 
     alphaSign  <- matrix(-1, n_spec, n_spec)
     colnames(alphaSign) <- rownames(alphaSign) <- s_names
-    # for(i in 1:n_spec){
-    #   var <- s_names[i]
-    #   alphaSign[var,var] <- alpha_list[[var]]
-    #   # alphaSign[var,var] <- -1
-    # }
     priorList$alphaSign = alphaSign
   }
   tmp <- gjamTimePrior(xdata, ydata, edata, priorList)
   timeList <- mergeList(tlist, tmp)
 
   ## fit gjam
-  modelList <- list(typeNames = 'DA', ng = 100, burnin = 50,  
+  modelList <- list(typeNames = 'DA', ng = 10000, burnin = 5000,  
                     timeList = timeList, effort = effort)
   cat("    running gjam \n")
   output <- gjam(formula, xdata=xdata, ydata=ydata, modelList=modelList)
-  cat("    done. \n")
-  
+
   ## save and plot
   outFolder <- get_outfolder(name)
 
@@ -480,7 +495,7 @@ fit_gjamTime <- function(setup,
   }
   if(saveOutput){
     save(output, file = paste0(outFolder, "/output.rdata"))
-    cat("    output available in", outFolder, "\n")
+    cat("\n    output available in", outFolder, "\n")
   }
   ## return fitted gjam
   return(output)

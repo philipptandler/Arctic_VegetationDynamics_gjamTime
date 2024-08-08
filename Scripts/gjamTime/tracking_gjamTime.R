@@ -379,7 +379,6 @@
   rownames(beta) <- colnames(x)
   
   wB <- which(bg == 0, arr.ind=T)
-  cat("Reached1: BPRIOR = ", BPRIOR, "\n")
   if( BPRIOR ){
     
     loB <- betaPrior$lo
@@ -422,7 +421,6 @@
   zeroRho <- uindex <- NULL
   
   ############### time 
-  cat("Reached2: TIME = ", TIME, "\n")
   if( TIME ){
 
     if( !all(typeNames == 'DA') )stop( "gjamTime only implemented for DA (count) data" )
@@ -431,14 +429,11 @@
     mua  <- mub <- mug <- muw <- w*0
     Umat <- Vmat <- Rmat <- Amat <- NULL
     Brows <- Rrows <- Arows <- Bpattern <- Rpattern <- Apattern <- NULL
+    cat("calling .gjam() -> .getTimeIndex() \n")
     tmp <- .getTimeIndex(timeList, other, notOther, xdata, x, xl, y, w,
                          termB, termR, termA)
-    cat("after .getTimeIndex -> .rhoPrior:\n")
-    cat("termA: ", termA, "\n")
-    cat("termR: ", termR, "\n")
-    cat("LPRIOR: ", LPRIOR, "\n")
-    cat("termB: ", termB, "\n")
-    
+    cat("terminated .gjam() <- .getTimeIndex() \n")
+
     if(termA){
       Amat   <- tmp$Amat; Apattern <- tmp$Apattern; wA <- tmp$wA; zA = tmp$zA;
       Umat   <- tmp$Umat;   uindex <- tmp$uindex; Arows <- tmp$Arows
@@ -549,8 +544,6 @@
     
     rm(bigx, bigc, bigi, init)
   } 
-  cat("Reached4\n")
-  
   reductList <- .setupReduct(modelList, S, Q, n) 
   
   if( is.null(reductList) ){
@@ -565,13 +558,12 @@
     inw <- intersect( colnames(y)[indexW], colnames(y)[notOther] )
     indexW <- match(inw,colnames(y)[notOther])
   }
-  
+  cat("define updateBeta in .gjam() \n")
   updateBeta <- .betaWrapper(REDUCT, TIME, notOther, betaLim=max(wmax)/2)
   
   ############ dimension reduction
-  cat("Reached5\n")
-  
-  inSamp <- inSamples
+
+    inSamp <- inSamples
   
   .param.fn <- .paramWrapper(REDUCT, inSamp, SS=length(notOther))
   sigmaerror <- .1
@@ -631,7 +623,7 @@
       Y   <- Y - rndEff[inSamp,notOther]
       sig <- sigmaerror
     }
-    
+
     bg[,notOther] <- updateBeta(X = x[inSamp,], Y, sig, 
                                 beta = bg[,notOther], BPRIOR, loB, hiB)
     muw <- x%*%bg
@@ -663,7 +655,7 @@
       sig <- sg[notOther,notOther] 
     }
     if( termB ){
-      
+
       bg[,notOther] <- updateBeta(X = x[drop=F,tindex[,1],xnames], Y = Y[tindex[,1],notOther], 
                                   sig = sig, beta = bg[,notOther], 
                                   PRIOR = BPRIOR,
@@ -868,8 +860,6 @@
   }
   
   ############  contrasts, predict F matrix
-  cat("Reached6\n")
-  
   if( termB ){
     tmp <- .setupFactors(xdata, xnames, factorBeta)
     ff  <- factorBeta[names(factorBeta) != 'factorList']
@@ -1116,9 +1106,9 @@
   sdg <- .1
   
   
-  
+  cat("\n\nentering Gibbs loop here: \n")
   for(g in 1:ng){ ########################################################
-    
+    cat("\n start new gibbs loop now \n")
     if( REDUCT ){
       
       Y  <- w[,notOther]
@@ -1146,6 +1136,7 @@
         
         Y <- w[inSamp,notOther] - rndEff[inSamp,notOther]
         if(RANDOM)Y <- Y - groupRandEff[inSamp,notOther]
+
         bg[,notOther] <- updateBeta(X = x[inSamp,xnames], Y, 
                                     sig = sigmaerror, beta = bg[,notOther],
                                     PRIOR = BPRIOR, lo=loB[,notOther], hi=hiB[,notOther])
@@ -1165,7 +1156,7 @@
           if( termA )Y <- Y - mua[,notOther] 
           if(RANDOM) Y <- Y - groupRandEff[,notOther]
           Y <- Y - rndEff[,notOther]
-          
+
           bg[,notOther] <- updateBeta( X = x[drop=F, tindex[,1],xnames], Y = Y[tindex[,1],], 
                                        sig = sigmaerror, beta = bg[,notOther],
                                        PRIOR = BPRIOR,
@@ -1184,7 +1175,7 @@
           if( termA )Y <- Y - mua[,notOther] 
           if(RANDOM) Y <- Y - groupRandEff[,notOther]
           Y <- Y - rndEff[,notOther]
-          
+
           Rmat[,notOther] <- updateBeta( X = Vmat[tindex[,1],], 
                                          Y = Y[tindex[,1],notOther], sig=sigmaerror, 
                                          beta = Rmat[,notOther], PRIOR = LPRIOR,
@@ -1202,7 +1193,7 @@
           if( termR )Y <- Y - mug[,notOther] 
           if(RANDOM) Y <- Y - groupRandEff[,notOther]
           Y <- Y - rndEff[,notOther]         
-          
+
           Amat[,notOther] <- updateBeta(X = Umat[tindex[,1],], Y = Y[tindex[,1],], sig = sigmaerror, 
                                         rows = Arows, pattern = Apattern, 
                                         beta = Amat[,notOther], PRIOR = TRUE, 
@@ -1222,6 +1213,8 @@
         
         Y <- w[inSamp,notOther]
         if(RANDOM)Y <- Y - groupRandEff[inSamp,notOther]
+        # cat("call 7 updateBeta \n")
+        
         bg[,notOther] <- updateBeta(X = x[inSamp,], Y, sig = sg[notOther,notOther], 
                                     beta = bg[,notOther], BPRIOR, lo=loB, hi=hiB)
         muw[inSamp,] <- x[inSamp,]%*%bg
@@ -1242,6 +1235,7 @@
           if(termA) Y <- Y - mua[,notOther] 
           if(termR) Y <- Y - mug[,notOther]
           if(RANDOM)Y <- Y - groupRandEff[,notOther]
+          # cat("call 8 updateBeta \n")
           
           bg[,notOther] <- updateBeta(X = x[drop=F, tindex[,1],xnames], Y = Y[tindex[,1],notOther], 
                                       sig = sg[notOther,notOther], beta = bg[,notOther],
@@ -1260,6 +1254,7 @@
           if(termA) Y <- Y - mua[,notOther] 
           if(termB) Y <- Y - mub[,notOther]
           if(RANDOM)Y <- Y - groupRandEff[,notOther]
+          # cat("call 9 updateBeta \n")
           
           Rmat[,notOther] <- updateBeta(X = Vmat[tindex[,1],], Y = Y[tindex[,1],], 
                                         sig=sg[notOther,notOther], 
@@ -1284,6 +1279,7 @@
           if(termR) Y <- Y - mug[,notOther] 
           if(termB) Y <- Y - mub[,notOther]
           if(RANDOM)Y <- Y - groupRandEff[,notOther]
+          # cat("call 10 updateBeta \n")
           
           Amat[,notOther] <- updateBeta(X = Umat[tindex[,1],], Y = Y[tindex[,1],], 
                                         sig=sg[notOther,notOther], 
@@ -1637,7 +1633,22 @@
           
           sig <- sigmaerror
           if( !REDUCT ) sig <- sg[notOther,notOther]
-          cat("entering updateBeta\n")
+          cat("call 11 updateBeta \n")
+          cat("calling .gjam() -> updateBeta() \n")
+          
+          # cat("\tArguments for updateBeta()\n")
+          # cat("\t\tstructure()\n")
+          # cat("\tX:\t"); cat(str(Vunst[tindex[,1],], max.level = 1)); cat("\n")
+          # cat("\tY:\t"); cat(str(Y[tindex[,1],notOther], max.level = 1)); cat("\n")
+          # cat("\tsig:\t"); cat(str(sig, max.level = 1)); cat("\n")
+          # cat("\tbeta:\t"); cat(str(RmatU[,notOther], max.level = 1)); cat("\n")
+          # cat("\tPRIOR:\t"); cat(str(LPRIOR, max.level = 1)); cat("\n")
+          # cat("\trows:\t"); cat(str(Rrows, max.level = 1)); cat("\n")
+          # cat("\tpattern:\t"); cat(str(Rpattern, max.level = 1)); cat("\n")
+          # cat("\tlo:\t"); cat(str(loRmat, max.level = 1)); cat("\n")
+          # cat("\thi:\t"); cat(str(hiRmat, max.level = 1)); cat("\n")
+          # cat("\tsinv:\t"); cat(str(sinv, max.level = 1)); cat("\n")
+          # cat("\twF:\t"); cat(str(wL, max.level = 1)); cat("\n")
 
           RmatU[,notOther] <- updateBeta( X = Vunst[tindex[,1],], 
                                           Y = Y[tindex[,1],notOther], sig = sig, 
@@ -1645,7 +1656,7 @@
                                           PRIOR = LPRIOR,
                                           rows = Rrows, pattern = Rpattern, 
                                           lo = loRmat, hi = hiRmat, sinv = sinv, wF = wL )
-          cat("exit updateBeta\n")
+          cat("terminating .gjam() <- updateBeta() \n")
           
           lgibbsUn[g,] <- RmatU[wL]          # unstandardized
         }
@@ -1848,7 +1859,7 @@
     
   }
   ################# end gibbs loop ####################
-  
+  cat("end of gibbs loop \n\n\n")
   
   # default: all columns standardized for analysis
   #          reported on input scale in betaMu, bgibbsUn
@@ -1864,8 +1875,7 @@
   otherpar$Q <- Q
   otherpar$snames <- snames
   otherpar$xnames <- xnames
-  cat("Reached7\n")
-  
+
   presence <- presence/ntot
   
   if(RICHNESS){
@@ -2081,8 +2091,7 @@
       Ase[wA] <- tmp2
     }
   }
-  cat("Reached8\n")
-  
+
   yMu <- ypred/ntot
   if('CA' %in% typeNames){
     ytmp <- yMu[,'CA' %in% typeNames]
@@ -2269,8 +2278,7 @@
   }
   
   tMu <- tSd <- tMuOrd <- btMu <- btSe <- stMu <- stSe <- numeric(0)
-  cat("Reached9\n")
-  
+
   if(TRAITS){
     
     ms  <- sums2meanSd( tpred, tpred2, ntot )  
@@ -2578,8 +2586,6 @@
   wk <- sapply( prediction, length )
   prediction <- prediction[ wk > 0 ]
   
-  cat("Reached10\n")
-  
   all <- list(chains = chains, fit = fit, inputs = inputs, missing = missing,
               modelList = modelList, parameters = parameters,
               prediction = prediction)
@@ -2590,10 +2596,23 @@
   all
 }
 
-.getTimeIndex <- function(timeList, other, notOther, xdata, x, xl, y, w,
+.getTimeIndexMod <- function(timeList, other, notOther, xdata, x, xl, y, w,
                           termB, termR, termA ){
-  cat("entering .getTimeIndex()\n")
-  cat("\ttypeof()\t< ")
+  # cat("Arguments in .getTimeIndex()\n")
+  # cat("\tstructure()\n")
+  # cat("timeList:\t"); cat(str(timeList, max.level = 1)); cat("\n")
+  # cat("other:\t"); cat(str(other, max.level = 1)); cat("\n")
+  # cat("notOther:\t"); cat(str(notOther, max.level = 1)); cat("\n")
+  # cat("xdata:\t"); cat(str(xdata, max.level = 1)); cat("\n")
+  # cat("x:\t"); cat(str(x, max.level = 1)); cat("\n")
+  # cat("xl:\t"); cat(str(xl, max.level = 1)); cat("\n")
+  # cat("y:\t"); cat(str(y, max.level = 1)); cat("\n")
+  # cat("w:\t"); cat(str(w, max.level = 1)); cat("\n")
+  # cat("termB:\t"); cat(str(termB, max.level = 1)); cat("\n")
+  # cat("termR:\t"); cat(str(termR, max.level = 1)); cat("\n")
+  # cat("termA:\t"); cat(str(termA, max.level = 1)); cat("\n")
+  
+  
   Q <- ncol(x)
   n <- nrow(x)
   xnames <- colnames(x)
@@ -2743,8 +2762,10 @@
       lprior <- timeList$betaPrior
     }
     xlnames <- colnames(xl)
+    cat("calling .getTimeIndex() -> .rhoPrior() \n")
     tmp <- .rhoPrior(lprior, w, xl, tindex, xlnames, 
                      snames, other, notOther, timeLast)
+    cat("terminated .getTimeIndex() <- .rhoPrior()  \n")
     
     Rmat <- tmp$Rmat; loRmat <- tmp$loRmat; hiRmat <- tmp$hiRmat
     wL <- tmp$wL; gindex <- tmp$gindex; Vmat <- tmp$Vmat
@@ -2758,7 +2779,7 @@
     Rpattern <- tmp$pattern
     Rmat[!is.finite(Rmat)] <- 0
   }
-  
+
   # tindex <- tindex[!tindex[, 2] %in% timeLast, ]
   
   list(Rmat = Rmat, Rpattern = Rpattern, wL = wL, gindex = gindex,
@@ -2773,7 +2794,18 @@
 
 .rhoPriorMod <- function(lprior, w, x, tindex, xnames, 
                       snames, other, notOther, timeLast = NULL){
-  cat("Reached .rhoprior function \n")
+  # cat("Arguments in .rhoPrior()\n")
+  # cat("\tstructure()\n")
+  # cat("lprior:\t"); cat(str(lprior, max.level = 1)); cat("\n")
+  # cat("w:\t"); cat(str(w, max.level = 1)); cat("\n")
+  # cat("x:\t"); cat(str(x, max.level = 1)); cat("\n")
+  # cat("tindex:\t"); cat(str(tindex, max.level = 1)); cat("\n")
+  # cat("xnames:\t"); cat(str(xnames, max.level = 1)); cat("\n")
+  # cat("snames:\t"); cat(str(snames, max.level = 1)); cat("\n")
+  # cat("other:\t"); cat(str(other, max.level = 1)); cat("\n")
+  # cat("notOther:\t"); cat(str(notOther, max.level = 1)); cat("\n")
+  # cat("timeLast:\t"); cat(str(timeLast, max.level = 1)); cat("\n")
+  
   
   loRho <- lprior$lo
   hiRho <- lprior$hi
@@ -2795,28 +2827,25 @@
   
   wg     <- which(gindex == 1,arr.ind=T)
   # INCLUDE
-  cat("M:", M, "\n")
+  cat(" M:", M, "\n")
   cat(" S: ", S, "\n")
   cat(" rho:", rho, "\n")
   cat(" lkeep:", lkeep, "\n")
   wc     <- matrix(rep(1:M,S*M),S*M,S)[lkeep,]
-  cat("dimension wc:", dim(wc), "\n")
-  cat("matrix wc:\n")
+  cat(" dimension wc:", dim(wc), "\n")
+  cat(" matrix wc:\n")
   print(wc)
   rowG   <- wc[wg]
   gindex <- cbind(rowG,wg)
   tmp    <- as.vector( t(outer(colnames(rho)[notOther],
                                rownames(rho),paste,sep='_') ) )
   rownames(gindex) <- tmp[lkeep]
-  cat(".rhoprior reached 1 \n")
-  
   colX <- match(rownames(rho),colnames(x))
   colX <- colX[rowG]
   gindex <- cbind(colX, gindex)
   colnames(gindex)[3:4] <- c('rowL','colW')
   nV <- nrow(gindex)
-  cat(".rhoprior reached 2 \n")
-  
+
   # Vmat is w[t-1,]*x[t,]
   Vmat <- matrix(0,n,nV)
   wz[wz < 0] <- 0
@@ -2826,24 +2855,182 @@
   Rmat <- matrix(NA,nV,S)
   rownames(Rmat) <- rownames(gindex)
   loRmat <- hiRmat <- Rmat[,notOther]
-  cat(".rhoprior reached 3 \n")
-  
+
   Rmat[ gindex[,c('rowL','colW')] ] <- rho[ gindex[,c('rowG','colW')] ]
   
   lo <- hi <- Rmat*0
   lo[ gindex[,c('rowL','colW')] ] <- loRho[ gindex[,c('rowG','colW')] ]
   hi[ gindex[,c('rowL','colW')] ] <- hiRho[ gindex[,c('rowG','colW')] ]
   Rmat[ is.nan(Rmat) ] <- 0
-  cat(".rhoprior reached 4 \n")
-  
+
   wL <- which(!is.na(Rmat[,notOther]),arr.ind=T)
   # lo[is.na(lo)] <- 0
   # hi[is.na(hi)] <- 0
-  cat("list:\n")
-  print(list(Rmat = Rmat, loRmat = lo[,notOther], hiRmat = hi[,notOther], wL = wL, 
-             gindex = gindex, Vmat = Vmat))
+
   list(Rmat = Rmat, loRmat = lo[,notOther], hiRmat = hi[,notOther], wL = wL, 
        gindex = gindex, Vmat = Vmat)
 }
 
+.betaWrapperMod <- function(REDUCT, TIME, notOther, betaLim=50){
+  # betaLim - outer prior limit for beta
+  
+  if(REDUCT){
+    function(X, Y, sig, beta, PRIOR, lo, hi, wF = NULL, rows=NULL, pattern=NULL, ...){
+      
+      S  <- ncol(Y)
+      w0 <- which(colSums(X) == 0)
+      if(length(w0) > 0){
+        X <- X[,-w0]
+        beta <- beta[-w0,]
+        rows[rows %in% w0] <- NA
+      }
+      
+      XX   <- crossprod(X)
+      IXX  <- try( solveRcpp(XX), T )
+      if( inherits(IXX,'try-error') ){
+        diag(XX) <- diag(XX) + 1.001*diag(XX)
+        IXX <- solveRcpp(XX)
+      }
+      
+      omega <- sig*IXX
+      muB   <- t(omega%*%crossprod((1/sig)*X, Y))
+      
+      if( !PRIOR ){
+        
+        B   <- rmvnormRcpp( S, rep(0,nrow(omega)), omega) + muB
+        
+        ws <- which(abs(B) > betaLim, arr.ind=T)
+        
+        if(length(ws) > 0){
+          ws <- unique(ws[,1])
+          bs <- B[drop=F,ws,]
+          B[ws,] <- .tnormMVNmatrix(avec = bs, muvec = muB[drop=F,ws,], 
+                                    smat = omega, lo = bs*0 - betaLim, 
+                                    hi = bs*0 + betaLim)
+        }
+        return(t(B))
+      }
+      
+      if(!TIME){
+        
+        tmp <- .tnormMVNmatrix( avec = t(beta), muvec = muB, 
+                                smat = omega, lo = t(lo), 
+                                hi = t(hi) )
+        return( t(tmp) )
+      }
+      
+      B    <- beta                             # REDUCT & TIME
+      muB  <- t(muB)
+      sinv <- XX/sig
+      QX   <- ncol(sinv)
+      
+      for( k in pattern ){             # responses independent
+        
+        wk <- wF[ drop=F, wF[,2] == k, ]       # locations in beta affect y[,k]
+        if(length(wk) == 0)next
+        
+        l  <- matrix(lo[ wk ], 1 )
+        h  <- matrix(hi[ wk ], 1 )
+        wc <- wk[,1]                           # non-zero
+        wp <- c(1:QX)[-wc]                     # zeros
+        mc <- matrix( muB[wc], ncol=1)
+        mp <- matrix( muB[wp], ncol=1)   
+        
+        s11  <- omega[drop=F, wc,wp]%*%sinv[drop=F, wp,wp]
+        mcon <- mc - s11%*%mp
+        Mcon <- solveRcpp( sinv[drop=F, wc,wc] )
+        tmp  <- .tnormMVNmatrix(avec = matrix(B[ wk ], 1), muvec = t(mcon), 
+                                smat = Mcon, lo = l, hi = h)
+        B[ wk ] <- tmp
+      }
+      return( B )
+    }
+    
+  }else{          # !REDUCT
+
+    function(X, Y, sig, beta, PRIOR, lo, hi, rows = NULL, pattern = NULL,
+             sinv = NULL, wF, ...){
+      
+      if( !PRIOR ){
+
+        XX  <- crossprod(X)
+        IXX <- chol2inv(chol( XX ) )
+        WX  <- crossprod(X,Y)
+        WIX <- IXX%*%WX
+        bg  <- matrix( rmvnormRcpp(1,as.vector(WIX),
+                                   kronecker(sig, IXX)), nrow(IXX), ncol(WIX) )
+        return(bg)
+      }
+      
+      # !REDUCT & PRIOR
+
+      wc <- which( !is.na(lo) & lo < hi )    # if no interval, assume zero
+      wp <- c(1:length(lo))[-wc]             # is.na(lo) or lo >= hi
+      
+      XX  <- crossprod(X)
+      IXX <- chol2inv( chol( XX ) )
+      WX  <- crossprod(X,Y)
+      MU  <- matrix( IXX%*%WX, ncol = 1 )
+      MM  <- kronecker( sig, IXX )
+      
+      if( length(wp) > 0 ){                            # condition on unsampled coeffs = 0
+
+        if( length(wp) > length(wc) ){                 # matrix is sparse
+          
+          if( is.null(sinv) )sinv <- solveRcpp(sig)
+          CC <- kronecker( sinv, XX )                  # note reverse order and inverse
+          IC <- solveRcpp(CC[wc,wc])                   # M_{wc|wp}
+          IM <- CC[wp,wp] - CC[wp,wc]%*%IC%*%CC[wc,wp] # inverse of M_{wp,wp} -> large
+          MU <- t( MU[wc] - MM[wc,wp]%*%IM%*%MU[wp] )
+          MM <- IC
+          
+        } else {                                       # not sparse
+          M1   <- MM[wc,wp]%*%solveRcpp(MM[wp,wp])
+          MU   <- t( MU[wc] - M1%*%MU[wp] )
+          MM   <- MM[wc,wc] - M1%*%MM[wp,wc]
+        }
+      } else {
+        MU <- t(MU)
+      }
+      cat("calling .betaWrapper() -> .tnormMVNmatrix() \n")
+      beta[wc] <- .tnormMVNmatrix(avec = matrix(beta[wc],1), muvec = MU, 
+                                  smat = MM, lo = matrix(lo[wc],1), 
+                                  hi = matrix(hi[wc],1))
+      cat("terminated .betaWrapper() <- .tnormMVNmatrix()\n")
+      return(beta)
+    }
+  }
+}
+
+.tnormMVNmatrixMod <- function(avec, muvec, smat, 
+                            lo=matrix(-1000,nrow(muvec),ncol(muvec)), 
+                            hi=matrix(1000,nrow(muvec),ncol(muvec)),
+                            whichSample = c(1:nrow(smat)) ){
+  
+  #lo, hi must be same dimensions as muvec,avec
+  
+  lo[lo < -1000] <- -1000
+  hi[hi > 1000]  <- 1000
+  
+  if(max(whichSample) > length(muvec))
+    stop('whichSample outside length(muvec)')
+  
+  r <- avec
+  cat("calling .tnormMVNmatrix() -> trMVNmatrixRcpp \n")
+  cat("\tArguments for trMVNmatrixRcpp\n")
+  cat("\tavec:\t"); cat(mean(avec), "\t"); cat(sd(avec), "\t"); cat(str(avec, max.level = 1))
+  cat("\tmuvec:\t"); cat(mean(muvec), "\t"); cat(sd(muvec), "\t"); cat(str(muvec, max.level = 1))
+  cat("\tsmat:\t"); cat(mean(smat), "\t"); cat(sd(smat), "\t"); cat(str(smat, max.level = 1))
+  cat("\tsmat\tis_symetric()\t"); cat(isSymmetric(smat)); cat("\n")
+  print(smat)
+  cat("\tlo:\t"); cat(str(lo, max.level = 1))
+  cat("\thi:\t"); cat(str(hi, max.level = 1))
+  cat("\twSample:\t"); cat(str(whichSample, max.level = 1))
+  cat("\tidxALL:\t"); cat(str(c(0:(nrow(smat)-1)), max.level = 1))
+  a <- trMVNmatrixRcpp(avec, muvec, smat, lo, hi, whichSample, 
+                       idxALL = c(0:(nrow(smat)-1)) )  
+  cat("terminated .tnormMVNmatrix() <- trMVNmatrixRcpp\n")
+    r[,whichSample] <- a[,whichSample]
+  r
+}
 
