@@ -8,7 +8,7 @@ StudyMaterialAndLiterature/
 
 # specific output directory
 data/*
-!data/gjamTime_outputs
+!data/gjamTime_outputs/
 
 # files
 *.Rhistory
