@@ -7,9 +7,8 @@ StudyMaterialAndLiterature/
 .Rproj.user/
 
 # specific output directory
-data/
-!data/*
-data/gjamTime_outputs
+data/*
+!data/gjamTime_outputs
 
 # files
 *.Rhistory
