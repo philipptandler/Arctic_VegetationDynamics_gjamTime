@@ -10,8 +10,8 @@ source("Scripts/gjamTime/setup_gjamTime.R")
 # library(gjam, lib.loc = test_lib_path)
 
 # to track failures of .gjam
-tracking <- FALSE
 fixWarning <- TRUE
+tracking <- FALSE
 
 ## set parameters instructions ####
 
@@ -56,7 +56,7 @@ fixWarning <- TRUE
 
 ## loading Testdata ####
 load("testdata2.Rdata")
-test1$name = "test3_fulltest"
+test1$name = "test2_euler"
 ## fit gjamTime ####
 # set model specifications:
 termB <- FALSE    # include immigration/emigration term XB
