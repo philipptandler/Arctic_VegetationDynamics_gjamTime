@@ -10,8 +10,8 @@ source("Scripts/gjamTime/setup_gjamTime.R")
 # library(gjam, lib.loc = test_lib_path)
 
 # to track failures of .gjam
-tracking <- FALSE
 fixWarning <- TRUE
+tracking <- FALSE
 
 ## set parameters instructions ####
 
@@ -55,8 +55,9 @@ fixWarning <- TRUE
 # test1$ydata <- get_geodata(test1$yvars, dropgroup = TRUE, dropperiod = TRUE)
 
 ## loading Testdata ####
-load("testdata.Rdata")
-test1$name = "test4_fulltest"
+load("testdata2.Rdata")
+test1$name = "test2_euler"
+
 ## fit gjamTime ####
 # set model specifications:
 termB <- FALSE    # include immigration/emigration term XB

@@ -485,14 +485,14 @@ fit_gjamTime <- function(setup,
   timeList <- mergeList(tlist, tmp)
 
   ## fit gjam
-  modelList <- list(typeNames = 'DA', ng = 10000, burnin = 5000,  
+  modelList <- list(typeNames = 'DA', ng = 10, burnin = 5,  
                     timeList = timeList, effort = effort)
   cat("    running gjam \n")
   output <- gjam(formula, xdata=xdata, ydata=ydata, modelList=modelList)
 
   ## save and plot
   outFolder <- get_outfolder(name)
-
+  
   if(showPlot){
     plotPars  <- list(PLOTALLY=T,
                       SAVEPLOTS = saveOutput, outFolder = outFolder)
@@ -511,7 +511,7 @@ fit_gjamTime <- function(setup,
 
 # paths
 path_vars <- "data/gjamTime_data/"
-path_save <- "data/gjamtime_outputs/"
+path_save <- "data/gjamTime_outputs/"
 ref_list_name <- "normalization.rds"
 path_ref_list <- "Scripts/gjamTime/"
 
