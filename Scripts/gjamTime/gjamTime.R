@@ -4,6 +4,8 @@
 library(here)
 setwd(here::here())
 source("Scripts/gjamTime/setup_gjamTime.R")
+fixWarning <- TRUE
+
 
 ## set parameters instructions ####
 
@@ -55,10 +57,12 @@ try_big$ydata <- get_geodata(try_big$yvars, dropgroup = TRUE, dropperiod = TRUE)
 
 ## fit gjamTime ####
 cat("fitting data in gjam: \n")
+if(fixWarning){redirect_gjam()}
 output_try_big <- fit_gjamTime(setup = try_big,
                             termB = termB,
                             termR = termR,
                             termA = termA,
                             saveOutput = TRUE,
                             showPlot = TRUE)
+if(fixWarning){stop_redirect_gjam()}
 

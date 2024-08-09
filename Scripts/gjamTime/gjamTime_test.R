@@ -11,8 +11,7 @@ source("Scripts/gjamTime/setup_gjamTime.R")
 
 # to track failures of .gjam
 tracking <- FALSE
-
-
+fixWarning <- TRUE
 
 ## set parameters instructions ####
 
@@ -57,13 +56,14 @@ tracking <- FALSE
 
 ## loading Testdata ####
 load("testdata2.Rdata")
-test1$name = "test2_fulltest"
+test1$name = "test3_fulltest"
 ## fit gjamTime ####
 # set model specifications:
 termB <- FALSE    # include immigration/emigration term XB
 termR <- TRUE     # include DI population growth term VL
 termA <- TRUE    # include DD spp interaction term UA
 cat("fitting data in gjam: \n")
+if(fixWarning){redirect_gjam()}
 if(tracking){start_track_gjam()}
 output_test1 <- fit_gjamTime(setup = test1,
                             termB = termB,
@@ -71,7 +71,7 @@ output_test1 <- fit_gjamTime(setup = test1,
                             termA = termA,
                             saveOutput = TRUE,
                             showPlot = TRUE)
-if(tracking){stop_track_gjam()}
+if(tracking || fixWarning){stop_redirect_gjam()}
 
 cat("fitting completed. \n")
 

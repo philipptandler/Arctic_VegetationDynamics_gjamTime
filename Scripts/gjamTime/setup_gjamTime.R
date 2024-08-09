@@ -342,7 +342,12 @@ normalize_gjamInput_this <- function(xdata, vars){
   return(xdata)
 }
 
-# tracking
+# tracking and redirecting
+redirect_gjam <- function(){
+  source("Scripts/gjamTime/adjustments_gjamTime.R")
+  environment(.rhoPriorMod) <- asNamespace('gjam')
+  assignInNamespace(".rhoPrior", .rhoPriorMod, ns = "gjam")
+}
 start_track_gjam <- function(){
   source("Scripts/gjamTime/tracking_gjamTime.R")
   environment(.gjamMod) <- asNamespace('gjam')
@@ -356,7 +361,7 @@ start_track_gjam <- function(){
   environment(.tnormMVNmatrixMod) <- asNamespace('gjam')
   assignInNamespace(".tnormMVNmatrix", .tnormMVNmatrixMod, ns = "gjam")
 }
-stop_track_gjam <- function(){
+stop_redirect_gjam <- function(){
   # reload package
   detach("package:gjam", unload=TRUE)
   library(gjam)
@@ -437,8 +442,6 @@ fit_gjamTime <- function(setup,
                               FILLMEANS = T, groupVars = groupVars,
                               typeNames = 'DA', missingEffort = 0.1)
   xdata  <- tmp$xdata
-  # fill means of not group varaibles manually
-  xdata <- fillmeans(xdata, allVars)
   ydata  <- tmp$ydata
   edata  <- tmp$edata
   tlist  <- tmp$timeList
@@ -446,12 +449,14 @@ fit_gjamTime <- function(setup,
   n_spec <- ncol(ydata)
   effort <- list(columns = 1:n_spec, values = edata)
   
-  # defining the formula
-  # formula <- as.formula(paste("~ ", paste(allVars, collapse = " + ")))
-  formula <- as.formula(paste("~ tpi + elev"))
+  # fill means of not group varaibles manually
+  xdata  <- fillmeans(xdata, allVars)
   
-  cat("    setting priors \n")
+  # defining the formula
+  formula <- as.formula(paste("~ ", paste(allVars, collapse = " + ")))
+
   ##  set priorlist
+  cat("    setting priors \n")
   priorList <- list()
   if(termB){
     # set priordistribution (intercept = (-Inf, Inf) and all other vars = (-100, 100))

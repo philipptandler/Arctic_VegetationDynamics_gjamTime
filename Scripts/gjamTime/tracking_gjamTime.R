@@ -2831,7 +2831,7 @@
   cat(" S: ", S, "\n")
   cat(" rho:", rho, "\n")
   cat(" lkeep:", lkeep, "\n")
-  wc     <- matrix(rep(1:M,S*M),S*M,S)[lkeep,]
+  wc     <- matrix(rep(1:M,S*S),S*M,S)[lkeep,]
   cat(" dimension wc:", dim(wc), "\n")
   cat(" matrix wc:\n")
   print(wc)
