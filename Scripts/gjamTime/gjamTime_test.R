@@ -55,8 +55,8 @@ fixWarning <- TRUE
 # test1$ydata <- get_geodata(test1$yvars, dropgroup = TRUE, dropperiod = TRUE)
 
 ## loading Testdata ####
-load("testdata2.Rdata")
-test1$name = "test3_fulltest"
+load("testdata.Rdata")
+test1$name = "test4_fulltest"
 ## fit gjamTime ####
 # set model specifications:
 termB <- FALSE    # include immigration/emigration term XB
