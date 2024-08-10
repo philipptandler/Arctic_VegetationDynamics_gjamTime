@@ -16,14 +16,14 @@ fixWarning <- TRUE
 xvars_all <- list(
   topography = c("elev", "slope", "aspect", "tpi"),
   y = FALSE, # to get latitude
-  climate = c("tass", "tasw", "pr"),
+  climate = c("tass", "tasw", "prs", "prw"),
   soil = c("wvol")
 )
 yvars_all <- list(
   vegetation = c("sh", "cf", "hb", "lc")
 )
 try_big <- list(
-  name = "trybig",
+  name = "euler_fulltest1",
   version = "full",
   periods = c("1984-1990",
               "1991-1996",
@@ -53,6 +53,11 @@ try_big$xdata <- get_geodata(try_big$xvars, dropgroup = FALSE, dropperiod = FALS
 ## get ydata ####
 cat("loading ydata: \n")
 try_big$ydata <- get_geodata(try_big$yvars, dropgroup = TRUE, dropperiod = TRUE)
+
+
+## save as Rdata ####
+save(try_big, "fulldata.Rdata")
+# load("fulldata.Rdata")
 
 
 ## fit gjamTime ####
