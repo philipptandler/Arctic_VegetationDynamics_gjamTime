@@ -56,7 +56,7 @@ try_big$ydata <- get_geodata(try_big$yvars, dropgroup = TRUE, dropperiod = TRUE)
 
 
 ## save as Rdata ####
-save(try_big, "fulldata.Rdata")
+save(try_big, file = "fulldata_allVars.Rdata")
 # load("fulldata.Rdata")
 
 
