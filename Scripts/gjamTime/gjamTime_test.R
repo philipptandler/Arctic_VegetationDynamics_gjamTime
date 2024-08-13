@@ -55,7 +55,7 @@ cat("loading ydata: \n")
 test1$ydata <- get_geodata(test1$yvars, dropgroup = TRUE, dropperiod = TRUE)
 
 ## loading Testdata ####
-save(test1, "testdata_r100_all.Rdata")
+save(test1, file ="testdata_r100_all.Rdata")
 cat("done.\n")
 # load("testdata2.Rdata")
 # test1$name = "test2_euler"

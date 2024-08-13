@@ -8,9 +8,6 @@ library(dplyr)
 library(terra)
 library(devtools)
 library(gjam)
-
-# path_gjam <- "https://github.com/jimclarkatduke/gjam/blob/master/gjamTimeFunctions.R?raw=True"
-# source_url(path_gjam)
 source("Scripts/gjamTime/load_gjamTimeFunctions.R")
 
 
