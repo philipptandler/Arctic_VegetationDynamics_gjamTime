@@ -261,7 +261,7 @@ execute_code <- function() {
 
   # Check user input
   if (tolower(confirmation) == "y"|| tolower(confirmation) == "") {
-    cat("Proceeding with execution...")
+    cat("Proceeding with execution...\n")
   } else if (tolower(confirmation) == "n") {
     stop("Execution aborted by user.")  # Stop execution at this point
   } else {
@@ -278,7 +278,7 @@ check_dataframe <- function(df){
     totCol <- nrow(df)
     for (col in names(df)) {
       column_vector <- df[[col]]
-      n_NA_col <- is.na(column_vector)
+      n_NA_col <- sum(is.na(column_vector))
       warning("   ",col, ": ", n_NA_col, " NA values out of ", totCol)
     }
     # Prompt user to proceed
@@ -332,8 +332,8 @@ normalize_gjamInput_ref <- function(xdata, vars){
 normalize_gjamInput_this <- function(xdata, vars){
   #each column must be normalized with mean and sd
   for(col in vars){
-    mu <- mean(xdata[[col]])
-    sd <- sd(xdata[[col]])
+    mu <- mean(xdata[[col]], na.rm = TRUE)
+    sd <- sd(xdata[[col]], na.rm = TRUE)
     if(sd == 0){(xdata[[col]]-mu)}
     else{xdata[[col]] <- (xdata[[col]]-mu)/sd}
   }

@@ -6,7 +6,7 @@ library(mvtnorm)
 
 path_soilGrids_raw <- "data/SoilGrids/raw/"
 path_soilGrids <- "data/SoilGrids/"
-path_gjamTime_data <- "data/gjamTime_data/"
+path_gjamTime_data <- "data/gjamTime_data/"xdata
 
 # Read masks
 mask_StudyRegion <- rast("data/Masks/study_region_mask.tif")
