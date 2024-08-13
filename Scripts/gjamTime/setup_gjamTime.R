@@ -209,7 +209,7 @@ get_geodata <- function(var_list, dropgroup = TRUE, dropperiod = TRUE){
     cat(", converting to dataframe...")
     df <- as.data.frame(raster_this_period, xy = getxy,
                                         cells = TRUE, na.rm = NA)
-    cat("done. \n")
+    cat(" done. \n")
     # Rename x and y to lat and lon
     colnames(df)[colnames(df) == "x"] <- "lon"
     colnames(df)[colnames(df) == "y"] <- "lat"
