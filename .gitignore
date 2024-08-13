@@ -13,4 +13,6 @@ StudyMaterialAndLiterature/
 
 # files
 *.Rhistory
+*.err
+*.out
 Scripts/Processing/ExploreRasterData.R
