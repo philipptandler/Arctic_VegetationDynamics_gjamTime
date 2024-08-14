@@ -84,14 +84,6 @@ assert_geodata <- function(var_list){
      !all(var_list$soil %in% masterlist_variables$soil)){
     stop("Invalid soil variables")
   }
-  # if(length(var_list$periods) != 0 &
-  #    !all(var_list$periods %in% masterlist_variables$periods)){
-  #   stop("Invalid periods variables")
-  # }
-  # if(length(var_list$version) != 0 &
-  #    !all(var_list$version %in% masterlist_variables$version)){
-  #   stop("Invalid version")
-  # }
   return(var_list)
 }
 
@@ -179,40 +171,125 @@ get_filenames <- function(period, var_list){
   return(list)
 }
 
+get_filenameVP <- function(var, period, version){
+  vers <- NULL
+  if(version == "full"){vers <- "full"}
+  if(version == "r100"){vers <- "full"}#load full and reduce
+  if(version == "crop"){vers <- "crop"}
+  filename <- NULL
+  if(var %in% masterlist_variables$vegetation){
+    filename <- paste("veg", period, var, vers, sep = "_")
+    filename <- paste0(filename, ".tif")
+  } else if(var %in% masterlist_variables$topography){
+    filename <- paste("topo", "const", var, vers, sep = "_")
+    filename <- paste0(filename, ".tif")
+  } else if(var %in% masterlist_variables$climate){
+    filename <- paste("clim", period, var, vers, sep = "_")
+    filename <- paste0(filename, ".tif")
+  } else if(var %in% masterlist_variables$wildfire){
+    filename <- paste("fire", period, var, vers, sep = "_")
+    filename <- paste0(filename, ".tif")
+  } else if(var %in% masterlist_variables$soil){
+    filename <- paste("soil", "const", var, vers, sep = "_")
+    filename <- paste0(filename, ".tif")
+  }
+  return(filename)
+}
+
+get_variables <- function(var_list){
+  var_vec <- c()
+  var_categories <- c("vegetation",
+                      "topography",
+                      "climate",
+                      "wildfire",
+                      "soil")
+  for(cat in var_categories){
+    for(var in var_list[[cat]]){
+      var_vec <- append(var_vec, var)
+    }
+  }
+  return(var_vec)
+}
+
 
 ## generalized getdata function ####
 
 # takes list of variables and returns the dataframe
 # by default sorted after group, within group after time
 
-get_geodata <- function(var_list, dropgroup = TRUE, dropperiod = TRUE){
+get_geodata <- function(var_list, seed = 0, dropgroup = TRUE, dropperiod = TRUE){
   # initialize list of dataframes
   data_list <- list()
+  
+  # all get variables specified (excl lat lon)
+  var_vec <- get_variables(var_list)
+  getxy <- (var_list$x | var_list$y)
+  dummyvar <- NULL
+  latlononly <- FALSE
+  if(length(var_vec == 0)){
+    if(!getxy){stop("no variables specified")}
+    dummyvar <- "elev"
+    var_vec <- c(dummyvar)
+    latlononly <- TRUE
+  }
+  
+  # version and subset
+  version <- var_list$version
+  factor <- 100
+  xseed <- as.integer(seed%%(factor))
+  yseed <- as.integer(seed/factor)
+
   
   # iterate over all periods
   n_time <- length(var_list$periods)
   for(t in 1:n_time){
-    cat("    loading period", var_list$periods[t])
-    # get files and variables in same order
-    file_var_list <- get_filenames(var_list$periods[t], var_list)
     
+    cat("    loading period", var_list$periods[t])
     # for each variable
-    for(var in file_var_list$variables){
+    for(var in var_vec){
+      filename <- get_filenameVP(var,
+                                 period = var_list$periods[t],
+                                 vers = version)
+      # loads full raster
+      file_paths <- file.path(path_vars, filename)
+      raster <- rast(file_paths)
+      # subsamples if reduced data
+      if(version == "r100"){
+        raster <- raster[seq(yseed, dim(raster)[1], by = factor),
+                         seq(xseed, dim(raster)[2], by = factor)]
+      }
+      
+      # Transform raster to data frame in chunks
+      df_list <- list()
+      
+      # Define chunk dimensions, i.e. nr cells
+      
+      chunk_size <- NULL
+      if(version == "full"){chunk_size <- 16}
+      if(version == "r100"){chunk_size <- 1600}
+      
+      # Process the raster in chunks
+      for (i in seq(1, dim(raster)[2], by = chunk_size)) {
+        #TODO only once for lat lon
+        # Read a chunk of rows
+        chunk <- crop() #TODO crop subset -> check dependency on previous subset!!
+        # Convert the chunk to a data frame and add to list
+        df_list[[length(df_list) + 1]] <- as.data.frame(
+          chunk, xy = getxy, cells = TRUE, na.rm = NA
+          )
+      }
+      
+      # Combine all chunks into a single data frame
+      df <- do.call(rbind, df_list)
+      # writes as data.table
+      
+      # unite to one data.table
       
     }
     
-    # loads full raster
-    
-    # subsamples
-    
-    # writes as data.table
-    
-    # unite to one data.table
-
-    
-    
-    
-    
+    #if version = "r100"&&seed== or version ="crop"
+    # get files and variables in same order
+    file_var_list <- get_filenames(var_list$periods[t], var_list)
     # get files
     files_this_period <- file_var_list$files
     # make raster
@@ -323,7 +400,7 @@ get_outfolder <- function(name){
   return(dir_path)
 }
 
-# fill priorLists
+## fill priorLists
 fill_priorList <- function(all_vars, priorlist){
   
   # # Values to add corresponding to lo and hi
@@ -339,7 +416,7 @@ fill_priorList <- function(all_vars, priorlist){
   return(priorlist)
 }
 
-# normalize xdata
+## normalize xdata
 normalize_gjamInput_ref <- function(xdata, vars){
   #each column must be normalized with mean and sd
   path_ref_list_fullname <- paste0(path_ref_list, ref_list_name)
@@ -360,7 +437,7 @@ normalize_gjamInput_this <- function(xdata, vars){
   return(xdata)
 }
 
-# tracking and redirecting
+## tracking and redirecting
 redirect_gjam <- function(){
   source("Scripts/gjamTime/adjustments_gjamTime.R")
   environment(.rhoPriorMod) <- asNamespace('gjam')
@@ -385,25 +462,7 @@ stop_redirect_gjam <- function(){
   library(gjam)
 }
 
-## fillmeans
-# fillmeans <- function(df, vars){
-#   groupVec <- df$groups
-#   # fill empty rows
-#   for(col in vars){
-#     colVec <- df[[col]]
-#     # create vector means with groupmeans
-#     means <- tapply(colVec, groupVec, mean, na.rm = TRUE)
-#     means <- as.vector(means[as.character(groupVec)])
-#     #replace is.na with groupmeans
-#     colVec[is.na(colVec)] <- means[is.na(colVec)]
-#     #write col
-#     df[[col]] <- colVec
-#   }
-#   # fill empty group
-#   
-#   return(df)
-# }
-
+## fill means in fields with NA
 
 fillmeans <- function(df, vars) {
   groupVec <- df$group
@@ -444,6 +503,9 @@ fit_gjamTime <- function(setup,
                          # normalize = "ref" for normalizing to ref period 2015-2020
                          saveOutput = TRUE,
                          showPlot = TRUE){
+  # general Vesions
+  if(fixWarning){redirect_gjam()}
+  if(tracking){start_track_gjam()}
   
   # setting up environment
   xdata <- as.data.frame(setup$xdata)
@@ -553,12 +615,23 @@ fit_gjamTime <- function(setup,
     save(output, file = paste0(outFolder, "/output.rdata"))
     cat("\n    output available in", outFolder, "\n")
   }
+  # gerneral reset
+  if(tracking || fixWarning){stop_redirect_gjam()}
   ## return fitted gjam
   return(output)
 }
 
 
 ## definitions ####
+
+# Script version
+fixWarning <- TRUE
+tracking <- FALSE
+
+# fitting general
+termB <- FALSE    # include immigration/emigration term XB
+termR <- TRUE     # include DI population growth term VL
+termA <- TRUE    # include DD spp interaction term UA
 
 # paths
 path_vars <- "data/gjamTime_data/"
