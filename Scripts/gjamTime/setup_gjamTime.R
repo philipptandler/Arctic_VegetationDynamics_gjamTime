@@ -179,14 +179,6 @@ get_filenames <- function(period, var_list){
   return(list)
 }
 
-## read memory efficient raster to dataframe:
-convert_df_memoEfficient <- function(raster,
-                                     xy = FALSE,
-                                     cells = TRUE,
-                                     na.rm = NA){
-  
-}
-
 
 ## generalized getdata function ####
 
@@ -203,6 +195,24 @@ get_geodata <- function(var_list, dropgroup = TRUE, dropperiod = TRUE){
     cat("    loading period", var_list$periods[t])
     # get files and variables in same order
     file_var_list <- get_filenames(var_list$periods[t], var_list)
+    
+    # for each variable
+    for(var in file_var_list$variables){
+      
+    }
+    
+    # loads full raster
+    
+    # subsamples
+    
+    # writes as data.table
+    
+    # unite to one data.table
+
+    
+    
+    
+    
     # get files
     files_this_period <- file_var_list$files
     # make raster
