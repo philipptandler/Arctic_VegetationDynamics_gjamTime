@@ -365,19 +365,52 @@ stop_redirect_gjam <- function(){
   library(gjam)
 }
 
-# fillmeans
-fillmeans <- function(df, vars){
-  groupVec <- df$groups
-  for(col in vars){
+## fillmeans
+# fillmeans <- function(df, vars){
+#   groupVec <- df$groups
+#   # fill empty rows
+#   for(col in vars){
+#     colVec <- df[[col]]
+#     # create vector means with groupmeans
+#     means <- tapply(colVec, groupVec, mean, na.rm = TRUE)
+#     means <- as.vector(means[as.character(groupVec)])
+#     #replace is.na with groupmeans
+#     colVec[is.na(colVec)] <- means[is.na(colVec)]
+#     #write col
+#     df[[col]] <- colVec
+#   }
+#   # fill empty group
+#   
+#   return(df)
+# }
+
+
+fillmeans <- function(df, vars) {
+  groupVec <- df$group
+  
+  for (col in vars) {
     colVec <- df[[col]]
-    # create vector means with groupmeans
-    means <- tapply(colVec, groupVec, mean, na.rm = TRUE)
-    means <- as.vector(means[as.character(groupVec)])
-    #replace is.na with groupmeans
-    colVec[is.na(colVec)] <- means[is.na(colVec)]
-    #write col
-    df[[col]] <- colVec
+    # Calculate means for each group, ignoring NA
+    groupMeans <- tapply(colVec, groupVec, mean, na.rm = TRUE)
+    
+    # Calculate the overall mean of the column, ignoring NA
+    overallMean <- mean(colVec, na.rm = TRUE)
+    
+    for (grp in unique(groupVec)) {
+      # Identify the indices of the group
+      groupIndices <- which(groupVec == grp)
+      
+      # Check if all values in this group for the column are NA
+      if (all(is.na(colVec[groupIndices]))) {
+        # Replace NA with the overall column mean
+        df[[col]][groupIndices] <- overallMean
+      } else {
+        # Replace NA with the group's mean
+        df[[col]][groupIndices][is.na(colVec[groupIndices])] <- groupMeans[as.character(grp)]
+      }
+    }
   }
+  
   return(df)
 }
 
@@ -404,10 +437,6 @@ fit_gjamTime <- function(setup,
   name <- setup$name
   
   ## Missing values in time series data
-
-  # check if there are missing values
-  check_dataframe(ydata)
-  check_dataframe(xdata)
 
   # prepare input
   timeCol   <- "period" # Column that stores time
@@ -449,6 +478,10 @@ fit_gjamTime <- function(setup,
   
   # fill means of not group varaibles manually
   xdata  <- fillmeans(xdata, allVars)
+  
+  # check if there are missing values
+  check_dataframe(ydata)
+  check_dataframe(xdata)
   
   # defining the formula
   formula <- as.formula(paste("~ ", paste(allVars, collapse = " + ")))

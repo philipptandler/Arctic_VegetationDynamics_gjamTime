@@ -65,6 +65,8 @@ test1$name = "test_x(all)_v(all)_p(all)_r100_1"
 termB <- FALSE    # include immigration/emigration term XB
 termR <- TRUE     # include DI population growth term VL
 termA <- TRUE    # include DD spp interaction term UA
+
+
 cat("fitting data in gjam: \n")
 if(fixWarning){redirect_gjam()}
 if(tracking){start_track_gjam()}
