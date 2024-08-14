@@ -179,6 +179,14 @@ get_filenames <- function(period, var_list){
   return(list)
 }
 
+## read memory efficient raster to dataframe:
+convert_df_memoEfficient <- function(raster,
+                                     xy = FALSE,
+                                     cells = TRUE,
+                                     na.rm = NA){
+  
+}
+
 
 ## generalized getdata function ####
 
@@ -205,8 +213,10 @@ get_geodata <- function(var_list, dropgroup = TRUE, dropperiod = TRUE){
     # make dataframe
     getxy <- (var_list$x | var_list$y)
     cat(", converting to dataframe...")
-    df <- as.data.frame(raster_this_period, xy = getxy,
-                                        cells = TRUE, na.rm = NA)
+    df <- convert_df_memoEfficient(raster_this_period, xy = getxy,
+                                   cells = TRUE, na.rm = NA)
+    # df <- as.data.frame(raster_this_period, xy = getxy,
+    #                                     cells = TRUE, na.rm = NA)
     cat(" done. \n")
     # Rename x and y to lat and lon
     colnames(df)[colnames(df) == "x"] <- "lon"
