@@ -2,7 +2,7 @@ library(here)
 setwd(here::here())
 library(terra)
 
-path_save_masks <- "C:/Users/phili/Documents/Dateien_Philipp/EnvironmentalSciencesMSc/MasterThesis/data/Masks/"
+path_save_masks <- "data/Masks/"
 
 ## Create Template Mask reprojections ####
 
