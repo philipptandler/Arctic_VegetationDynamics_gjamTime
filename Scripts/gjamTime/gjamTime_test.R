@@ -6,26 +6,17 @@ setwd(here::here())
 source("Scripts/gjamTime/setup_gjamTime.R")
 
 ## define different sets of parameters to fit ####
-vers <- "subs" #version
-sfact <- 100 #squared
-seed <- 0
 
-## input parameters  #### IGNORE IN RSTUDIO
-args <- commandArgs(trailingOnly = TRUE)
+vlist <- list(
+  vers = "full", # "full" or "crop"
+  subset = TRUE, #recommended, FALSE might crash due to memory overflow
+  subFact = 100, # for subs
+  subSeed = 0 # for subs
+)
 
-if (length(args) > 0) {
-  vers <- args[1]
-  if(vers != "full" &&
-     vers != "subs"){stop("Invalid version")}
-  if (vers == "subs" && length(args) > 0){
-    seed <- as.integer(args[2])
-    seed <- seed%%(factor**2)
-  } else {
-    seed <- 0
-  }
-}
+vlist <- updateArgs(vlist, sysArgs)
 
-## defined variables
+## define the variables here
 
 xvars <- list(
   topography = c("elev", "slope", "aspect", "tpi"),
@@ -38,9 +29,11 @@ yvars <- list(
   vegetation = c("sh", "cf", "hb", "lc")
 )
 call <- list(
-  name = paste("call_x()_y()_time()",
-               vers, sprintf("%04d", seed), sep = "_"),
-  version = vers,
+  name = paste("test_allvars",
+               vlist$name,
+               sprintf(paste0("%04d"), vlist$subSeed),
+               sep = "_"),
+  version = vlist$vers,
   periods = c("1984-1990",
               "1991-1996",
               "1997-2002",
@@ -53,17 +46,17 @@ call <- list(
 
 
 # makes sure to have a valid input, initializes and prints call
-call <- assert_gjamCall(call)
+call <- assert_gjamCall(call, vlist)
 
 ## get xdata ####
 cat("loading xdata: \n")
-call$xdata <- get_geodata(call$xvars, seed = seed, sfact = sfact,
+call$xdata <- get_geodata(call$xvars, vlist,
                           dropgroup = FALSE, dropperiod = FALSE)
 
 
 ## get ydata ####
 cat("loading ydata: \n")
-call$ydata <- get_geodata(call$yvars, seed = seed, sfact = sfact,
+call$ydata <- get_geodata(call$yvars, vlist,
                           dropgroup = TRUE, dropperiod = TRUE)
 
 ## loading Testdata ####
