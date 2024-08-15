@@ -217,7 +217,11 @@ get_variables <- function(var_list){
 # takes list of variables and returns the dataframe
 # by default sorted after group, within group after time
 
-get_geodata <- function(var_list, seed = 0, dropgroup = TRUE, dropperiod = TRUE){
+get_geodata <- function(var_list,
+                        seed = 0,
+                        sfact  = 100,
+                        dropgroup = TRUE,
+                        dropperiod = TRUE){
   # initialize list of dataframes
   data_list <- list()
   

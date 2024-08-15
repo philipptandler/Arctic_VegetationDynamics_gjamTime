@@ -6,7 +6,8 @@ setwd(here::here())
 source("Scripts/gjamTime/setup_gjamTime.R")
 
 ## define different sets of parameters to fit ####
-vers <- "r100" #version
+vers <- "subs" #version
+sfact <- 100 #squared
 seed <- 0
 
 ## input parameters  #### IGNORE IN RSTUDIO
@@ -15,11 +16,10 @@ args <- commandArgs(trailingOnly = TRUE)
 if (length(args) > 0) {
   vers <- args[1]
   if(vers != "full" &&
-     vers != "r100" &&
-     vers != "crop"){stop("Invalid version")}
-  if (vers == "r100" && length(args) > 0){
+     vers != "subs"){stop("Invalid version")}
+  if (vers == "subs" && length(args) > 0){
     seed <- as.integer(args[2])
-    seed <- seed%%10000
+    seed <- seed%%(factor**2)
   } else {
     seed <- 0
   }
@@ -57,13 +57,13 @@ call <- assert_gjamCall(call)
 
 ## get xdata ####
 cat("loading xdata: \n")
-call$xdata <- get_geodata(call$xvars, seed = seed,
+call$xdata <- get_geodata(call$xvars, seed = seed, sfact = sfact,
                           dropgroup = FALSE, dropperiod = FALSE)
 
 
 ## get ydata ####
 cat("loading ydata: \n")
-call$ydata <- get_geodata(call$yvars, seed = seed,
+call$ydata <- get_geodata(call$yvars, seed = seed, sfact = sfact,
                           dropgroup = TRUE, dropperiod = TRUE)
 
 ## loading Testdata ####
