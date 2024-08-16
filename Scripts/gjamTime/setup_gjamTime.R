@@ -56,17 +56,32 @@ getvars <- function(varlist){
   return(vars)
 }
 
-print_call <- function(call){
+print_call <- function(call, output_file = NULL){
+  if (!is.null(output_file)) {
+    # Redirect output to the specified file
+    sink(output_file)
+  }
   insert <- "    "
   cat(" \n")
   cat("call: \n")
   cat(insert, "name: ", call$name, "\n")
-  cat(insert, "periods: ", call$periods, "\n")
   cat(insert, "version: ", call$version, "\n")
-  xvars <- getvars(call$xvars)
-  cat(insert, "xvariables: ", xvars, "\n")
-  yvars <- getvars(call$yvars)
-  cat(insert, "yvariables: ", yvars, "\n")
+  cat(insert, "subset: ", call$subset, "\n")
+  cat(insert, "subSeed: ", call$subSeed, "\n")
+  cat(insert, "subFact: ", call$subFact, "\n")
+  cat(insert, "xvariables: \n")
+  cat(insert, insert, "topography: ", call$xvars$topography, "\n")
+  cat(insert, insert, "climate: ", call$xvars$climate, "\n")
+  cat(insert, insert, "soil: ", call$xvars$soil, "\n")
+  cat(insert, insert, "wildfire: ", call$xvars$wildfire, "\n")
+  cat(insert, "yvariables: \n")
+  cat(insert, insert, "vegetation:", call$yvars$vegetation, "\n")
+  cat(insert, "periods: ", call$periods, "\n")
+  
+  if (!is.null(output_file)) {
+    # Stop redirecting output
+    sink()
+  }
 }
 
 assert_geodata <- function(var_list){
@@ -124,7 +139,24 @@ assert_geodata <- function(var_list){
   return(var_list)
 }
 
-assert_gjamCall <- function(call_list){
+assert_gjamCall <- function(vlist, xvars, yvars, periods, callName){
+  #initialize
+  call_list <- list(
+    name = paste(callName,
+                 vlist$vers,
+                 vlist$name,
+                 sprintf(paste0("%04d"), vlist$subSeed),
+                 sep = "_"),
+    version = vlist$vers,
+    subset = vlist$subset,
+    subSeed = vlist$subSeed,
+    subFact = vlist$subFact,
+    periods = periods,
+    xvars = xvars,
+    yvars = yvars
+  )
+  
+  
   # valid keys
   if(!all(names(call_list) %in% mastervector_call)){
     stop("Invalid key encountered in call-list")
@@ -277,7 +309,7 @@ get_geodata <- function(var_list,
     samplemask <- mastermask
 
     # Get the dimensions and seed of the raster
-    dims <- dim(sample_mask)
+    dims <- dim(samplemask)
     seed <- vers_list$subSeed
     fact <- vers_list$subFact
     
@@ -628,7 +660,7 @@ fit_gjamTime <- function(setup,
   }
   if(saveOutput){
     save(output, file = paste0(outFolder, "/output.rdata"))
-    #TODO save call as .txt
+    print_call(setup, output_file = paste0(outFolder, "/call.txt"))
     cat("\n    output available in", outFolder, "\n")
   }
   # gerneral reset
@@ -678,7 +710,9 @@ masterlist_variables <- list(
 )
 
 # masterlist of gjam call
-mastervector_call <- c("name", "version", "periods", "xvars", "yvars")
+mastervector_call <- c("name", "version", "periods", "xvars", "yvars",
+                       "subset", "subSeed", "subFact")
+
 
 
 ## print when script is called ####

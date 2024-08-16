@@ -5,11 +5,13 @@ library(here)
 setwd(here::here())
 source("Scripts/gjamTime/setup_gjamTime.R")
 
-## define different sets of parameters to fit ####
+## general setup ####
+
+## define version
 
 vlist <- list(
-  vers = "full", # "full" or "crop"
-  subset = TRUE, #recommended, FALSE might crash due to memory overflow
+  vers = "crop", # "full" or "crop"
+  subset = FALSE, #recommended, FALSE might crash due to memory overflow
   subFact = 100, # for subs
   subSeed = 0 # for subs
 )
@@ -17,6 +19,8 @@ vlist <- list(
 vlist <- updateArgs(vlist, sysArgs)
 
 ## define the variables here
+
+callName <- "test_allvars"
 
 xvars <- list(
   topography = c("elev", "slope", "aspect", "tpi"),
@@ -28,25 +32,17 @@ xvars <- list(
 yvars <- list(
   vegetation = c("sh", "cf", "hb", "lc")
 )
-call <- list(
-  name = paste("test_allvars",
-               vlist$name,
-               sprintf(paste0("%04d"), vlist$subSeed),
-               sep = "_"),
-  version = vlist$vers,
-  periods = c("1984-1990",
-              "1991-1996",
-              "1997-2002",
-              "2003-2008",
-              "2009-2014",
-              "2015-2020"),
-  xvars = xvars,
-  yvars = yvars
-)
+
+periods <- c("1984-1990",
+             "1991-1996",
+             "1997-2002",
+             "2003-2008",
+             "2009-2014",
+             "2015-2020")
 
 
 # makes sure to have a valid input, initializes and prints call
-call <- assert_gjamCall(call, vlist)
+call <- assert_gjamCall(vlist, xvars, yvars, periods, callName)
 
 ## get xdata ####
 cat("loading xdata: \n")
