@@ -16,6 +16,7 @@ vlist <- list(
   subSeed = 0 # for subs
 )
 
+# validates input and reads system variables if called from console
 vlist <- updateArgs(vlist, sysArgs)
 
 ## define the variables here
