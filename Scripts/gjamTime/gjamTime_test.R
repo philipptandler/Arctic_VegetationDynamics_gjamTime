@@ -20,7 +20,7 @@ tracking <- FALSE
 # periods and version must match between xvars_list and yvars_list !
 
 xvars_short <- list(
-  topography = c("elev", "slope", "aspect", "tpi"),
+  topography = c("elev", "slope", "cosasp", "tpi"),
   y = FALSE, # to get latitude
   climate = c("tass", "tasw", "pr"),
   soil = c("wvol")

@@ -113,22 +113,25 @@ writeRaster(ARC_DEM_32_tpi,
 ARC_DEM_32_elev <- rast(paste0(path_ArcticDEM_32m, "Arc_DEM_32m_elev.tif"))
 ARC_DEM_32_slope <- rast(paste0(path_ArcticDEM_32m, "Arc_DEM_32m_slope.tif"))
 ARC_DEM_32_aspect <- rast(paste0(path_ArcticDEM_32m, "Arc_DEM_32m_aspect.tif"))
+ARC_DEM_32_cosAspect <- -math(ARC_DEM_32_aspect, fun = "cos", digits = 3)
+writeRaster(ARC_DEM_32_cosAspect,
+            paste0(path_ArcticDEM_32m, "Arc_DEM_32m_cosasp.tif"), overwrite=TRUE)
 ARC_DEM_32_tpi <- rast(paste0(path_ArcticDEM_32m, "Arc_DEM_32m_tpi.tif"))
 # merge in one raster to be quicker
 topodata <- c(ARC_DEM_32_elev,
               ARC_DEM_32_slope,
               ARC_DEM_32_aspect,
+              ARC_DEM_32_cosAspect,
               ARC_DEM_32_tpi)
-names(topodata) <- c("elevation", "slope", "aspect", "tpi")
+names(topodata) <- c("elevation", "slope", "aspect", "cosasp", "tpi")
 
 # mask with mastermask and mastermask_r100
 topodata_masked_full <- mask(x=topodata, mask = mastermask, maskvalues=0, updatevalue=NA)
 topodata_masked_r100 <- mask(x=topodata, mask = mastermask_r100 , maskvalues=0, updatevalue=NA)
 topodata_masked_crop <- mask(x=topodata, mask = mastermask_crop , maskvalues=0, updatevalue=NA)
-topo_masterlist = c("elev", "slope", "aspect", "tpi")
+topo_masterlist = c("elev", "slope", "aspect", "cosasp", "tpi")
 
-
-for (i in c(1:4)){
+for (i in c(1:5)){
   varname <- topo_masterlist[i]
   writeRaster(topodata_masked_full[[i]],
               paste0(path_gjamTime_data, "topo_const_", varname, "_full.tif"),

@@ -14,7 +14,7 @@ fixWarning <- TRUE
 # periods and version must match between xvars_list and yvars_list !
 
 xvars_all <- list(
-  topography = c("elev", "slope", "aspect", "tpi"),
+  topography = c("elev", "slope", "cosasp", "tpi"),
   y = FALSE, # to get latitude
   climate = c("tass", "tasw", "prs", "prw"),
   soil = c("wvol")
