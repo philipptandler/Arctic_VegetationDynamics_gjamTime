@@ -18,11 +18,11 @@ updateArgs <- function(vlist, sysArgs){
   if (!exists("subset", where = vlist) || !is.logical(vlist$subset)){
     vlist$subset <- TRUE
   }
-  if (!exists("subSeed", where = vlist) || length(vlist$subSeed) == 0){
-    vlist$subSeed <- 0
-  }
   if (!exists("subFact", where = vlist) || length(vlist$subFact) == 0){
     vlist$subFact <- 100
+  }
+  if (!exists("subSeed", where = vlist) || length(vlist$subSeed) == 0){
+    vlist$subSeed <- 0
   }
   #update version from sysArgs
   if (length(sysArgs) > 0) {
@@ -31,10 +31,10 @@ updateArgs <- function(vlist, sysArgs){
 
   # if we subset data
   if(vlist$subset || (length(sysArgs) > 1) ){
-    vlist$subset <- TRUE
     if(length(sysArgs) > 1){
+      vlist$subset <- TRUE
       tmpseed <- as.integer(sysArgs[2])
-      vlist$subSeed = tmpseed%%((vlist$subFact)**2)
+      vlist$subSeed <- tmpseed%%((vlist$subFact)**2)
     }
     vlist$name <- "subs"
   }else{vlist$name <- vlist$vers}
@@ -93,7 +93,7 @@ assert_geodata <- function(var_list){
   if (!exists("x", where = var_list)){var_list$x = FALSE}
   if (!exists("y", where = var_list)){var_list$y = FALSE}
 
-  # length
+  # length of variables
   if(length(var_list$vegetation) == 0 &
      length(var_list$topography) == 0 &
      var_list$x == FALSE &
@@ -243,46 +243,6 @@ get_filenames <- function(period, var_list){
   return(list)
 }
 
-get_filenameVP <- function(var, period, version){
-  vers <- NULL
-  if(version == "full"){vers <- "full"}
-  if(version == "r100"){vers <- "full"}#load full and reduce
-  if(version == "crop"){vers <- "crop"}
-  filename <- NULL
-  if(var %in% masterlist_variables$vegetation){
-    filename <- paste("veg", period, var, vers, sep = "_")
-    filename <- paste0(filename, ".tif")
-  } else if(var %in% masterlist_variables$topography){
-    filename <- paste("topo", "const", var, vers, sep = "_")
-    filename <- paste0(filename, ".tif")
-  } else if(var %in% masterlist_variables$climate){
-    filename <- paste("clim", period, var, vers, sep = "_")
-    filename <- paste0(filename, ".tif")
-  } else if(var %in% masterlist_variables$wildfire){
-    filename <- paste("fire", period, var, vers, sep = "_")
-    filename <- paste0(filename, ".tif")
-  } else if(var %in% masterlist_variables$soil){
-    filename <- paste("soil", "const", var, vers, sep = "_")
-    filename <- paste0(filename, ".tif")
-  }
-  return(filename)
-}
-
-get_variables <- function(var_list){
-  var_vec <- c()
-  var_categories <- c("vegetation",
-                      "topography",
-                      "climate",
-                      "wildfire",
-                      "soil")
-  for(cat in var_categories){
-    for(var in var_list[[cat]]){
-      var_vec <- append(var_vec, var)
-    }
-  }
-  return(var_vec)
-}
-
 
 ## generalized getdata function ####
 
@@ -324,6 +284,7 @@ get_geodata <- function(var_list,
     # get samplemask
     samplemask <- mastermask & samplemask
   }
+  rm(mastermask) #clear some space
   
   # iterate over all periods
   n_time <- length(var_list$periods)
@@ -348,7 +309,6 @@ get_geodata <- function(var_list,
     # make dataframe
     getxy <- (var_list$x | var_list$y)
     cat(", converting to dataframe...")
-    # TODO: transform to dataframe in chunks
     df <- as.data.frame(raster_this_period, xy = getxy,
                         cells = TRUE, na.rm = NA)
     cat(" done. \n")

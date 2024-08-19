@@ -25,7 +25,7 @@ callName <- "test_allvars"
 xvars <- list(
   topography = c("elev", "slope", "aspect", "tpi"),
   y = FALSE, # to get latitude
-  x = FALSE,
+  x = FALSE, # to get longitude
   climate = c("tass", "tasw", "pr"),
   soil = c("wvol")
 )
