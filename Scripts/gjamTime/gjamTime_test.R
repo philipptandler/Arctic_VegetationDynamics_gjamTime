@@ -19,35 +19,35 @@ tracking <- FALSE
 
 # periods and version must match between xvars_list and yvars_list !
 
-# xvars_short <- list(
-#   topography = c("elev", "slope", "aspect", "tpi"),
-#   y = FALSE, # to get latitude
-#   climate = c("tass", "tasw", "pr"),
-#   soil = c("wvol")
-# )
-# yvars_short <- list(
-#   vegetation = c("sh", "cf", "hb", "lc")
-# )
-# test1 <- list(
-#   name = "t_local_x(all)_v(all)_p(all)_r100_1",
-#   version = "r100",
-#   periods = c("1984-1990",
-#               "1991-1996",
-#               "1997-2002",
-#               "2003-2008",
-#               "2009-2014",
-#               "2015-2020"),
-#   xvars = xvars_short,
-#   yvars = yvars_short
-# )
+xvars_short <- list(
+  topography = c("elev", "slope", "aspect", "tpi"),
+  y = FALSE, # to get latitude
+  climate = c("tass", "tasw", "pr"),
+  soil = c("wvol")
+)
+yvars_short <- list(
+  vegetation = c("sh", "cf", "hb", "lc")
+)
+test1 <- list(
+  name = "t_local_x(all)_v(all)_p(all)_r100_1",
+  version = "crop",
+  periods = c("1984-1990",
+              "1991-1996",
+              "1997-2002",
+              "2003-2008",
+              "2009-2014",
+              "2015-2020"),
+  xvars = xvars_short,
+  yvars = yvars_short
+)
 
 
 # makes sure to have a valid input, initializes and prints call
-# test1 <- assert_gjamCall(test1)
+test1 <- assert_gjamCall(test1)
 
 ## get xdata ####
-# cat("loading xdata: \n")
-# test1$xdata <- get_geodata(test1$xvars, dropgroup = FALSE, dropperiod = FALSE)
+cat("loading xdata: \n")
+test1$xdata <- get_geodata(test1$xvars, dropgroup = FALSE, dropperiod = FALSE)
 
 
 ## get ydata ####
@@ -57,7 +57,7 @@ tracking <- FALSE
 ## loading Testdata ####
 # save(test1, file ="testdata_r100_all.Rdata")
 # cat("done.\n")
-load("testdata_r100_all.Rdata")
+load("testdata.Rdata")
 test1$name = "test_x(all)_v(all)_p(all)_r100_1"
 
 ## fit gjamTime ####
