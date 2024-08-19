@@ -283,8 +283,8 @@ get_geodata <- function(var_list,
     
     # get samplemask
     samplemask <- mastermask & samplemask
+    rm(mastermask) #clear some space
   }
-  rm(mastermask) #clear some space
   
   # iterate over all periods
   n_time <- length(var_list$periods)

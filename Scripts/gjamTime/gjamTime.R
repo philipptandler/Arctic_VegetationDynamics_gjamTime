@@ -4,70 +4,72 @@
 library(here)
 setwd(here::here())
 source("Scripts/gjamTime/setup_gjamTime.R")
-fixWarning <- TRUE
 
+## general setup ####
 
-## set parameters instructions ####
+## define version
 
-## define different sets of parameters to fit ####
+vlist <- list(
+  vers = "full", # "full" or "crop"
+  subset = TRUE, #recommended TRUE: FALSE might crash due to memory overflow
+  subFact = 100, # for subs
+  subSeed = 0 # for subs
+)
 
-# periods and version must match between xvars_list and yvars_list !
+# validates input and reads system variables if called from console
+vlist <- updateArgs(vlist, sysArgs)
 
-xvars_all <- list(
+## define the variables here
+
+callName <- "fit_gjam"
+
+xvars <- list(
   topography = c("elev", "slope", "aspect", "tpi"),
   y = FALSE, # to get latitude
-  climate = c("tass", "tasw", "prs", "prw"),
+  x = FALSE, # to get longitude
+  climate = c("tass", "tasw", "pr"),
   soil = c("wvol")
 )
-yvars_all <- list(
+yvars <- list(
   vegetation = c("sh", "cf", "hb", "lc")
 )
-try_big <- list(
-  name = "euler_fulltest1",
-  version = "full",
-  periods = c("1984-1990",
-              "1991-1996",
-              "1997-2002",
-              "2003-2008",
-              "2009-2014",
-              "2015-2020"),
-  xvars = xvars_all,
-  yvars = yvars_all
-)
+
+periods <- c("1984-1990",
+             "1991-1996",
+             "1997-2002",
+             "2003-2008",
+             "2009-2014",
+             "2015-2020")
 
 
 # makes sure to have a valid input, initializes and prints call
-try_big <- assert_gjamCall(try_big)
-
-
-# set model specifications:
-termB <- FALSE    # include immigration/emigration term XB
-termR <- TRUE     # include DI population growth term VL
-termA <- TRUE    # include DD spp interaction term UA
+call <- assert_gjamCall(vlist, xvars, yvars, periods, callName)
 
 ## get xdata ####
 cat("loading xdata: \n")
-try_big$xdata <- get_geodata(try_big$xvars, dropgroup = FALSE, dropperiod = FALSE)
+call$xdata <- get_geodata(call$xvars, vlist,
+                          dropgroup = FALSE, dropperiod = FALSE)
 
 
 ## get ydata ####
 cat("loading ydata: \n")
-try_big$ydata <- get_geodata(try_big$yvars, dropgroup = TRUE, dropperiod = TRUE)
+call$ydata <- get_geodata(call$yvars, vlist,
+                          dropgroup = TRUE, dropperiod = TRUE)
 
-
-## save as Rdata ####
-save(try_big, file = "fulldata_allVars.Rdata")
-# load("fulldata.Rdata")
-
+## loading Testdata ####
+# save(call, file ="testdata_r100_all.Rdata")
+# load("testdata_r100_all.Rdata")
+# call$name = "test_x(all)_v(all)_p(all)_r100_1"
 
 ## fit gjamTime ####
+## set model specifications:
+
 cat("fitting data in gjam: \n")
-if(fixWarning){redirect_gjam()}
-output_try_big <- fit_gjamTime(setup = try_big,
+output_call <- fit_gjamTime(setup = call,
                             termB = termB,
                             termR = termR,
                             termA = termA,
                             saveOutput = TRUE,
                             showPlot = TRUE)
-if(fixWarning){stop_redirect_gjam()}
+cat("fitting completed. \n")
 
