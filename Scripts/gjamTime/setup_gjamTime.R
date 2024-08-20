@@ -688,7 +688,7 @@ path_ref_list <- "Scripts/gjamTime/"
 # masterlist of all variables
 masterlist_variables <- list(
   vegetation = c("sh", "cf", "hb", "lc", "wt", "br"),
-  topography = c("elev", "slope", "aspect","cosasp", "tpi"),
+  topography = c("elev", "slope", "aspect", "cosasp", "tpi"),
   x = c(TRUE, FALSE),
   y = c(TRUE, FALSE),
   climate = c("tas", "tasw", "tass", "pr", "prw", "prs"),

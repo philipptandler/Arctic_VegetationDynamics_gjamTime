@@ -20,7 +20,6 @@ vlist <- list(
 vlist <- updateArgs(vlist, sysArgs)
 
 ## define the variables here
-
 callName <- "test_allvars"
 
 xvars <- list(
