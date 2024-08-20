@@ -32,6 +32,8 @@ updateArgs <- function(vlist, sysArgs){
   # if we subset data
   if(vlist$subset || (length(sysArgs) > 1) ){
     if(length(sysArgs) > 1){
+      if(vlist$subFact < 1 || vlist$subFact > 10000){stop("invalid subFact")}
+      vlist$subFact <- as.integer(vlist$subFact)
       vlist$subset <- TRUE
       tmpseed <- as.integer(sysArgs[2])
       vlist$subSeed <- tmpseed%%((vlist$subFact)**2)
@@ -243,6 +245,34 @@ get_filenames <- function(period, var_list){
   return(list)
 }
 
+# read dataframe in chunks
+# make_dataframe <- function(raster, 
+#                            vers_list,
+#                            getxy = getxy,
+#                            cells = TRUE, na.rm = NA){
+#   n_cols <- dim(raster)[2]
+#   min_reduceFact <- 10000 #how much of the total dataframe can be loaded at once
+#   n_chunks <- NULL
+#   if(vers_list$vers == "crop"){
+#     n_chunks = 1
+#   }else if(vers_list$subset){
+#     if(vers_list$subFact >= 100){n_chunks = 10}#TODO chane to 10 -> 1
+#     else{n_chunks = ceiling(min_reduceFact/(vers_list$subFact**2))}
+#   }else{
+#     n_chunks = min_reduceFact
+#   }
+#   block_size <- ceiling(n_cols/n_chunks)
+#   
+#   df <- data.frame()
+#   #load by column chunks
+#   for(j in seq(1, n_cols, by = block_size)){
+#     block <- raster[,j:min(j + block_size - 1, n_cols), drop = FALSE]
+#     block_df <- as.data.frame(block, xy = getxy, cells = TRUE, na.rm = NA)
+#     # Append to the main dataframe
+#     df <- rbind(df, block_df)
+#   }
+#   return(df)
+# }
 
 ## generalized getdata function ####
 
@@ -267,6 +297,7 @@ get_geodata <- function(var_list,
     #create sample mask
     mastermask <- rast(file.path(path_masks, "master_mask.tif"))
     samplemask <- mastermask
+    samplemask[] <- FALSE
 
     # Get the dimensions and seed of the raster
     dims <- dim(samplemask)
@@ -283,22 +314,21 @@ get_geodata <- function(var_list,
     
     # get samplemask
     samplemask <- mastermask & samplemask
-    rm(mastermask) #clear some space
   }
   
   # iterate over all periods
   n_time <- length(var_list$periods)
-  for(t in 1:n_time){
-    cat("    loading period", var_list$periods[t])
+  for(per in 1:n_time){
+    cat("    loading period", var_list$periods[per])
     # get files and variables in same order
-    file_var_list <- get_filenames(var_list$periods[t], var_list)
+    file_var_list <- get_filenames(var_list$periods[per], var_list)
     # get files
     files_this_period <- file_var_list$files
     # make raster
     file_paths <- file.path(path_vars, files_this_period)
     raster_this_period <- rast(file_paths)
     names(raster_this_period) <- file_var_list$variables
-    
+
     # subset
     if(doSubset){
       raster_this_period <- mask(x=raster_this_period,
@@ -309,6 +339,10 @@ get_geodata <- function(var_list,
     # make dataframe
     getxy <- (var_list$x | var_list$y)
     cat(", converting to dataframe...")
+    # df <- make_dataframe(raster_this_period,
+    #                      vers_list,
+    #                      getxy = getxy,
+    #                      cells = TRUE, na.rm = NA)
     df <- as.data.frame(raster_this_period, xy = getxy,
                         cells = TRUE, na.rm = NA)
     cat(" done. \n")
@@ -321,8 +355,8 @@ get_geodata <- function(var_list,
     }
     
     # add time
-    df$period <- t
-    data_list[[t]] <- df
+    df$period <- per
+    data_list[[per]] <- df
   }
   #conbine the dataframes
   combined_df <- do.call(rbind, data_list)

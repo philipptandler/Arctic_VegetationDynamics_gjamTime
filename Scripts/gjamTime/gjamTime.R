@@ -13,7 +13,7 @@ vlist <- list(
   vers = "full", # "full" or "crop"
   subset = TRUE, #recommended TRUE: FALSE might crash due to memory overflow
   subFact = 100, # for subs
-  subSeed = 0 # for subs
+  subSeed = 9696 # for subs
 )
 
 # validates input and reads system variables if called from console
@@ -56,14 +56,8 @@ cat("loading ydata: \n")
 call$ydata <- get_geodata(call$yvars, vlist,
                           dropgroup = TRUE, dropperiod = TRUE)
 
-## loading Testdata ####
-# save(call, file ="testdata_r100_all.Rdata")
-# load("testdata_r100_all.Rdata")
-# call$name = "test_x(all)_v(all)_p(all)_r100_1"
 
 ## fit gjamTime ####
-## set model specifications:
-
 cat("fitting data in gjam: \n")
 output_call <- fit_gjamTime(setup = call,
                             termB = termB,
