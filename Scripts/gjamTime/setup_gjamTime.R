@@ -31,13 +31,14 @@ updateArgs <- function(vlist, sysArgs){
 
   # if we subset data
   if(vlist$subset || (length(sysArgs) > 1) ){
+    vlist$subFact <- as.integer(vlist$subFact)
+    if(vlist$subFact < 1 || vlist$subFact > 10000){stop("invalid subFact")}
+    
     if(length(sysArgs) > 1){
-      if(vlist$subFact < 1 || vlist$subFact > 10000){stop("invalid subFact")}
-      vlist$subFact <- as.integer(vlist$subFact)
       vlist$subset <- TRUE
-      tmpseed <- as.integer(sysArgs[2])
-      vlist$subSeed <- tmpseed%%((vlist$subFact)**2)
+      vlist$subSeed <- as.integer(sysArgs[2])
     }
+    vlist$subSeed <- as.integer(vlist$subSeed%%((vlist$subFact)**2))
     vlist$name <- "subs"
   }else{vlist$name <- vlist$vers}
   return(vlist)
@@ -201,13 +202,93 @@ assert_gjamCall <- function(vlist, xvars, yvars, periods, callName){
 }
 
 
+## Prepare the geotifs (from main.R) to load in further step (in gjamTime.R)
+#' this function writes for each variable and period (each geotiff in 
+#' data/gjamTime_data) a subset in data/gjamTime_tmp with the current seed.
+prepare_geodata <- function(call){
+ 
+  # Only run if we actually take a subset of "full" or "crop"
+  if(!call$subset){return(NULL)}
+  
+  # clean data/gjamTime_tmpSubset directory
+  filesRM <- list.files(path_tmp, full.names = TRUE)
+  file.remove(filesRM)
+  
+  #make samplemask
+  samplemask <- make_samplemask(call$subSeed, call$subFact)
+  writeRaster(samplemask, file.path(path_tmp, "samplemask.tif"))
+  
+  sample_geodata(var_list = call$xvars, which = "xdata", samplemask = samplemask)
+  sample_geodata(var_list = call$yvars, which = "ydata", samplemask = samplemask)
+}
+
+sample_geodata <- function(var_list, which, samplemask){
+  cat("    sampling", which, "\n")
+  # for all periods
+  n_time <- length(var_list$periods)
+  for(per in 1:n_time){
+    cat("    loading period", var_list$periods[per], "\n")
+    # get files
+    file_var_list <- get_filenames(var_list$periods[per], var_list)
+    files_this_period <- file_var_list$files
+    vars_this_period <- file_var_list$variables
+    #file paths
+    file_paths_in <- file.path(path_vars, files_this_period)
+    file_paths_out <- file.path(path_tmp, files_this_period)
+    # load, mask and save each independently
+    for(i in 1:length(files_this_period)){
+      cat("          sampling", vars_this_period[i], "\n")
+      #load
+      raster <- rast(file_paths_in[i])
+      names(raster) <- vars_this_period[i]
+      #mask
+      raster <- mask(x=raster,
+                     mask = samplemask,
+                     maskvalues=0, updatevalue=NA)
+      #save
+      writeRaster(raster,
+                  file_paths_out[i],
+                  overwrite=TRUE) #overwrite important
+    }
+  }
+}
+
+#' makes a regular samplemask from dimensions of mastermask, based on density 
+#' (fact) and sample ID (seed, which specifies what regular grid to sample)
+make_samplemask <- function(subSeed, subFact){
+  
+  seedI <- as.integer(floor(subSeed/subFact))
+  seedJ <- as.integer(subSeed %% subFact)
+  fact <- subFact
+  
+  #create sample mask
+  mastermask <- rast(file.path(path_masks, "master_mask.tif"))
+  samplemask <- mastermask
+  samplemask[] <- FALSE
+  
+  # Get the dimensions and seed of the raster
+  dims <- dim(samplemask)
+  
+  # Create indices for the reduced sampling
+  reduce_i <- seq(seedI+1, dims[1], by = fact)
+  reduce_j <- seq(seedJ+1, dims[2], by = fact)
+  
+  # Create a matrix of indices to set to TRUE
+  indices <- expand.grid(reduce_i, reduce_j)
+  samplemask[cbind(indices$Var1, indices$Var2)] <- TRUE
+  
+  # get samplemask
+  samplemask <- mastermask & samplemask
+  
+  return(samplemask)
+}
+
+
 ## helper function get files ####
+
 # returns a list of $files with filenames in data/gjamTime_data/ and $variables
 get_filenames <- function(period, var_list){
-  vers <- NULL
-  if(var_list$version == "full" ||
-     var_list$version == "subs"){vers = "full"}
-  if(var_list$version == "crop"){vers = "crop"}
+  vers <- var_list$version
   file_vec <- c()
   var_vec <- c()
   for (var in var_list$vegetation){
@@ -245,77 +326,26 @@ get_filenames <- function(period, var_list){
   return(list)
 }
 
-# read dataframe in chunks
-# make_dataframe <- function(raster, 
-#                            vers_list,
-#                            getxy = getxy,
-#                            cells = TRUE, na.rm = NA){
-#   n_cols <- dim(raster)[2]
-#   min_reduceFact <- 10000 #how much of the total dataframe can be loaded at once
-#   n_chunks <- NULL
-#   if(vers_list$vers == "crop"){
-#     n_chunks = 1
-#   }else if(vers_list$subset){
-#     if(vers_list$subFact >= 100){n_chunks = 10}#TODO chane to 10 -> 1
-#     else{n_chunks = ceiling(min_reduceFact/(vers_list$subFact**2))}
-#   }else{
-#     n_chunks = min_reduceFact
-#   }
-#   block_size <- ceiling(n_cols/n_chunks)
-#   
-#   df <- data.frame()
-#   #load by column chunks
-#   for(j in seq(1, n_cols, by = block_size)){
-#     block <- raster[,j:min(j + block_size - 1, n_cols), drop = FALSE]
-#     block_df <- as.data.frame(block, xy = getxy, cells = TRUE, na.rm = NA)
-#     # Append to the main dataframe
-#     df <- rbind(df, block_df)
-#   }
-#   return(df)
-# }
 
 ## generalized getdata function ####
 
 # takes list of variables and returns the dataframe
 # by default sorted after group, within group after time
-
-get_geodata <- function(var_list,
-                        vers_list,
+get_geodata <- function(call,
+                        which,
                         dropgroup = TRUE,
                         dropperiod = TRUE){
-  # initialize list of dataframes
-  data_list <- list()
+  
+  var_list <- NULL
+  if(which == "xdata" || which == "ydata"){
+    if(which == "xdata"){var_list = call$xvars}
+    if(which == "ydata"){var_list = call$yvars}
+  }else{stop("invalid argument: which, should be either 'xdata' or 'ydata' \n")}
   
   # initialize list of dataframes
   data_list <- list()
-  
-  doSubset <- vers_list$subset
-  # sampleMask
-  samplemask <- NULL
-  if(doSubset){
-    
-    #create sample mask
-    mastermask <- rast(file.path(path_masks, "master_mask.tif"))
-    samplemask <- mastermask
-    samplemask[] <- FALSE
-
-    # Get the dimensions and seed of the raster
-    dims <- dim(samplemask)
-    seed <- vers_list$subSeed
-    fact <- vers_list$subFact
-    
-    # Create indices for the reduced sampling
-    reduce_i <- seq(seed+1, dims[1], by = fact)
-    reduce_j <- seq(seed+1, dims[2], by = fact)
-    
-    # Create a matrix of indices to set to TRUE
-    indices <- expand.grid(reduce_i, reduce_j)
-    samplemask[cbind(indices$Var1, indices$Var2)] <- TRUE
-    
-    # get samplemask
-    samplemask <- mastermask & samplemask
-  }
-  
+  path_files <- path_vars
+  if(call$subset){path_files = path_tmp}
   # iterate over all periods
   n_time <- length(var_list$periods)
   for(per in 1:n_time){
@@ -325,24 +355,13 @@ get_geodata <- function(var_list,
     # get files
     files_this_period <- file_var_list$files
     # make raster
-    file_paths <- file.path(path_vars, files_this_period)
-    raster_this_period <- rast(file_paths)
+    file_paths_full <- file.path(path_files, files_this_period)
+    raster_this_period <- rast(file_paths_full)
     names(raster_this_period) <- file_var_list$variables
-
-    # subset
-    if(doSubset){
-      raster_this_period <- mask(x=raster_this_period,
-                                 mask = samplemask,
-                                 maskvalues=0, updatevalue=NA)
-    }
     
     # make dataframe
     getxy <- (var_list$x | var_list$y)
     cat(", converting to dataframe...")
-    # df <- make_dataframe(raster_this_period,
-    #                      vers_list,
-    #                      getxy = getxy,
-    #                      cells = TRUE, na.rm = NA)
     df <- as.data.frame(raster_this_period, xy = getxy,
                         cells = TRUE, na.rm = NA)
     cat(" done. \n")
@@ -390,7 +409,7 @@ get_geodata <- function(var_list,
 }
 
 
-## helper functions other ####
+## helper functions other for fittin gjamTime ####
 
 ## stop execution if NA
 execute_code <- function() {
@@ -680,6 +699,7 @@ termA <- TRUE    # include DD spp interaction term UA
 
 # paths
 path_vars <- "data/gjamTime_data/"
+path_tmp <- "data/gjamTime_tmpSubset/"
 path_masks <- "data/Masks/"
 path_save <- "data/gjamTime_outputs/"
 ref_list_name <- "normalization.rds"
@@ -706,12 +726,3 @@ masterlist_variables <- list(
 # masterlist of gjam call
 mastervector_call <- c("name", "version", "periods", "xvars", "yvars",
                        "subset", "subSeed", "subFact")
-
-
-
-## print when script is called ####
-
-# cat("Valid entries for variable list: \n")
-# for(keyname in names(masterlist_variables)){
-#   cat(keyname,": ", masterlist_variables[[keyname]], "\n")
-# }

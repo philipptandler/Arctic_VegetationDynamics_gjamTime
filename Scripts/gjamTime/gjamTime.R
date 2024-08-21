@@ -1,9 +1,16 @@
-# This Scirpt prepares the ydata and xdata and fits the gjamTime function
+#' This Scirpt prepares the ydata and xdata and fits the gjamTime function
+#' I run the 'crop' version with subset = FALSE on my laptop (32 GB RAM) without
+#' and problems. 
+#' The 'full' version I run on the computing cluster Euler at ETH Zürich with
+#' 128 GB memory.Beware, the 'full' version with subset = FASLE overflows the
+#' memory even on the comuptin cluster 
+
 
 #set up environment:
 library(here)
 setwd(here::here())
 source("Scripts/gjamTime/setup_gjamTime.R")
+
 
 ## general setup ####
 
@@ -20,40 +27,40 @@ vlist <- list(
 vlist <- updateArgs(vlist, sysArgs)
 
 ## define the variables here
-
-callName <- "gjam_allVars"
+callName <- "test_allvars"
 
 xvars <- list(
   topography = c("elev", "slope", "cosasp", "tpi"),
   y = FALSE, # to get latitude
   x = FALSE, # to get longitude
-  climate = c("tass", "tasw", "pr"),
-  soil = c("wvol05", "wvol15", "wvol30", "wvol60")
+  climate = c(),
+  soil = c()
 )
 yvars <- list(
   vegetation = c("sh", "cf", "hb", "lc")
 )
 
 periods <- c("1984-1990",
-             "1991-1996",
-             "1997-2002",
-             "2003-2008",
-             "2009-2014",
-             "2015-2020")
-
+             "1991-1996")
 
 # makes sure to have a valid input, initializes and prints call
 call <- assert_gjamCall(vlist, xvars, yvars, periods, callName)
 
+## prepare the geodata to load  ####
+# if call$subset: writes subset of data/gjamTime_data to data/gjamTime_tmpSubset
+cat("prepare geodata:\n")
+prepare_geodata(call)
+
+
 ## get xdata ####
 cat("loading xdata: \n")
-call$xdata <- get_geodata(call$xvars, vlist,
+call$xdata <- get_geodata(call, which = "xdata",
                           dropgroup = FALSE, dropperiod = FALSE)
 
 
 ## get ydata ####
 cat("loading ydata: \n")
-call$ydata <- get_geodata(call$yvars, vlist,
+call$ydata <- get_geodata(call, which = "ydata",
                           dropgroup = TRUE, dropperiod = TRUE)
 
 
@@ -66,4 +73,3 @@ output_call <- fit_gjamTime(setup = call,
                             saveOutput = TRUE,
                             showPlot = TRUE)
 cat("fitting completed. \n")
-
