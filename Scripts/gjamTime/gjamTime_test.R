@@ -30,7 +30,7 @@ yvars_short <- list(
 )
 test1 <- list(
   name = "t_local_x(all)_v(all)_p(all)_r100_1",
-  version = "crop",
+  version = "r100",
   periods = c("1984-1990",
               "1991-1996",
               "1997-2002",
@@ -51,14 +51,14 @@ test1$xdata <- get_geodata(test1$xvars, dropgroup = FALSE, dropperiod = FALSE)
 
 
 ## get ydata ####
-# cat("loading ydata: \n")
-# test1$ydata <- get_geodata(test1$yvars, dropgroup = TRUE, dropperiod = TRUE)
+cat("loading ydata: \n")
+test1$ydata <- get_geodata(test1$yvars, dropgroup = TRUE, dropperiod = TRUE)
 
 ## loading Testdata ####
 # save(test1, file ="testdata_r100_all.Rdata")
 # cat("done.\n")
-load("testdata.Rdata")
-test1$name = "test_x(all)_v(all)_p(all)_r100_1"
+# load("testdata.Rdata")
+# test1$name = "test_x(all)_v(all)_p(all)_r100_1"
 
 ## fit gjamTime ####
 ## set model specifications:
