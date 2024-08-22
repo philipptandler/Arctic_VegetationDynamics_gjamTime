@@ -53,27 +53,33 @@ call <- assert_gjamCall(vlist, xvars, yvars, periods, callName)
 ## prepare the geodata to load  ####
 # if call$subset: writes subset of data/gjamTime_data to data/gjamTime_tmpSubset
 cat("prepare geodata:\n")
+time1 <- start_time()
 prepare_geodata(call)
-
+cat("done. (", end_time(time1), ")\n")
 
 ## get xdata ####
 cat("loading xdata: \n")
+time2 <- start_time()
 call$xdata <- get_geodata(call, which = "xdata",
                           dropgroup = FALSE, dropperiod = FALSE)
-
+cat("done. (", end_time(time2), ")\n")
 
 ## get ydata ####
 cat("loading ydata: \n")
+time3 <- start_time()
 call$ydata <- get_geodata(call, which = "ydata",
                           dropgroup = TRUE, dropperiod = TRUE)
+cat("done. (", end_time(time3), ")\n")
 
 
 ## fit gjamTime ####
 cat("fitting data in gjam: \n")
+time4 <- start_time()
 output_call <- fit_gjamTime(setup = call,
                             termB = termB,
                             termR = termR,
                             termA = termA,
                             saveOutput = TRUE,
                             showPlot = TRUE)
-cat("fitting completed. \n")
+cat("done. (", end_time(time4), ")\n")
+cat("fitting completed. Total:", end_time(time1), "\n")

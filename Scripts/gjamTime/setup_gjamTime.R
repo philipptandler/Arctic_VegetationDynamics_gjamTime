@@ -10,6 +10,16 @@ library(devtools)
 library(gjam)
 source("Scripts/gjamTime/load_gjamTimeFunctions.R")
 
+## timing ####
+start_time <- function(){
+  start_time <- Sys.time()
+  return(start_time)
+}
+end_time <- function(time){
+  delta <- format(round(Sys.time() - time, 2))
+  return(delta)
+}
+
 ## For version ####
 updateArgs <- function(vlist, sysArgs){
   if (!exists("vers", where = vlist) || length(vlist$vers) == 0){
