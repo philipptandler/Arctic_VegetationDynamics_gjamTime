@@ -43,6 +43,7 @@ updateArgs <- function(vlist, sysArgs){
     
     # check subset
     vlist$subFact <- as.integer(vlist$subFact)
+    vlist$subSeed <- as.integer(vlist$subSeed)
     if(vlist$subFact < 1 || vlist$subFact > 10000){stop("invalid subFact")}
     vlist$subSeed <- as.integer(vlist$subSeed%%((vlist$subFact)**2))
     vlist$name <- "subs"
