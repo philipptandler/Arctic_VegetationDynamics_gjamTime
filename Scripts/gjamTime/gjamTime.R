@@ -27,21 +27,25 @@ vlist <- list(
 vlist <- updateArgs(vlist, sysArgs)
 
 ## define the variables here
-callName <- "test_allvars"
+callName <- "fit_allVars"
 
 xvars <- list(
   topography = c("elev", "slope", "cosasp", "tpi"),
   y = FALSE, # to get latitude
   x = FALSE, # to get longitude
-  climate = c(),
-  soil = c()
+  climate = c("tasw", "tass","prw", "prs"),
+  soil = c("wvol")
 )
 yvars <- list(
   vegetation = c("sh", "cf", "hb", "lc")
 )
 
 periods <- c("1984-1990",
-             "1991-1996")
+             "1991-1996",
+             "1997-2002",
+             "2003-2008",
+             "2009-2014",
+             "2015-2020")
 
 # makes sure to have a valid input, initializes and prints call
 call <- assert_gjamCall(vlist, xvars, yvars, periods, callName)

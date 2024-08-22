@@ -27,7 +27,7 @@ vlist <- list(
 vlist <- updateArgs(vlist, sysArgs)
 
 ## define the variables here
-callName <- "test_allvars"
+callName <- "test_someVars"
 
 xvars <- list(
   topography = c("elev", "slope", "cosasp", "tpi"),

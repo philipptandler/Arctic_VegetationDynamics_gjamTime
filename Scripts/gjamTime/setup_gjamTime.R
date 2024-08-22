@@ -24,23 +24,32 @@ updateArgs <- function(vlist, sysArgs){
   if (!exists("subSeed", where = vlist) || length(vlist$subSeed) == 0){
     vlist$subSeed <- 0
   }
-  #update version from sysArgs
+  # update version from sysArgs
   if (length(sysArgs) > 0) {
     vlist$vers <- sysArgs[1]
   }
-
+  
   # if we subset data
-  if(vlist$subset || (length(sysArgs) > 1) ){
+  if(vlist$subset || (length(sysArgs) > 1)){
+    vlist$subset <- TRUE
+    
+    # get sysArgs
+    if(length(sysArgs) > 1){
+      vlist$subFact <- sysArgs[2]
+      if(length(sysArgs) > 2){
+        vlist$subSeed <- sysArgs[3]
+      }
+    }
+    
+    # check subset
     vlist$subFact <- as.integer(vlist$subFact)
     if(vlist$subFact < 1 || vlist$subFact > 10000){stop("invalid subFact")}
-    
-    if(length(sysArgs) > 1){
-      vlist$subset <- TRUE
-      vlist$subSeed <- as.integer(sysArgs[2])
-    }
     vlist$subSeed <- as.integer(vlist$subSeed%%((vlist$subFact)**2))
     vlist$name <- "subs"
-  }else{vlist$name <- vlist$vers}
+    
+  }else{ #if not subset data
+    vlist$name <- vlist$vers
+  }
   return(vlist)
 }
 
