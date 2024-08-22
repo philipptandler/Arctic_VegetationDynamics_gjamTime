@@ -59,6 +59,9 @@ updateArgs <- function(vlist, sysArgs){
     vlist$name <- "subs"
     
   }else{ #if not subset data
+    vlist$subset <- FALSE
+    vlist$subFact <- 1
+    vlist$subSeed <- 0
     vlist$name <- vlist$vers
   }
   return(vlist)
@@ -167,7 +170,7 @@ assert_gjamCall <- function(vlist, xvars, yvars, periods, callName){
   call_list <- list(
     name = paste(callName,
                  vlist$vers,
-                 vlist$name,
+                 paste0(vlist$name, vlist$subFact),
                  sprintf(paste0("%04d"), vlist$subSeed),
                  sep = "_"),
     version = vlist$vers,
@@ -573,6 +576,43 @@ fillmeans <- function(df, vars) {
   return(df)
 }
 
+## Recursive function to remove large elements from a list
+
+recursive_remove <- function(element, threshold = 1000) {
+  
+  # If the element is a list, apply the function recursively
+  if (is.list(element)) {
+    element <- lapply(element, recursive_remove, threshold = threshold)
+    
+    # Filter out any NULL elements after recursive removal
+    element <- element[!sapply(element, is.null)]
+    
+    # If the list itself is empty after filtering, return NULL
+    if (length(element) == 0) {
+      return(NULL)
+    }
+    
+    return(element)
+  }
+  
+  # Get the dimensions of the element
+  dims <- dim(element)
+  
+  # If element has dimensions, check if any dimension exceeds the threshold
+  if (!is.null(dims) && any(dims > threshold)) {
+    return(NULL)
+  }
+  
+  # If element is a vector, check its length
+  if (is.vector(element) && length(element) > threshold) {
+    return(NULL)
+  }
+  
+  # Return the element if it does not exceed the threshold
+  return(element)
+}
+
+
 ## fit gjam function ####
 
 fit_gjamTime <- function(setup,
@@ -692,7 +732,8 @@ fit_gjamTime <- function(setup,
     gjamPlot(output, plotPars)
   }
   if(saveOutput){
-    save(output, file = paste0(outFolder, "/output.rdata"))
+    output_short <- recursive_remove(output) #to not blow up output file
+    save(output_short, file = paste0(outFolder, "/output.rdata"))
     print_call(setup, output_file = paste0(outFolder, "/call.txt"))
     cat("\n    output available in", outFolder, "\n")
   }
