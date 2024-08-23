@@ -476,7 +476,7 @@ get_outfolder <- function(name){
     # If it exists, find a new directory name
     i <- 1
     while (dir.exists(dir_path)) {
-      dir_path <- file.path(path_save, paste0(name, "(", i, ")"))
+      dir_path <- file.path(path_save, paste0(name, "-", i))
       i <- i + 1
     }
   }
@@ -718,7 +718,7 @@ fit_gjamTime <- function(setup,
   timeList <- mergeList(tlist, tmp)
 
   ## fit gjam
-  modelList <- list(typeNames = 'DA', ng = 10000, burnin = 5000,  
+  modelList <- list(typeNames = 'DA', ng = 6000, burnin = 2000,  
                     timeList = timeList, effort = effort)
   cat("    running gjam \n")
   output <- gjam(formula, xdata=xdata, ydata=ydata, modelList=modelList)
