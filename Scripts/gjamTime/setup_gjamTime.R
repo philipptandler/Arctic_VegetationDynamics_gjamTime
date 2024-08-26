@@ -576,42 +576,24 @@ fillmeans <- function(df, vars) {
   return(df)
 }
 
-## Recursive function to remove large elements from a list
 
-recursive_remove <- function(element, threshold = 1000) {
+## selcet output entries ####
+select_output<- function(output){
+  DIC <- output$fit$DIC
+  alphaMu <- output$parameters$alphaMu
+  alphaSe <- output$parameters$alphase
+  rhoMu <- output$parameters$rhoMu
+  rhoSe <- output$parameters$rhoSe
   
-  # If the element is a list, apply the function recursively
-  if (is.list(element)) {
-    element <- lapply(element, recursive_remove, threshold = threshold)
-    
-    # Filter out any NULL elements after recursive removal
-    element <- element[!sapply(element, is.null)]
-    
-    # If the list itself is empty after filtering, return NULL
-    if (length(element) == 0) {
-      return(NULL)
-    }
-    
-    return(element)
-  }
-  
-  # Get the dimensions of the element
-  dims <- dim(element)
-  
-  # If element has dimensions, check if any dimension exceeds the threshold
-  if (!is.null(dims) && any(dims > threshold)) {
-    return(NULL)
-  }
-  
-  # If element is a vector, check its length
-  if (is.vector(element) && length(element) > threshold) {
-    return(NULL)
-  }
-  
-  # Return the element if it does not exceed the threshold
-  return(element)
+  outlist <- list(
+    DIC = DIC,
+    alphaMu = alphaMu,
+    alphaSe = alphaSe,
+    rhoMu = rhoMu,
+    rhoSe = rhoSe
+  )
+  return(outlist)
 }
-
 
 ## fit gjam function ####
 
@@ -718,7 +700,7 @@ fit_gjamTime <- function(setup,
   timeList <- mergeList(tlist, tmp)
 
   ## fit gjam
-  modelList <- list(typeNames = 'DA', ng = 6000, burnin = 2000,  
+  modelList <- list(typeNames = 'DA', ng = 4000, burnin = 2000,  
                     timeList = timeList, effort = effort)
   cat("    running gjam \n")
   output <- gjam(formula, xdata=xdata, ydata=ydata, modelList=modelList)
@@ -732,7 +714,7 @@ fit_gjamTime <- function(setup,
     gjamPlot(output, plotPars)
   }
   if(saveOutput){
-    output_short <- recursive_remove(output) #to not blow up output file
+    output_short <- select_output(output) #to not blow up output file
     save(output_short, file = paste0(outFolder, "/output.rdata"))
     print_call(setup, output_file = paste0(outFolder, "/call.txt"))
     cat("\n    output available in", outFolder, "\n")

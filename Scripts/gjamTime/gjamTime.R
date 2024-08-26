@@ -27,14 +27,14 @@ vlist <- list(
 vlist <- updateArgs(vlist, sysArgs)
 
 ## define the variables here
-callName <- "fit_allVars"
+callName <- "gjam_complete"
 
 xvars <- list(
   topography = c("elev", "slope", "cosasp", "tpi"),
   y = FALSE, # to get latitude
   x = FALSE, # to get longitude
   climate = c("tasw", "tass","prw", "prs"),
-  soil = c("wvol")
+  soil = c("wvol05", "wvol15", "wvol30", "wvol60")
 )
 yvars <- list(
   vegetation = c("sh", "cf", "hb", "lc")
