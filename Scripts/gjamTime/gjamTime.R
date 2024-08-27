@@ -80,6 +80,6 @@ output_call <- fit_gjamTime(setup = call,
                             termR = termR,
                             termA = termA,
                             saveOutput = TRUE,
-                            showPlot = TRUE)
+                            showPlot = FALSE)
 cat("done. (", end_time(time4), ")\n")
 cat("fitting completed. Total:", end_time(time1), "\n\n\n\n\n")
