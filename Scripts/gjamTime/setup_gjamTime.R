@@ -581,7 +581,7 @@ fillmeans <- function(df, vars) {
 select_output<- function(output){
   DIC <- output$fit$DIC
   alphaMu <- output$parameters$alphaMu
-  alphaSe <- output$parameters$alphase
+  alphaSe <- output$parameters$alphaSe
   rhoMu <- output$parameters$rhoMu
   rhoSe <- output$parameters$rhoSe
   
