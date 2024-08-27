@@ -604,7 +604,7 @@ fit_gjamTime <- function(setup,
                          normalize = TRUE,
                          # normalize = "ref" for normalizing to ref period 2015-2020
                          saveOutput = TRUE,
-                         showPlot = TRUE){
+                         showPlot = TRUE){  # TODO if showplot FALSE it crashes
   # general Vesions
   if(fixWarning){redirect_gjam()}
   if(tracking){start_track_gjam()}

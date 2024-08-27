@@ -70,7 +70,6 @@ output_call <- fit_gjamTime(setup = call,
                             termB = termB,
                             termR = termR,
                             termA = termA,
-                            saveOutput = TRUE,
-                            showPlot = FALSE)
+                            saveOutput = TRUE)
 cat("fitting completed. \n")
 
