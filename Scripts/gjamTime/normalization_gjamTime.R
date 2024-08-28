@@ -9,33 +9,55 @@ library(here)
 setwd(here::here())
 source("Scripts/gjamTime/setup_gjamTime.R")
 
-ref_period <- c("2015-2020")
+refPeriods <- c("1984-1990",
+                "1991-1996",
+                "1997-2002",
+                "2003-2008",
+                "2009-2014",
+                "2015-2020",
+                "const")
 
 varlist <- list(
-  # topography = c("elev", "slope", "aspect", "tpi"),
-  # x = TRUE,
-  # y = TRUE,
-  # climate = c("tas", "tasw", "tass", "pr", "prw", "prs"),
+  topography = c("elev", "slope", "aspect", "cosasp", "tpi"),
+  x = TRUE,
+  y = TRUE,
+  climate = c("tas", "tasw", "tass", "pr", "prw", "prs"),
   wildfire = c(),
-  # soil = c("wvol", "wvol05", "wvol15", "wvol30", "wvol60"),
-  periods = ref_period,
-  version = c("r100")
+  soil = c("wvol", "wvol05", "wvol15", "wvol30", "wvol60"),
+  periods = refPeriods,
+  version = c("full")
 )
-varlist <- assert_geodata(varlist)
 
-alldata <- get_geodata(varlist, dropgroup = TRUE, dropperiod = TRUE)
+
+varlist <- assert_geodata(varlist)
+varvec <- getvars(varlist)
 
 ref_list <- list()
 ref_list_name <- "normalization.rds"
 path_ref_list <- "Scripts/gjamTime/"
 path_ref_list_fullname <- paste0(path_ref_list, ref_list_name)
 if(file.exists(path_ref_list_fullname)){ref_list <- readRDS(path_ref_list_fullname)}
+refPeriodPattern <- paste(refPeriods, collapse = "|")
 
 # for all columns
-for (col in colnames(alldata)){
-  colvalues <- alldata[[col]]
-  ref_list[[col]]$mean <- mean(colvalues)
-  ref_list[[col]]$sd <- sd(colvalues)
+for (var in varvec){
+  if(var != "lat" && var != "lon"){
+    pattern <- paste0(".*_(", refPeriodPattern, ")_", var, "_full\\.tif$")
+    files <- list.files(path = path_vars, pattern = pattern, full.names = TRUE)
+    raster <- rast(files)
+    ref_list[[var]]$mean <- mean(values(raster), na.rm = TRUE)
+    ref_list[[var]]$sd <- sd(values(raster), na.rm = TRUE)
+  }
+  if(var == "lat"){
+    extent <- ext(rast(file.path(path_masks, "study_region_mask.tif")))
+    ref_list[[var]]$mean <- mean(c(extent$ymin, extent$ymax))
+    ref_list[[var]]$sd <- sd(c(extent$ymin, extent$ymax))
+  }
+  if(var == "lon"){
+    extent <- ext(rast(file.path(path_masks, "study_region_mask.tif")))
+    ref_list[[var]]$mean <- mean(c(extent$xmin, extent$xmax))
+    ref_list[[var]]$sd <- sd(c(extent$xmin, extent$xmax))
+  }
 }
 
 # save list as rdata
