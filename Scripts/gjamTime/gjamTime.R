@@ -27,7 +27,7 @@ vlist <- list(
 vlist <- updateArgs(vlist, sysArgs)
 
 ## define the variables here
-callName <- "gjam_complete"
+callName <- "gjam_official"
 
 xvars <- list(
   topography = c("elev", "slope", "cosasp", "tpi"),

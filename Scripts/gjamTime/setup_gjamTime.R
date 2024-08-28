@@ -627,8 +627,7 @@ fit_gjamTime <- function(setup,
                          termR = TRUE,
                          termA = TRUE,
                          normalize = TRUE,
-                         # normalize = "ref" for normalizing to ref period 2015-2020
-			 # TODO fix crash if "ref"
+                         # normalize = "ref" for normalizing to reference fulldata, 1984-2020
                          saveOutput = TRUE,
                          showPlot = TRUE){  # TODO if showplot FALSE it crashes
   # general Vesions
