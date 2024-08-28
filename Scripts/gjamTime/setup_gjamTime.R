@@ -250,7 +250,7 @@ sample_geodata <- function(var_list, which, samplemask){
   # for all periods
   n_time <- length(var_list$periods)
   for(per in 1:n_time){
-    cat("    loading period", var_list$periods[per], "\n")
+    cat("        loading period", var_list$periods[per], "\n")
     # get files
     file_var_list <- get_filenames(var_list$periods[per], var_list)
     files_this_period <- file_var_list$files
@@ -260,7 +260,6 @@ sample_geodata <- function(var_list, which, samplemask){
     file_paths_out <- file.path(path_tmp, files_this_period)
     # load, mask and save each independently
     for(i in 1:length(files_this_period)){
-      cat("          sampling", vars_this_period[i], "\n")
       #load
       raster <- rast(file_paths_in[i])
       names(raster) <- vars_this_period[i]
