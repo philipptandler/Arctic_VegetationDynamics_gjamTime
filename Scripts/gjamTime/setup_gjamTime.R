@@ -580,17 +580,43 @@ fillmeans <- function(df, vars) {
 ## selcet output entries ####
 select_output<- function(output){
   DIC <- output$fit$DIC
+  rmspeAll <- output$fit$rmspeAll
+  rmspeBySpec <- output$fit$rmspeBySpec
+  xscore <- output$fit$xscore
+  yscore <- output$fit$yscore
+  
   alphaMu <- output$parameters$alphaMu
   alphaSe <- output$parameters$alphaSe
+  
+  corMu <- output$parameters$corMu
+  corSe <- output$parameters$corSe
+  
   rhoMu <- output$parameters$rhoMu
   rhoSe <- output$parameters$rhoSe
   
+  rhoStandXmu <- output$parameters$rhoStandXmu
+  rhoStandXse <- output$parameters$rhoStandXse
+  
+  sensAlpha <- output$parameters$sensAlpha
+  sensRho <- output$parameters$sensRho
+  
+  
   outlist <- list(
     DIC = DIC,
+    rmspeAll = rmspeAll,
+    rmspeBySpec = rmspeBySpec,
+    xscore = xscore,
+    yscore = yscore,
     alphaMu = alphaMu,
     alphaSe = alphaSe,
+    corMu = corMu,
+    corSe = corSe,
     rhoMu = rhoMu,
-    rhoSe = rhoSe
+    rhoSe = rhoSe,
+    rhoStandXmu = rhoStandXmu,
+    rhoStandXse = rhoStandXse,
+    sensAlpha = sensAlpha,
+    sensRho =sensRho
   )
   return(outlist)
 }
