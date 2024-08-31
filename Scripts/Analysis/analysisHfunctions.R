@@ -1,6 +1,10 @@
 #' This Script holds helper functions to process and analyse the outputs of 
 #' gjamTime.R
 
+## libraries ####
+library(terra)
+library(matlib)
+
 ## load output gjamTime ####
 
 load_estimates_gjam <- function(folderPattern, directory=NULL, save=TRUE){
@@ -91,8 +95,15 @@ estimate_parameters <- function(mu_list, sd_list){
 }
 
 
+## raster linear algebra ####
+
+matrixProd <- function()
+
+
 ## variable definitions ####
 ## paths
 path_gjamTime_outStorge <- "data/gjamTime_outStorage"
 path_analysis <- "Scripts/Analysis"
+path_analysis_raster <- "data/analysis/rasters"
+path_analysis_tmp <- "data/analysis_tmpStorage"
 
