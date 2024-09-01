@@ -46,17 +46,17 @@ load_estimates_gjam <- function(folderPattern, directory=NULL, save=TRUE){
   outputlist <- list(
     alphaMu = parameters_alpha$mean,
     alphaSe = parameters_alpha$sd,
-    rhoMu = parameters_rho$mean,
-    rhoSe = parameters_rho$sd
+    rhoMu = t(parameters_rho$mean),
+    rhoSe = t(parameters_rho$sd)
   )
   
   #save
   if(save){
     for(estimate in names(outputlist)){
       est <- outputlist[[estimate]]
-      saveRDS(est, file = file.path(path_analysis, paste0(".",estimate, ".rds")))
+      saveRDS(est, file = file.path(path_analysis_scripts, paste0(".",estimate, ".rds")))
     }
-    cat("saved estimates under", paste0(path_analysis, "/<estimate>.rds\n"))
+    cat("saved estimates under", paste0(path_analysis_scripts, "/<estimate>.rds\n"))
   }
   
   # Return the list of somevalue
@@ -94,16 +94,54 @@ estimate_parameters <- function(mu_list, sd_list){
   return(paramater_list)
 }
 
+## normalize raster
+normalizeRaster <- function(raster){
+  path_norm_list_fullname <- file.path(path_norm_list, norm_list_name)
+  norm_list <- readRDS(path_norm_list_fullname)
+  for(var in names(raster)){
+    raster[[var]] <- (raster[[var]]-norm_list[[var]]$mean)/norm_list[[var]]$sd
+  }
+  return(raster)
+}
+
+
+
 
 ## raster linear algebra ####
 
-matrixProd <- function()
+# Matrix M and raster w, each pixel treated as vector
+matrixProd <- function(M, w){
+  raster <- c()
+  for (row in 1:nrow(M)){
+    layer <- vectorProd(M[row,], w)
+    raster <- c(raster, layer)
+  }
+  names(raster) <- colnames(M)
+  return(raster)
+}
+# vector v and raster w, wach pixel treated as vector
+vectorProd <- function(v,w){
+  n_layers <- nlyr(w) # ==length of vector!
+  if(n_layers != length(v)){stop("number of vector elements doesnt match number of layers")}
+  result <- v[1] * w[[1]]
+  if(n_layers == 1){
+    return(result)
+  }else{
+    for(i in 2:n_layers){
+      cat(i, " ")
+      result <- result + v[i]*w[[i]]
+    }
+    return(result)
+  }
+}
 
 
 ## variable definitions ####
 ## paths
 path_gjamTime_outStorge <- "data/gjamTime_outStorage"
-path_analysis <- "Scripts/Analysis"
-path_analysis_raster <- "data/analysis/rasters"
+path_analysis_scripts <- "Scripts/Analysis"
+path_analysis_data_rast <- "data/analysis/rasters"
 path_analysis_tmp <- "data/analysis_tmpStorage"
+path_norm_list <- "Scripts/gjamTime/"
+norm_list_name <- "normalization.rds"
 
