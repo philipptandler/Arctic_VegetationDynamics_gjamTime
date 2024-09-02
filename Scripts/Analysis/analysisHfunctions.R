@@ -139,7 +139,7 @@ vectorProd <- function(v,w){
 
 ## variable definitions ####
 ## paths
-path_gjamTime_outStorge <- "data/gjamTime_outStorage"
+path_gjamTime_outputs <- "data/gjamTime_outputs"
 path_analysis_scripts <- "Scripts/Analysis"
 path_analysis_data_rast <- "data/analysis/rasters"
 path_norm_list <- "Scripts/gjamTime/"
