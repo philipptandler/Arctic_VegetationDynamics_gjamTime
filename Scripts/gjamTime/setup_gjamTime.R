@@ -49,7 +49,9 @@ updateArgs <- function(vlist, sysArgs){
       if(length(sysArgs) > 2){
         set.seed(1234)
         random_numbers <- sample(2764:8652, 160, replace = FALSE)
-        vlist$subSeed <- as.integer(random_numbers[sysArgs[3]])
+        index <- as.integer(sysArgs[3]) #87-160
+        if(index < 1 || index > 160 || is.na(index)){stop("invalid index (sysArgs[3]) provided")}
+        vlist$subSeed <- random_numbers[index]
       }
     }
     
