@@ -47,7 +47,9 @@ updateArgs <- function(vlist, sysArgs){
     if(length(sysArgs) > 1){
       vlist$subFact <- sysArgs[2]
       if(length(sysArgs) > 2){
-        vlist$subSeed <- sysArgs[3]
+        set.seed(1234)
+        random_numbers <- sample(2764:8652, 160, replace = FALSE)
+        vlist$subSeed <- as.integer(random_numbers[sysArgs[3]])
       }
     }
     
