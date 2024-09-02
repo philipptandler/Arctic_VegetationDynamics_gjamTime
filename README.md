@@ -19,7 +19,7 @@ or
 
 ## Dependencies
 - R version 4.3.3
-- R packages: `here`, `dplyr`, `devtools`, `terra`, `gjam`, `mvtnorm`
+- R packages: `here`, `dplyr`, `devtools`, `terra`, `gjam`, `mvtnorm`, `matlib`
 
 ## Contact
 For any questions, please contact tandlerp@ethz.ch.

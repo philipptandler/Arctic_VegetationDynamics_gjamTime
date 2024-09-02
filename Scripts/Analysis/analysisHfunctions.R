@@ -3,7 +3,8 @@
 
 ## libraries ####
 library(terra)
-library(matlib)
+# library(matlib)
+
 
 ## load output gjamTime ####
 
@@ -105,21 +106,22 @@ normalizeRaster <- function(raster){
 }
 
 
-
-
 ## raster linear algebra ####
 
 # Matrix M and raster w, each pixel treated as vector
 matrixProd <- function(M, w){
-  raster <- c()
+  layers <- list()
+  cat("calculate layer:")
   for (row in 1:nrow(M)){
+    cat(" ", row)
     layer <- vectorProd(M[row,], w)
-    raster <- c(raster, layer)
+    layers[[row]] <- layer
   }
-  names(raster) <- colnames(M)
+  cat("\n")
+  raster <- rast(layers)
   return(raster)
 }
-# vector v and raster w, wach pixel treated as vector
+# vector v and raster w, where each pixel treated as vector
 vectorProd <- function(v,w){
   n_layers <- nlyr(w) # ==length of vector!
   if(n_layers != length(v)){stop("number of vector elements doesnt match number of layers")}
@@ -128,7 +130,6 @@ vectorProd <- function(v,w){
     return(result)
   }else{
     for(i in 2:n_layers){
-      cat(i, " ")
       result <- result + v[i]*w[[i]]
     }
     return(result)
@@ -141,7 +142,6 @@ vectorProd <- function(v,w){
 path_gjamTime_outStorge <- "data/gjamTime_outStorage"
 path_analysis_scripts <- "Scripts/Analysis"
 path_analysis_data_rast <- "data/analysis/rasters"
-path_analysis_tmp <- "data/analysis_tmpStorage"
 path_norm_list <- "Scripts/gjamTime/"
 norm_list_name <- "normalization.rds"
 
