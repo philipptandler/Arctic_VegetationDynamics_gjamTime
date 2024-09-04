@@ -136,6 +136,37 @@ vectorProd <- function(v,w){
   }
 }
 
+## find nonegative fixedpoints (solve LCP) ####
+
+find_nonnegfxpt <- function(A, R, xvec, w, mask_sumneg){
+  # separate w for the number of negative components
+  W_neg_list <- list()
+  for(i in 0:nlyr(w)){
+    # mask all values expect i as NA
+    W_neg_list[[i]] <- mask(w, mask_sumneg,
+                            maskvalues=c(0:nlyr(w)[-i]), 
+                            updatevalue=NA)
+  }
+  
+  # for all values 
+  for(i in 1:nlyr(w)){
+    W_neg_list[[i]] 
+  }
+  
+  #' separate the raster w for the number of negative components
+  #' for each component layer, solve the lcp
+  
+  #' solve lcp by setting neg dim(s) to zero, and solve again. 
+  #' If the result satisfies the conditions good, if not, iteratively try out 
+  #' all combinations until true. 
+  #' This holds because a unique solution exists.
+  
+  
+  
+  # 
+  
+}
+
 
 ## variable definitions ####
 ## paths
