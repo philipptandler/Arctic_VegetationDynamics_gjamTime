@@ -137,34 +137,46 @@ vectorProd <- function(v,w){
 }
 
 ## find nonegative fixedpoints (solve LCP) ####
+#' for all values in x that are not NA check if LCP is solved
+#' returns a raster upd where w >= 0 and rho x + alpha w <= 0
+check_LCP <- function(dim, x, mask_true, combination){
+  subset <- c(1:dim)[combination]
+  subset_zero <- c(1:dim)[!combination]
+  
+  M <- -inv(alpha[subset, subset]) %*% rho[subset,]
+  w_upd <- matrixProd(M, x)
+  mask_upd <- (w_upd[[1]] >= 0 &
+                                        w_upd[[2]] >= 0 &
+                                        w_upd[[3]] >= 0 &
+                                        w_upd[[4]] >= 0)
+  
+}
 
-find_nonnegfxpt <- function(A, R, xvec, w, mask_sumneg){
-  # separate w for the number of negative components
-  W_neg_list <- list()
-  for(i in 0:nlyr(w)){
-    # mask all values expect i as NA
-    W_neg_list[[i]] <- mask(w, mask_sumneg,
-                            maskvalues=c(0:nlyr(w)[-i]), 
-                            updatevalue=NA)
+
+solve_LCP <- function(x, wstar, mask){
+  dim <- nlyr(wstar)
+  # raster containing valid solutions to lcp
+  w_valid <- mask(wstar, mask, maskvalues=0, updatevalue=NA)  
+  # mask that holds TRUE where we have found a valid solution, else FALSE or NA
+  mask_true <- mask
+
+  # introduce all possible combinations of x or (b-Ax) = 0 in d/dt(x)
+  combinations <- as.matrix(expand.grid(rep(list(c(TRUE, FALSE)), dim)))
+
+  # for all combinations
+  for(i in 2:(dim**2)){
+    combination <- combinations[i,]
+    # check solution for remaining pixels where we have no valid solution yet
+    x_false <- mask(x, mask_true, maskvalues=1, updatevalue=NA)
+    writeRaster(x_false, file.path(path_analysis_tmprast), "x_false.tif", overwrite=T)
+    mask_upd <- check_LCP(dim, x_false, mask_true, combination)
+    mask_true <- mask_true | mask_upd
+    writeRaster(mask_true, file.path(path_analysis_tmprast), "mask_true.tif", overwrite=T)
+    w_upd <- rast(file.path(path_analysis_tmprast), "w_upd.tif")
+    w_valid <- cover(w_valid, w_upd)
+    
   }
-  
-  # for all values 
-  for(i in 1:nlyr(w)){
-    W_neg_list[[i]] 
-  }
-  
-  #' separate the raster w for the number of negative components
-  #' for each component layer, solve the lcp
-  
-  #' solve lcp by setting neg dim(s) to zero, and solve again. 
-  #' If the result satisfies the conditions good, if not, iteratively try out 
-  #' all combinations until true. 
-  #' This holds because a unique solution exists.
-  
-  
-  
-  # 
-  
+
 }
 
 
@@ -173,6 +185,8 @@ find_nonnegfxpt <- function(A, R, xvec, w, mask_sumneg){
 path_gjamTime_outputs <- "data/gjamTime_outputs"
 path_analysis_scripts <- "Scripts/Analysis"
 path_analysis_data_rast <- "data/analysis/rasters"
+path_analysis_tmprast <- "data/analysis/tmp_rasters"
+
 path_norm_list <- "Scripts/gjamTime/"
 norm_list_name <- "normalization.rds"
 

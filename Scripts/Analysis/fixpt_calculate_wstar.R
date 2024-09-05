@@ -18,12 +18,14 @@ writeRaster(wstar_2020,
             file.path(path_analysis_data_rast, "wstar_2020_2.tif"),
             datatype = "FLT4S")
 wstar_2020 <- rast(file.path(path_analysis_data_rast, "wstar_2020.tif"))
+result <- Reduce(`&`, lapply(c(1:4), function(i) wstar_2020[[i]] >= 0))
 
 ## negative values mask ####
 mask_wstar_2020_nonneg <- (wstar_2020[[1]] >= 0 &
                              wstar_2020[[2]] >= 0 &
                              wstar_2020[[3]] >= 0 &
                              wstar_2020[[4]] >= 0)
+
 writeRaster(mask_wstar_2020_nonneg,
             file.path(path_analysis_data_rast, "mask_wstar_2020_nonneg_2B.tif"),
             overwrite =TRUE)
@@ -70,6 +72,4 @@ writeRaster(wdiff_2020,
 ## solve the Linear Complimentary Problem for w ####
 #' finding the nonnegative stable solution
 
-wstar_2020_noneg <- get_nonnegfxpt(d = x_2020,
-                                   wstar = wstar_2020,
-                                   mask_sumneg = mask_wstar_2020_sumneg) 
+wstar_2020_noneg <- solve_LCP(d = x_2020, wstar = wstar_2020, mask = mask_wstar_2020_nonneg) 
