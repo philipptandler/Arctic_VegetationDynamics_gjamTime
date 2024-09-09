@@ -115,5 +115,3 @@ x_2100 <- c(intercept_layer, x_2100)
 writeRaster(x_2100, filename = file.path(path_analysis_data_rast, "x_2100.tif"),
             overwrite = TRUE)
 
-
-

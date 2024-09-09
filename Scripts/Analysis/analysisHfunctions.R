@@ -176,6 +176,22 @@ solve_LCP <- function(rho, alpha, x, wstar, mask_valid){
 
   # for all combinations
   for(i in 2:(dim**2)){
+    # get combination
+    
+    # propose solution
+    w_propose <- propose_LCP(dim, rho, alpha, x_invalid)
+    # check solution
+    valid_proposed <- check_LCP(alpha, rho, x_invalid)
+    # keep valid solutions
+    w_true <- mask(w_propose, valid_proposed, maskvalue=0, updatevalue=NA)
+    w_valid <- cover(w_valid, w_true)
+    # reduce invalid solutions
+    x_invalid <- mask(x_invalid, valid_proposed, maskvalue=1, updatevalue=NA)
+    
+    
+    
+    
+    
     combination <- combinations[i,]
     # check solution for remaining pixels where we have no valid solution yet
     # subset x where mask_valid is still false
@@ -203,4 +219,7 @@ path_analysis_tmprast <- "data/analysis/tmp_rasters"
 
 path_norm_list <- "Scripts/gjamTime/"
 norm_list_name <- "normalization.rds"
+
+## constants
+
 
