@@ -8,17 +8,15 @@ source("Scripts/Analysis/analysisHfunctions.R")
 #load matrices
 alpha <- readRDS(file.path(path_analysis_scripts, ".alphaMu.rds"))
 rho <- readRDS(file.path(path_analysis_scripts, ".rhoMu.rds"))
-alpha_inv <- readRDS(file.path(path_analysis_scripts, ".alpha_inv.rds"))
 
-# wstar 2020
+## wstar 2020 ####
 x_2020 <- rast(file.path(path_analysis_data_rast,"x_2020.tif"))
-wstar_2020 <- matrixProd(-alpha_inv %*% rho, x_2020)
+wstar_2020 <- matrixProd(-inv(alpha) %*% rho, x_2020)
 names(wstar_2020) <- rownames(rho)
 writeRaster(wstar_2020,
-            file.path(path_analysis_data_rast, "wstar_2020_2.tif"),
-            datatype = "FLT4S")
-wstar_2020 <- rast(file.path(path_analysis_data_rast, "wstar_2020.tif"))
-result <- Reduce(`&`, lapply(c(1:4), function(i) wstar_2020[[i]] >= 0))
+            file.path(path_analysis_data_rast, "wstar_2020_nontriv.tif"))
+wstar_2020 <- rast(file.path(path_analysis_data_rast, "wstar_2020_nontriv.tif"))
+
 
 ## negative values mask ####
 mask_wstar_2020_nonneg <- (wstar_2020[[1]] >= 0 &
@@ -27,7 +25,7 @@ mask_wstar_2020_nonneg <- (wstar_2020[[1]] >= 0 &
                              wstar_2020[[4]] >= 0)
 
 writeRaster(mask_wstar_2020_nonneg,
-            file.path(path_analysis_data_rast, "mask_wstar_2020_nonneg_2B.tif"),
+            file.path(path_analysis_data_rast, "mask_wstar_2020_nonneg.tif"),
             overwrite =TRUE)
 
 mask_wstar_2020_sumneg <- ((wstar_2020[[1]] < 0) +
@@ -40,13 +38,13 @@ mask_wstar_2020_sumneg <- rast(file.path(path_analysis_data_rast, "mask_wstar_20
 
 ## wstar 2100 ####
 x_2100 <- rast(file.path(path_analysis_data_rast,"x_2100.tif"))
-wstar_2100 <- matrixProd(-alpha_inv %*% rho, x_2100)
+wstar_2100 <- matrixProd(-inv(alpha) %*% rho, x_2100)
 names(wstar_2100) <- rownames(rho)
 writeRaster(wstar_2100,
-            file.path(path_analysis_data_rast, "wstar_2100.tif"))
-wstar_2100 <- rast(file.path(path_analysis_data_rast, "wstar_2100.tif"))
+            file.path(path_analysis_data_rast, "wstar_2100_nontriv.tif"))
+wstar_2100 <- rast(file.path(path_analysis_data_rast, "wstar_2100_nontriv.tif"))
 
-# negative values mask
+## negative values mask ####
 mask_wstar_2100_nonneg <- (wstar_2100[[1]] >= 0 &
                               wstar_2100[[2]] >= 0 &
                               wstar_2100[[3]] >= 0 &
@@ -72,4 +70,4 @@ writeRaster(wdiff_2020,
 ## solve the Linear Complimentary Problem for w ####
 #' finding the nonnegative stable solution
 
-wstar_2020_noneg <- solve_LCP(d = x_2020, wstar = wstar_2020, mask = mask_wstar_2020_nonneg) 
+# wstar_2020_noneg <- solve_LCP(d = x_2020, wstar = wstar_2020, mask = mask_wstar_2020_nonneg) 

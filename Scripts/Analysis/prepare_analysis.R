@@ -19,8 +19,6 @@ alphaSe <- estimates_all$alphaSe
 rhoMu <- estimates_all$rhoMu
 rhoSe <- estimates_all$rhoSe
 
-alpha_inv <- inv(alphaMu)
-saveRDS(alpha_inv, file = file.path(path_analysis_scripts, paste0(".alpha_inv.rds")))
 
 ## prepare rasters ####
 

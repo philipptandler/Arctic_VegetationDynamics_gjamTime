@@ -3,7 +3,7 @@
 
 ## libraries ####
 library(terra)
-# library(matlib)
+library(matlib)
 
 
 ## load output gjamTime ####
@@ -137,6 +137,14 @@ vectorProd <- function(v,w){
 }
 
 ## find nonegative fixedpoints (solve LCP) ####
+
+## make solution of w_subset to full solution again
+make_fulldim <- function(w, subset, subset_zero){
+  dim_red <- nlyr(w)
+  
+}
+
+
 #' for all values in x that are not NA check if LCP is solved
 #' returns a raster upd where w >= 0 and rho x + alpha w <= 0
 check_LCP <- function(dim, x, mask_true, combination){
@@ -145,6 +153,7 @@ check_LCP <- function(dim, x, mask_true, combination){
   
   M <- -inv(alpha[subset, subset]) %*% rho[subset,]
   w_upd <- matrixProd(M, x)
+  w_upd <- make_fulldim(w_upd, subset, subset_zero)
   mask_upd <- (w_upd[[1]] >= 0 &
                                         w_upd[[2]] >= 0 &
                                         w_upd[[3]] >= 0 &
@@ -167,11 +176,14 @@ solve_LCP <- function(x, wstar, mask){
   for(i in 2:(dim**2)){
     combination <- combinations[i,]
     # check solution for remaining pixels where we have no valid solution yet
+    # subset x where mask_true is still false
     x_false <- mask(x, mask_true, maskvalues=1, updatevalue=NA)
     writeRaster(x_false, file.path(path_analysis_tmprast), "x_false.tif", overwrite=T)
+    # search solutions
     mask_upd <- check_LCP(dim, x_false, mask_true, combination)
     mask_true <- mask_true | mask_upd
     writeRaster(mask_true, file.path(path_analysis_tmprast), "mask_true.tif", overwrite=T)
+    # update valid solutions
     w_upd <- rast(file.path(path_analysis_tmprast), "w_upd.tif")
     w_valid <- cover(w_valid, w_upd)
     
