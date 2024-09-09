@@ -21,6 +21,13 @@ rhoSe <- estimates_all$rhoSe
 
 
 ## prepare rasters ####
+# wobs_1990 (sh, cf, hb, lc) in this order!
+files_wobs1990 <- c("data/gjamTime_data/veg_1984-1990_sh_full.tif",
+                    "data/gjamTime_data/veg_1984-1990_cf_full.tif",
+                    "data/gjamTime_data/veg_1984-1990_hb_full.tif",
+                    "data/gjamTime_data/veg_1984-1990_lc_full.tif")
+wobs_1990 <- rast(files_wobs1990)
+writeRaster(wobs_1990, filename = file.path(path_analysis_data_rast, "wobs_1990.tif"))
 
 # wobs_2020 (sh, cf, hb, lc) in this order!
 files_wobs2020 <- c("data/gjamTime_data/veg_2015-2020_sh_full.tif",
@@ -33,6 +40,31 @@ writeRaster(wobs_2020, filename = file.path(path_analysis_data_rast, "wobs_2020.
 ## get x vector to predict current and future steadystates
 #' select rasters for respective variables used in the order of rho() from gjam.
 #' currently for lat lon as predictors not available 
+
+# x_1990
+filePred1990 <- c("data/gjamTime_data/topo_const_elev_full.tif",
+                  "data/gjamTime_data/topo_const_slope_full.tif",
+                  "data/gjamTime_data/topo_const_cosasp_full.tif",
+                  "data/gjamTime_data/topo_const_tpi_full.tif",
+                  "data/gjamTime_data/soil_const_wvol_full.tif",
+                  "data/gjamTime_data/clim_1984-1990_tasw_full.tif",
+                  "data/gjamTime_data/clim_1984-1990_tass_full.tif",
+                  "data/gjamTime_data/clim_1984-1990_prw_full.tif",
+                  "data/gjamTime_data/clim_1984-1990_prs_full.tif")
+
+# load and normalize variable rasters
+x_1990 <- rast(filePred1990)
+names(x_1990) <- colnames(rhoMu)[-1]
+x_1990 <- normalizeRaster(x_1990)
+# load intercept layer
+intercept_layer <- rast(x_1990, nlyrs=1)
+names(intercept_layer) <- colnames(rhoMu)[1]
+values(intercept_layer) <- 1
+# unite and write
+x_1990 <- c(intercept_layer, x_1990)
+writeRaster(x_1990, filename = file.path(path_analysis_data_rast, "x_1990.tif"),
+            overwrite = TRUE)
+
 
 # x_2020
 filePred2020 <- c("data/gjamTime_data/topo_const_elev_full.tif",

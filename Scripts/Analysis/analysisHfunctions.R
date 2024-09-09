@@ -147,7 +147,7 @@ make_fulldim <- function(w, subset, subset_zero){
 
 #' for all values in x that are not NA check if LCP is solved
 #' returns a raster upd where w >= 0 and rho x + alpha w <= 0
-check_LCP <- function(dim, x, mask_true, combination){
+check_LCP <- function(dim, x, mask_valid, combination){
   subset <- c(1:dim)[combination]
   subset_zero <- c(1:dim)[!combination]
   
@@ -162,12 +162,14 @@ check_LCP <- function(dim, x, mask_true, combination){
 }
 
 
-solve_LCP <- function(x, wstar, mask){
+# finds a solution to LCP(A,d) where A is alpha, d is rho*x, s.th.
+# rho*x + Ay <= 0, y >= 0
+solve_LCP <- function(rho, alpha, x, wstar, mask_valid){
   dim <- nlyr(wstar)
-  # raster containing valid solutions to lcp
-  w_valid <- mask(wstar, mask, maskvalues=0, updatevalue=NA)  
-  # mask that holds TRUE where we have found a valid solution, else FALSE or NA
-  mask_true <- mask
+  # x_invalid holds predictors for solutions yet to be found
+  x_invalid <- mask(x, mask_valid, maskvalues=1, updatevalue=NA)
+  # w_valid holds wstar which is valid (and unique!)
+  w_valid <- mask(wstar, mask_valid, maskvalues=0, updatevalue=NA)  
 
   # introduce all possible combinations of x or (b-Ax) = 0 in d/dt(x)
   combinations <- as.matrix(expand.grid(rep(list(c(TRUE, FALSE)), dim)))
@@ -176,13 +178,13 @@ solve_LCP <- function(x, wstar, mask){
   for(i in 2:(dim**2)){
     combination <- combinations[i,]
     # check solution for remaining pixels where we have no valid solution yet
-    # subset x where mask_true is still false
-    x_false <- mask(x, mask_true, maskvalues=1, updatevalue=NA)
+    # subset x where mask_valid is still false
+    x_false <- mask(x, mask_valid, maskvalues=1, updatevalue=NA)
     writeRaster(x_false, file.path(path_analysis_tmprast), "x_false.tif", overwrite=T)
     # search solutions
-    mask_upd <- check_LCP(dim, x_false, mask_true, combination)
-    mask_true <- mask_true | mask_upd
-    writeRaster(mask_true, file.path(path_analysis_tmprast), "mask_true.tif", overwrite=T)
+    mask_upd <- check_LCP(dim, x_false, mask_valid, combination)
+    mask_valid <- mask_valid | mask_upd
+    writeRaster(mask_valid, file.path(path_analysis_tmprast), "mask_valid.tif", overwrite=T)
     # update valid solutions
     w_upd <- rast(file.path(path_analysis_tmprast), "w_upd.tif")
     w_valid <- cover(w_valid, w_upd)
