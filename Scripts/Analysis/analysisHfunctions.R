@@ -309,7 +309,7 @@ solve_LCP <- function(rho, alpha, x, wstar, mask_valid, startWith=NULL){
   for(i in 1:nrow(combinations)){
     # get combination
     combination <- combinations[i,]
-    cat("combination",i,":", combination, "\n")
+    cat("     combination",i,":", combination, "\n")
     # propose solution
     cat("     proposing lcp \n")
     w_propose <- propose_LCP(combination, rho, alpha, x_invalid)
@@ -321,13 +321,13 @@ solve_LCP <- function(rho, alpha, x, wstar, mask_valid, startWith=NULL){
     w_true <- mask(w_propose, valid_proposed, maskvalue=0, updatevalue=NA)
     w_true <- WriteAndLoad(w_true, "w_true")
     w_valid <- cover(w_valid, w_true)
-    w_valid <- WriteAndLoad(w_valid, paste0("w_valid"), datatype = "INT2S")
+    w_valid <- WriteAndLoad(w_valid, "w_valid", datatype = "INT2S")
     # reduce invalid solutions, where valid_proposed is TRUE, we can make x NA
     # because we have found a solution
     x_invalid <- mask(x_invalid, valid_proposed, maskvalue=1, updatevalue=NA)
     x_invalid <- WriteAndLoad(x_invalid, "x_invalid", datatype = "FLT4S")
   }
-  w_valid <- WriteAndLoad(w_valid, "wstar_lcp", path = path_analysis_data_rast)
+  cat("done.:\n")
   return(w_valid)
 }
 
@@ -338,14 +338,11 @@ path_gjamTime_outputs <- "data/gjamTime_outputs"
 path_analysis_scripts <- "Scripts/Analysis"
 path_analysis_data_rast <- "data/analysis/rasters"
 path_analysis_tmprast <- "data/analysis/tmp_rasters"
-
 path_norm_list <- "Scripts/gjamTime/"
 
 
 ## names
-
 name_norm_list <- "normalization.rds"
-
 
 
 ## constants

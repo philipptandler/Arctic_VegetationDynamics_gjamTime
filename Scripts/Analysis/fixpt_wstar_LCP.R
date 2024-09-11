@@ -25,11 +25,27 @@ mask_wstar2100_nonneg <- rast(file.path(path_analysis_data_rast, "mask_wstar_210
 
 ## solve the Linear Complimentary Problem for w ####
 #' finding the nonnegative stable solution
-
+cat("Running 1990:\n ")
 wstar_1990_noneg <- solve_LCP(rho, alpha, d = x_1990,
-                              wstar = wstar_1990, mask = mask_wstar_1990_nonneg) 
+                              wstar = wstar_1990, mask = mask_wstar_1990_nonneg,
+                              startWith=c(c(T,T,T,F), c(T,T,F,F)))
+writeRaster(wstar_1990_noneg,
+            file.path(path_analysis_data_rast, "wstar_lcpsolved_1990.tif"),
+            datatype = "INT2S")
+
+cat("\n\n\n\n\n Running 2020:\n ")
 wstar_2020_noneg <- solve_LCP(rho, alpha, d = x_2020,
                               wstar = wstar_2020, mask = mask_wstar_2020_nonneg,
-                              startWith=c(c(T,F,T,T), c(T,F,T,F), c(T,T,T,F))) 
+                              startWith=c(c(T,F,T,T), c(T,F,T,F), c(T,T,T,F)))
+writeRaster(wstar_2020_noneg,
+            file.path(path_analysis_data_rast, "wstar_lcpsolved_2020.tif"),
+            datatype = "INT2S")
+
+cat("\n\n\n\n\n Running 2100:\n ")
 wstar_2100_noneg <- solve_LCP(rho, alpha, d = x_2100,
-                              wstar = wstar_2100, mask = mask_wstar_2100_nonneg) 
+                              wstar = wstar_2100, mask = mask_wstar_2100_nonneg,
+                              startWith=c(F,T,T,T)) 
+writeRaster(wstar_2100_noneg,
+            file.path(path_analysis_data_rast, "wstar_lcpsolved_2100.tif"),
+            datatype = "INT2S")
+
