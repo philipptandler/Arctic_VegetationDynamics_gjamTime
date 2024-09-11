@@ -115,3 +115,7 @@ x_2100 <- c(intercept_layer, x_2100)
 writeRaster(x_2100, filename = file.path(path_analysis_data_rast, "x_2100.tif"),
             overwrite = TRUE)
 
+# create dummylayer with 0 in mastermask and NA outside
+zero_layer <- !rast("data/Masks/master_mask.tif")
+zero_layer <- mask(zero_layer, zero_layer, maskvalue=TRUE, updatevalue=NA)
+zero_layer <- WriteAndLoad(zero_layer, "zero_layer", path_analysis_data_rast)
