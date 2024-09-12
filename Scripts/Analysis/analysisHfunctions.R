@@ -341,13 +341,13 @@ path_gjamTime_outputs <- "data/gjamTime_outputs"
 path_analysis_scripts <- "Scripts/Analysis"
 path_analysis_data_rast <- "data/analysis/rasters"
 path_analysis_tmprast <- "data/analysis/tmp_rasters"
+path_analysis_lcpout <- "data/analysis/wstar_lcp_out"
 path_norm_list <- "Scripts/gjamTime/"
-
 
 ## names
 name_norm_list <- "normalization.rds"
 
-
 ## constants
-
+X_DIM_RASTER <- 16000
+Y_DIM_RASTER <- 13000
 

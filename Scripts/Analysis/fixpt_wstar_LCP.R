@@ -10,14 +10,11 @@ time <- 1
 if(length(sysArgs) > 0){time <- as.integer(sysArgs[1])}
 if(time < 0 || time > 3){stop("invalid argument time")}
 
-n_chunks <- 1000
+chunk_size <- 16
 if(length(sysArgs) > 1){n_chunks <- as.integer(sysArgs[2])}
 if(n_chunks < 0){stop("invalid argument n_chunks")}
 
-chunks_ID <- 1
-if(length(sysArgs) > 2){chunks_ID <- as.integer(sysArgs[3])}
-if(chunks_ID < 1 || chunks_ID > n_chunks){stop("invalid argument chunks_ID")}
-
+:wq
 
 # periods
 periods_list <- list(
@@ -42,8 +39,6 @@ mask_wstar_nonneg <- rast(file.path(path_analysis_data_rast,
                                     paste0("mask_wstar_", period_char,"_nonneg.tif")
                                     ))
 
-# subset rasters
-
 # first combinations
 startWith_list <- list(
   "1990" = c(c(T,T,T,F), c(T,T,F,F)),
@@ -51,16 +46,28 @@ startWith_list <- list(
   "2100" = c(F,T,T,T)
 )
 
-## solve the Linear Complimentary Problem for w ###
-
+## solve the Linear Complimentary Problem for w in chunks ###
 cat("Solving LCP for wstar", period_char, ":\n")
-wstar_lcpsolved <- solve_LCP(rho, alpha, x = x_time,
-                              wstar = w_star, mask_valid = mask_wstar_nonneg,
-                              startWith=startWith_list[[time]])
-writeRaster(wstar_lcpsolved,
-            file.path(path_analysis_data_rast,
-                      paste0("wstar_lcpsolved_", period_char,
-                             "_", n_chunks, "-", chunks_ID,".tif")),
-            datatype = "INT2S")
+n_chunks <- ceiling(X_DIM_RASTER/chunk_size)
+for(pos in 1:n_chunks){
+  xmin <- (pos-1)*chunck_size+1
+  xmax <- min(pos*chunks_size, X_DIM_RASTER)
+  ymin <- 1
+  ymax <- Y_DIM_RASTER
+  
+  x_time_subs <- x_time[xmin:xmax, ymin:ymax, drop = FALSE]
+  w_star_subs <- w_star[xmin:xmax, ymin:ymax, drop = FALSE]
+  mask_wstar_nonneg_subs <- mask_wstar_nonneg[xmin:xmax, ymin:ymax, drop = FALSE]
+  wstar_lcpsolved <- solve_LCP(rho, alpha, x = x_time_subs,
+                               wstar = w_star_subs, mask_valid = mask_wstar_nonneg_subs,
+                               startWith=startWith_list[[time]])
+  writeRaster(wstar_lcpsolved,
+              file.path(path_analysis_lcpout,
+                        paste0("wstar_lcpsolved_", period_char,
+                               "_", n_chunks, "-", pos,".tif")),
+              datatype = "INT2S")
+  
+}
+
 cat(" => solved LCP for wstar", period_char,"\n\n\n\n\n\n")
 
