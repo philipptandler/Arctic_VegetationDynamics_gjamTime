@@ -63,9 +63,9 @@ for(pos in 1:n_chunks){
   ymax <- Y_DIM_RASTER
   subset <- c(xmin, xmax, ymin, ymax)
   # do subset
-  x_time_subs <- x_time[subset[1]:subset[2], subset[3]:subset[4], drop = F]
-  w_star_subs <- w_star[subset[1]:subset[2], subset[3]:subset[4], drop = F]
-  mask_wstar_nonneg_subs <- mask_wstar_nonneg[subset[1]:subset[2], subset[3]:subset[4], drop = F]
+  x_time_subs <- x_time[subset[3]:subset[4], subset[1]:subset[2], drop = F]
+  w_star_subs <- w_star[subset[3]:subset[4], subset[1]:subset[2], drop = F]
+  mask_wstar_nonneg_subs <- mask_wstar_nonneg[subset[3]:subset[4], subset[1]:subset[2], drop = F]
   #solve LCP
   wstar_lcpsolved <- solve_LCP(rho, alpha, x = x_time_subs,
                                wstar = w_star_subs, mask_valid = mask_wstar_nonneg_subs,

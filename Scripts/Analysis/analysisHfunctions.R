@@ -199,7 +199,7 @@ propose_LCP <- function(combination, rho, alpha, x_invalid, subset){
   
   w_prop_triv <- rast(file.path(path_analysis_data_rast, "zero_layer.tif"))
   if(chunkprossessing){
-    w_prop_triv <- w_prop_triv[subset[1]:subset[2], subset[3]:subset[4], drop = F]
+    w_prop_triv <- w_prop_triv[subset[3]:subset[4], subset[1]:subset[2], drop = F]
     
   }
 
