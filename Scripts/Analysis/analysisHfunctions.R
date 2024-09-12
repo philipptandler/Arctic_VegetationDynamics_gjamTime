@@ -191,7 +191,7 @@ WriteAndLoad <- function(raster, name, path = path_analysis_tmprast, datatype = 
 # rho[subs,]*x + alpha[subs, subs]*w = 0, solve for w and add w = 0 for !subs
 # combination TRUE means nontrivial fixpt
 # combination FALSE means trivial fixpt
-propose_LCP <- function(combination, rho, alpha, x_invalid){
+propose_LCP <- function(combination, rho, alpha, x_invalid, subset){
   dim <- length(combination)
   # get indices
   subs <- c(1:dim)[combination] # nontrivial solution for subset where combination is TRUE
@@ -199,7 +199,7 @@ propose_LCP <- function(combination, rho, alpha, x_invalid){
   
   w_prop_triv <- rast(file.path(path_analysis_data_rast, "zero_layer.tif"))
   if(chunkprossessing){
-    w_prop_triv <- w_prop_triv[crop_tile$x, crop_tile$y, drop = crop_tile$drop]
+    w_prop_triv <- w_prop_triv[subset[1]:subset[2], subset[3]:subset[4], drop = F]
     
   }
 
@@ -301,7 +301,8 @@ check_LCP <- function(combination, rho, alpha, x_invalid,
 
 # finds a solution to LCP(A,d) where A is alpha, d is rho*x, s.th.
 # rho*x + Ay <= 0, y >= 0
-solve_LCP <- function(rho, alpha, x, wstar, mask_valid, startWith=NULL){
+solve_LCP <- function(rho, alpha, x, wstar, mask_valid, subset=NULL, startWith=NULL, print=FALSE){
+  if(!print){sink(tempfile())}
   dim <- nlyr(wstar)
 
   # x_invalid holds predictors for solutions yet to be found
@@ -323,7 +324,7 @@ solve_LCP <- function(rho, alpha, x, wstar, mask_valid, startWith=NULL){
     cat("     combination",i,":", combination, "\n")
     # propose solution
     cat("     proposing lcp \n")
-    w_propose <- propose_LCP(combination, rho, alpha, x_invalid)
+    w_propose <- propose_LCP(combination, rho, alpha, x_invalid, subset)
     printMemory(w_propose, "w_propose")
     
     # check solution, mask that contains TRUE where we have the solution
@@ -348,7 +349,10 @@ solve_LCP <- function(rho, alpha, x, wstar, mask_valid, startWith=NULL){
     printMemory(x_invalid, "x_invalid")
     
   }
+  
   cat("done.:\n")
+  if(!print){sink()}
+  
   return(w_valid)
 }
 
@@ -362,13 +366,13 @@ path_gjamTime_outputs <- "data/gjamTime_outputs"
 path_analysis_scripts <- "Scripts/Analysis"
 path_analysis_data_rast <- "data/analysis/rasters"
 path_analysis_tmprast <- "data/analysis/tmp_rasters"
+path_analysis_lcpout <- "data/analysis/wstar_lcp_out"
 path_norm_list <- "Scripts/gjamTime/"
-
 
 ## names
 name_norm_list <- "normalization.rds"
 
-
 ## constants
-
+X_DIM_RASTER <- 16000
+Y_DIM_RASTER <- 13000
 

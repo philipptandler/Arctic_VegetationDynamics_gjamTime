@@ -5,19 +5,20 @@ library(here)
 setwd(here::here())
 source("Scripts/Analysis/analysisHfunctions.R")
 
-## system Arguments
+## General SETUP ####
 time <- 1
+chunk_size <- 160
+chunkprossessing <- TRUE
+
+## system Arguments
 if(length(sysArgs) > 0){time <- as.integer(sysArgs[1])}
-if(time < 0 || time > 3){stop("invalid argument time")}
-
-n_chunks <- 1000
-if(length(sysArgs) > 1){n_chunks <- as.integer(sysArgs[2])}
-if(n_chunks < 0){stop("invalid argument n_chunks")}
-
-chunks_ID <- 1
-if(length(sysArgs) > 2){chunks_ID <- as.integer(sysArgs[3])}
-if(chunks_ID < 1 || chunks_ID > n_chunks){stop("invalid argument chunks_ID")}
-
+if(time < 0 || time > 3){stop("invalid argument: time")}
+if(length(sysArgs) > 1){
+  chunk_size <- as.integer(sysArgs[2])
+  chunkprossessing = TRUE
+}
+if(chunk_size <= 1){stop("invalid argument: chunk_size")}
+n_chunks <- ceiling(X_DIM_RASTER/chunk_size)
 
 # periods
 periods_list <- list(
@@ -26,6 +27,7 @@ periods_list <- list(
   "3" = "2100"
 )
 period_char <- periods_list[[time]]
+nameChunkconst <-  paste0("wstar_lcpSolved_", period_char, "_", chunk_size)
 
 # load matrices
 alpha <- readRDS(file.path(path_analysis_scripts, ".alphaMu.rds"))
@@ -42,8 +44,6 @@ mask_wstar_nonneg <- rast(file.path(path_analysis_data_rast,
                                     paste0("mask_wstar_", period_char,"_nonneg.tif")
                                     ))
 
-# subset rasters
-
 # first combinations
 startWith_list <- list(
   "1990" = c(c(T,T,T,F), c(T,T,F,F)),
@@ -51,51 +51,47 @@ startWith_list <- list(
   "2100" = c(F,T,T,T)
 )
 
-## solve the Linear Complimentary Problem for w ###
+## solve the Linear Complimentary Problem for w in chunks ####
+cat("Solving LCP for wstar", period_char, ":\n")
 
-## solve the Linear Complimentary Problem for w ####
-#' finding the nonnegative stable solution
-chunkprossessing <- FALSE
-# crop_tile <- list(
-#   x = c(7000:7099),
-#   y = c(7000:7099),
-#   drop = FALSE
-# )
-# 
-# xtest <- x_1990[crop_tile$x, crop_tile$y, drop = crop_tile$drop]
-# wstartest <- wstar_1990[crop_tile$x, crop_tile$y, drop = crop_tile$drop]
-# mask_validtest <- mask_wstar1990_nonneg[crop_tile$x, crop_tile$y, drop = crop_tile$drop]
-# 
-# cat("Running test:\n ")
-# wstar_1990_noneg <- solve_LCP(rho, alpha, x = xtest,
-#                               wstar = wstartest, mask_valid = mask_validtest,
-#                               startWith=c(c(T,T,T,F), c(T,T,F,F)))
-# writeRaster(wstar_1990_noneg,
-#             file.path(path_analysis_data_rast, "wstar_lcpsolved_1990.tif"),
-#             datatype = "INT2S")
+for(pos in 1:n_chunks){
+  cat("processing", pos, "out of", n_chunks, "chunks.\n")
+  # subset boundaries
+  xmin <- (pos-1)*chunck_size+1
+  xmax <- min(pos*chunks_size, X_DIM_RASTER)
+  ymin <- 1
+  ymax <- Y_DIM_RASTER
+  subset <- c(xmin, xmax, ymin, ymax)
+  # do subset
+  x_time_subs <- x_time[subset[1]:subset[2], subset[3]:subset[4], drop = F]
+  w_star_subs <- w_star[subset[1]:subset[2], subset[3]:subset[4], drop = F]
+  mask_wstar_nonneg_subs <- mask_wstar_nonneg[subset[1]:subset[2], subset[3]:subset[4], drop = F]
+  #solve LCP
+  wstar_lcpsolved <- solve_LCP(rho, alpha, x = x_time_subs,
+                               wstar = w_star_subs, mask_valid = mask_wstar_nonneg_subs,
+                               subset = subset,
+                               startWith=startWith_list[[time]],
+                               print=FALSE)
+  writeRaster(wstar_lcpsolved,
+              file.path(path_analysis_lcpout,
+                        paste0(nameChunkconst, "-", pos,".tif")),
+              datatype = "INT2S")
+  
+}
+cat(" => solved LCP for wstar chunks", period_char,"\n\n\n\n\n\n")
 
-cat("Running 1990:\n ")
-wstar_1990_noneg <- solve_LCP(rho, alpha, x = x_1990,
-                              wstar = wstar_1990, mask_valid = mask_wstar1990_nonneg,
-                              startWith=c(c(T,T,T,F), c(T,T,F,F)))
-writeRaster(wstar_1990_noneg,
-            file.path(path_analysis_data_rast, "wstar_lcpsolved_1990.tif"),
-            datatype = "INT2S")
+## merge all files produced ####
+cat("merging chunks \n")
+wstar_chunks_list <- list.files(path = path_analysis_lcpout,
+			       	pattern = paste0(nameChunkconst,"*"),
+				full.names = TRUE)
+rasters <- lapply(wstar_chunks_list, rast)
 
-cat("\n\n\n\n\n Running 2020:\n ")
-wstar_2020_noneg <- solve_LCP(rho, alpha, x = x_2020,
-                              wstar = wstar_2020, mask_valid = mask_wstar2020_nonneg,
-                              startWith=c(c(T,F,T,T), c(T,F,T,F), c(T,T,T,F)))
-writeRaster(wstar_2020_noneg,
-            file.path(path_analysis_data_rast, "wstar_lcpsolved_2020.tif"),
-            datatype = "INT2S")
+merged_raster <- do.call(mosaic, rasters)
+writeRaster(merged_raster, 
+	    file.path(path_analysis_data_rast,
+		      paste0(nameChunkconst,".tif")),
+	    datatype = "INT2S")
 
-cat("\n\n\n\n\n Running 2100:\n ")
-wstar_2100_noneg <- solve_LCP(rho, alpha, x = x_2100,
-                              wstar = wstar_2100, mask_valid = mask_wstar2100_nonneg,
-                              startWith=c(F,T,T,T)) 
-writeRaster(wstar_2100_noneg,
-            file.path(path_analysis_data_rast, "wstar_lcpsolved_2100.tif"),
-            datatype = "INT2S")
 cat(" => solved LCP for wstar", period_char,"\n\n\n\n\n\n")
 
