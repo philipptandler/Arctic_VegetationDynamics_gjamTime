@@ -57,8 +57,8 @@ cat("Solving LCP for wstar", period_char, ":\n")
 for(pos in 1:n_chunks){
   cat("processing", pos, "out of", n_chunks, "chunks.\n")
   # subset boundaries
-  xmin <- (pos-1)*chunck_size+1
-  xmax <- min(pos*chunks_size, X_DIM_RASTER)
+  xmin <- (pos-1)*chunk_size+1
+  xmax <- min(pos*chunk_size, X_DIM_RASTER)
   ymin <- 1
   ymax <- Y_DIM_RASTER
   subset <- c(xmin, xmax, ymin, ymax)
@@ -88,7 +88,7 @@ wstar_chunks_list <- list.files(path = path_analysis_lcpout,
 rasters <- lapply(wstar_chunks_list, rast)
 
 merged_raster <- do.call(mosaic, rasters)
-writeRaster(merged_raster, 
+writeRaster(merged_raster,
 	    file.path(path_analysis_data_rast,
 		      paste0(nameChunkconst,".tif")),
 	    datatype = "INT2S")
