@@ -147,6 +147,13 @@ vectorProd <- function(v,w){
   }
 }
 
+## printing memory usage
+printMemory <- function(raster, name = ""){
+  cat("          inMemory", name, ":", inMemory(raster), "\n")
+}
+
+
+
 ## find nonegative fixedpoints (solve LCP) ####
 
 get_combinations <- function(dim, startWith=NULL){
@@ -191,6 +198,10 @@ propose_LCP <- function(combination, rho, alpha, x_invalid){
   subs_zero <- c(1:dim)[!combination]
   
   w_prop_triv <- rast(file.path(path_analysis_data_rast, "zero_layer.tif"))
+  if(chunkprossessing){
+    w_prop_triv <- w_prop_triv[crop_tile$x, crop_tile$y, drop = crop_tile$drop]
+    
+  }
 
   if(length(subs) > 0){
     rho_red <- matrix(rho[subs,], nrow = length(subs))
@@ -313,19 +324,29 @@ solve_LCP <- function(rho, alpha, x, wstar, mask_valid, startWith=NULL){
     # propose solution
     cat("     proposing lcp \n")
     w_propose <- propose_LCP(combination, rho, alpha, x_invalid)
+    printMemory(w_propose, "w_propose")
+    
     # check solution, mask that contains TRUE where we have the solution
     cat("     checking lcp \n")
     valid_proposed <- check_LCP(combination, rho, alpha, x_invalid, useProposedNontriv=TRUE)
+    printMemory(valid_proposed, "valid_proposed")
+    
     # keep valid solutions
     cat("     updating valid solutions \n")
     w_true <- mask(w_propose, valid_proposed, maskvalue=0, updatevalue=NA)
     w_true <- WriteAndLoad(w_true, "w_true")
+    printMemory(w_true, "w_true")
+    
     w_valid <- cover(w_valid, w_true)
     w_valid <- WriteAndLoad(w_valid, "w_valid", datatype = "INT2S")
+    printMemory(w_valid, "w_valid")
+    
     # reduce invalid solutions, where valid_proposed is TRUE, we can make x NA
     # because we have found a solution
     x_invalid <- mask(x_invalid, valid_proposed, maskvalue=1, updatevalue=NA)
     x_invalid <- WriteAndLoad(x_invalid, "x_invalid", datatype = "FLT4S")
+    printMemory(x_invalid, "x_invalid")
+    
   }
   cat("done.:\n")
   return(w_valid)

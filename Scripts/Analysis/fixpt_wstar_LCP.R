@@ -25,6 +25,25 @@ mask_wstar2100_nonneg <- rast(file.path(path_analysis_data_rast, "mask_wstar_210
 
 ## solve the Linear Complimentary Problem for w ####
 #' finding the nonnegative stable solution
+chunkprossessing <- FALSE
+# crop_tile <- list(
+#   x = c(7000:7099),
+#   y = c(7000:7099),
+#   drop = FALSE
+# )
+# 
+# xtest <- x_1990[crop_tile$x, crop_tile$y, drop = crop_tile$drop]
+# wstartest <- wstar_1990[crop_tile$x, crop_tile$y, drop = crop_tile$drop]
+# mask_validtest <- mask_wstar1990_nonneg[crop_tile$x, crop_tile$y, drop = crop_tile$drop]
+# 
+# cat("Running test:\n ")
+# wstar_1990_noneg <- solve_LCP(rho, alpha, x = xtest,
+#                               wstar = wstartest, mask_valid = mask_validtest,
+#                               startWith=c(c(T,T,T,F), c(T,T,F,F)))
+# writeRaster(wstar_1990_noneg,
+#             file.path(path_analysis_data_rast, "wstar_lcpsolved_1990.tif"),
+#             datatype = "INT2S")
+
 cat("Running 1990:\n ")
 wstar_1990_noneg <- solve_LCP(rho, alpha, x = x_1990,
                               wstar = wstar_1990, mask_valid = mask_wstar1990_nonneg,
