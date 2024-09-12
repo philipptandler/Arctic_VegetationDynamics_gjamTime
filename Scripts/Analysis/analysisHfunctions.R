@@ -333,6 +333,9 @@ solve_LCP <- function(rho, alpha, x, wstar, mask_valid, startWith=NULL){
 
 
 ## variable definitions ####
+# bash calls
+sysArgs <- commandArgs(trailingOnly = TRUE)
+
 ## paths
 path_gjamTime_outputs <- "data/gjamTime_outputs"
 path_analysis_scripts <- "Scripts/Analysis"
