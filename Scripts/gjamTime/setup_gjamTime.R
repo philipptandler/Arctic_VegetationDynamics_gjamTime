@@ -45,12 +45,13 @@ updateArgs <- function(vlist, sysArgs){
     
     # get sysArgs
     if(length(sysArgs) > 1){
-      vlist$subFact <- sysArgs[2]
+      vlist$subFact <- as.integer(sysArgs[2])
       if(length(sysArgs) > 2){
+	n_reps <- as.integer(sysArgs[3])
         set.seed(1234)
-        random_numbers <- sample(2764:8652, 160, replace = FALSE)
-        index <- as.integer(sysArgs[3]) #87-160
-        if(index < 1 || index > 160 || is.na(index)){stop("invalid index (sysArgs[3]) provided")}
+        random_numbers <- sample(0:((vlist$subFact**2)-1), n_reps, replace = FALSE)
+        index <- as.integer(sysArgs[4]) #87-160
+        if(index < 1 || index > n_reps || is.na(index)){stop("invalid index (sysArgs[4]) provided")}
         vlist$subSeed <- random_numbers[index]
       }
     }
