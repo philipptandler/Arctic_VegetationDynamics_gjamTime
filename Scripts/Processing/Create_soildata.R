@@ -7,6 +7,7 @@ library(mvtnorm)
 path_soilGrids_raw <- "data/SoilGrids/raw/"
 path_soilGrids <- "data/SoilGrids/"
 path_gjamTime_data <- "data/gjamTime_data/"
+path_stockersoil <- "data/Stocker_Soil"
 
 # Read masks
 mask_StudyRegion <- rast("data/Masks/study_region_mask.tif")
@@ -150,4 +151,23 @@ writeRaster(water_storage_sum_masked_r100,
             overwrite=TRUE)
 writeRaster(water_storage_sum_masked_crop,
             paste0(path_gjamTime_data, "soil_const_", "wvol", "_crop.tif"),
+            overwrite=TRUE)
+
+
+## STOCKER SOILDATA ####
+soilstocker <- rast(file.path(path_stockersoil, "testStocker_cutProjection.tif"))
+# average out nodata
+soilstocker <- focal(soilstocker,
+                      w = generate_normal_matrix(21),
+                    fun = "mean", na.policy="only", na.rm=TRUE)
+# project
+soilstocker <- project(soilstocker, mask_StudyRegion)
+soilstocker <- mask(soilstocker, mastermask, maskvalues=0, updatevalue=NA)
+soilstocker_crop <- mask(soilstocker, mastermask_crop , maskvalues=0, updatevalue=NA)
+
+writeRaster(soilstocker,
+            paste0(path_gjamTime_data, "soil_const_", "scwd", "_full.tif"),
+            overwrite=TRUE)
+writeRaster(soilstocker_crop,
+            paste0(path_gjamTime_data, "soil_const_", "scwd", "_crop.tif"),
             overwrite=TRUE)
