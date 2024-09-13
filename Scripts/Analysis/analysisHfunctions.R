@@ -334,7 +334,7 @@ solve_LCP <- function(rho, alpha, x, wstar, mask_valid, subset=NULL, startWith=N
     
     # keep valid solutions
     cat("     updating valid solutions \n")
-    w_true <- mask(w_propose, valid_proposed, maskvalue=0, updatevalue=NA)
+    w_true <- mask(w_propose, valid_proposed, maskvalues=0, updatevalue=NA)
     w_true <- WriteAndLoad(w_true, "w_true")
     printMemory(w_true, "w_true")
     
@@ -344,7 +344,7 @@ solve_LCP <- function(rho, alpha, x, wstar, mask_valid, subset=NULL, startWith=N
     
     # reduce invalid solutions, where valid_proposed is TRUE, we can make x NA
     # because we have found a solution
-    x_invalid <- mask(x_invalid, valid_proposed, maskvalue=1, updatevalue=NA)
+    x_invalid <- mask(x_invalid, valid_proposed, maskvalues=1, updatevalue=NA)
     x_invalid <- WriteAndLoad(x_invalid, "x_invalid", datatype = "FLT4S")
     printMemory(x_invalid, "x_invalid")
     
