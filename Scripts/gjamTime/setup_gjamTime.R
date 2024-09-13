@@ -104,6 +104,7 @@ print_call <- function(call, output_file = NULL){
   cat(insert, insert, "climate: ", call$xvars$climate, "\n")
   cat(insert, insert, "soil: ", call$xvars$soil, "\n")
   cat(insert, insert, "wildfire: ", call$xvars$wildfire, "\n")
+  cat(insert, insert, "interaction: ", call$xvars$interaction, "\n")
   cat(insert, "yvariables: \n")
   cat(insert, insert, "vegetation:", call$yvars$vegetation, "\n")
   cat(insert, "periods: ", call$periods, "\n")
@@ -253,10 +254,11 @@ sample_geodata <- function(var_list, which, samplemask){
   cat("    sampling", which, "\n")
   # for all periods
   n_time <- length(var_list$periods)
+  includeInteraction <- (length(var_list$interaction > 0))
   for(per in 1:n_time){
     cat("        loading period", var_list$periods[per], "\n")
     # get files
-    file_var_list <- get_filenames(var_list$periods[per], var_list)
+    file_var_list <- get_filenames(var_list$periods[per], var_list, interaction = FALSE)
     files_this_period <- file_var_list$files
     vars_this_period <- file_var_list$variables
     #file paths
@@ -275,6 +277,23 @@ sample_geodata <- function(var_list, which, samplemask){
       writeRaster(raster,
                   file_paths_out[i],
                   overwrite=TRUE) #overwrite important
+    }
+    if(includeInteraction){
+      for(i in 1:length(var_list$interaction)){
+        thisVar <- var_list$interaction[i]
+        vars <- unlist(strsplit(thisVar, ":"))
+        name_var1 <- files_this_period[grep(paste0("*", vars[1], "*"), files_this_period)]
+        name_var2 <- files_this_period[grep(paste0("*", vars[2], "*"), files_this_period)]
+        var1 <- rast(file.path(path_tmp, name_var1))
+        var2 <- rast(file.path(path_tmp, name_var2))
+        combined <- var1*var2
+        #save
+        nameshort <- paste("inter",var_list$periods[per],vars[1],vars[2],var_list$version, sep = "_")
+        writeRaster(combined,
+                    file.path(path_tmp,
+                              paste0(nameshort, ".tif")),
+                    overwrite=TRUE) #overwrite important
+      }
     }
   }
 }
@@ -313,7 +332,7 @@ make_samplemask <- function(subSeed, subFact){
 ## helper function get files ####
 
 # returns a list of $files with filenames in data/gjamTime_data/ and $variables
-get_filenames <- function(period, var_list){
+get_filenames <- function(period, var_list, interaction=FALSE){
   vers <- var_list$version
   file_vec <- c()
   var_vec <- c()
@@ -347,6 +366,15 @@ get_filenames <- function(period, var_list){
     file_vec <- append(file_vec, filename)
     var_vec <- append(var_vec, var)
   }
+  if(interaction){
+    for (var in var_list$interaction){
+      vars <- unlist(strsplit(var, ":"))
+      filename <- paste("inter", period, vars[1], vars[2], vers, sep = "_")
+      filename <- paste0(filename, ".tif")
+      file_vec <- append(file_vec, filename)
+      var_vec <- append(var_vec, var)
+    }
+  }
   list <- list("files" = file_vec,
                "variables" = var_vec)
   return(list)
@@ -377,7 +405,7 @@ get_geodata <- function(call,
   for(per in 1:n_time){
     cat("    loading period", var_list$periods[per])
     # get files and variables in same order
-    file_var_list <- get_filenames(var_list$periods[per], var_list)
+    file_var_list <- get_filenames(var_list$periods[per], var_list, interaction=TRUE)
     # get files
     files_this_period <- file_var_list$files
     # make raster
@@ -664,7 +692,8 @@ fit_gjamTime <- function(setup,
   # allVars are all predictor Variables
   allVars <- c(constVars,
                xvars_list$climate,
-               xvars_list$wildfire)
+               xvars_list$wildfire,
+               xvars_list$interaction)
   
   # data normalization
   if(normalize == "ref"){
@@ -729,7 +758,7 @@ fit_gjamTime <- function(setup,
   timeList <- mergeList(tlist, tmp)
 
   ## fit gjam
-  modelList <- list(typeNames = 'DA', ng = 4000, burnin = 2000,  
+  modelList <- list(typeNames = 'DA', ng = 25, burnin = 15,  
                     timeList = timeList, effort = effort)
   cat("    running gjam \n")
   output <- gjam(formula, xdata=xdata, ydata=ydata, modelList=modelList)
@@ -785,14 +814,15 @@ masterlist_variables <- list(
   y = c(TRUE, FALSE),
   climate = c("tas", "tasw", "tass", "pr", "prw", "prs"),
   wildfire = c(),
-  soil = c("wvol", "wvol05", "wvol15", "wvol30", "wvol60"),
+  soil = c("wvol", "wvol05", "wvol15", "wvol30", "wvol60", "scwd"),
   periods = c("1984-1990",
               "1991-1996",
               "1997-2002",
               "2003-2008",
               "2009-2014",
               "2015-2020"),
-  version = c("full", "crop")
+  version = c("full", "crop"),
+  interaction = c()
 )
 
 # masterlist of gjam call

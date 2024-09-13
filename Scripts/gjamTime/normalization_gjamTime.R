@@ -18,12 +18,12 @@ refPeriods <- c("1984-1990",
                 "const")
 
 varlist <- list(
-  topography = c("elev", "slope", "aspect", "cosasp", "tpi"),
-  x = TRUE,
-  y = TRUE,
+  topography = c("elev", "slope", "cosasp", "tpi"),
+  x = FALSE,
+  y = FALSE,
   climate = c("tas", "tasw", "tass", "pr", "prw", "prs"),
   wildfire = c(),
-  soil = c("wvol", "wvol05", "wvol15", "wvol30", "wvol60"),
+  soil = c("scwd"),
   periods = refPeriods,
   version = c("full")
 )
@@ -57,6 +57,30 @@ for (var in varvec){
     extent <- ext(rast(file.path(path_masks, "study_region_mask.tif")))
     ref_list[[var]]$mean <- mean(c(extent$xmin, extent$xmax))
     ref_list[[var]]$sd <- sd(c(extent$xmin, extent$xmax))
+  }
+}
+
+# for all interactions
+for (var1 in varvec){
+  for (var2 in varvec){
+    raster1 <- NULL
+    raster2 <- NULL
+    if(var1 != "lat" && var1 != "lon" && var2 != "lat" && var2 != "lon"){
+      pattern <- paste0(".*_(", refPeriodPattern, ")_", var1, "_full\\.tif$")
+      files <- list.files(path = path_vars, pattern = pattern, full.names = TRUE)
+      raster1 <- rast(files)
+      pattern <- paste0(".*_(", refPeriodPattern, ")_", var2, "_full\\.tif$")
+      files <- list.files(path = path_vars, pattern = pattern, full.names = TRUE)
+      raster2 <- rast(files)
+      
+      combined <- c(raster1, raster2)
+      combined_df <- spatSample(combined, 10000, method="random")
+      combined_df <- na.omit(combined_df)
+      prod_vec <- combined_df[,1]*combined_df[,2]
+      
+      ref_list[[paste0(var1, ":", var2)]]$mean <- mean(prod_vec)
+      ref_list[[paste0(var1, ":", var2)]]$sd <- sd(prod_vec)
+    }
   }
 }
 

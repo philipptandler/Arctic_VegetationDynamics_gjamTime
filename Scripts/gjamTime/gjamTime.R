@@ -34,7 +34,8 @@ xvars <- list(
   y = FALSE, # to get latitude
   x = FALSE, # to get longitude
   climate = c("tasw", "tass","prw", "prs"),
-  soil = c("wvol")
+  soil = c("scwd"),
+  interaction = c("elev:tpi", "elev:scwd", "elev:cosasp", "elev:scwd", "slope:tpi", "tass:tass") # must match variables above, no lat/lon!
 )
 yvars <- list(
   vegetation = c("sh", "cf", "hb", "lc")
