@@ -254,11 +254,10 @@ sample_geodata <- function(var_list, which, samplemask){
   cat("    sampling", which, "\n")
   # for all periods
   n_time <- length(var_list$periods)
-  includeInteraction <- (length(var_list$interaction > 0))
   for(per in 1:n_time){
     cat("        loading period", var_list$periods[per], "\n")
     # get files
-    file_var_list <- get_filenames(var_list$periods[per], var_list, interaction = FALSE)
+    file_var_list <- get_filenames(var_list$periods[per], var_list)
     files_this_period <- file_var_list$files
     vars_this_period <- file_var_list$variables
     #file paths
@@ -277,23 +276,6 @@ sample_geodata <- function(var_list, which, samplemask){
       writeRaster(raster,
                   file_paths_out[i],
                   overwrite=TRUE) #overwrite important
-    }
-    if(includeInteraction){
-      for(i in 1:length(var_list$interaction)){
-        thisVar <- var_list$interaction[i]
-        vars <- unlist(strsplit(thisVar, ":"))
-        name_var1 <- files_this_period[grep(paste0("*", vars[1], "*"), files_this_period)]
-        name_var2 <- files_this_period[grep(paste0("*", vars[2], "*"), files_this_period)]
-        var1 <- rast(file.path(path_tmp, name_var1))
-        var2 <- rast(file.path(path_tmp, name_var2))
-        combined <- var1*var2
-        #save
-        nameshort <- paste("inter",var_list$periods[per],vars[1],vars[2],var_list$version, sep = "_")
-        writeRaster(combined,
-                    file.path(path_tmp,
-                              paste0(nameshort, ".tif")),
-                    overwrite=TRUE) #overwrite important
-      }
     }
   }
 }
@@ -332,7 +314,7 @@ make_samplemask <- function(subSeed, subFact){
 ## helper function get files ####
 
 # returns a list of $files with filenames in data/gjamTime_data/ and $variables
-get_filenames <- function(period, var_list, interaction=FALSE){
+get_filenames <- function(period, var_list){
   vers <- var_list$version
   file_vec <- c()
   var_vec <- c()
@@ -366,15 +348,6 @@ get_filenames <- function(period, var_list, interaction=FALSE){
     file_vec <- append(file_vec, filename)
     var_vec <- append(var_vec, var)
   }
-  if(interaction){
-    for (var in var_list$interaction){
-      vars <- unlist(strsplit(var, ":"))
-      filename <- paste("inter", period, vars[1], vars[2], vers, sep = "_")
-      filename <- paste0(filename, ".tif")
-      file_vec <- append(file_vec, filename)
-      var_vec <- append(var_vec, var)
-    }
-  }
   list <- list("files" = file_vec,
                "variables" = var_vec)
   return(list)
@@ -405,7 +378,7 @@ get_geodata <- function(call,
   for(per in 1:n_time){
     cat("    loading period", var_list$periods[per])
     # get files and variables in same order
-    file_var_list <- get_filenames(var_list$periods[per], var_list, interaction=TRUE)
+    file_var_list <- get_filenames(var_list$periods[per], var_list)
     # get files
     files_this_period <- file_var_list$files
     # make raster
@@ -427,9 +400,16 @@ get_geodata <- function(call,
       if(!var_list$y){df <- df %>% dplyr::select(-lat)}
     }
     
+    # add interactions
+    for(pair in var_list$interaction){
+      vars <- unlist(strsplit(pair, ":"))
+      df[[pair]] <- df[[vars[1]]]*df[[vars[2]]]
+    }
+    
     # add time
     df$period <- per
     data_list[[per]] <- df
+    
   }
   #conbine the dataframes
   combined_df <- do.call(rbind, data_list)
@@ -758,7 +738,7 @@ fit_gjamTime <- function(setup,
   timeList <- mergeList(tlist, tmp)
 
   ## fit gjam
-  modelList <- list(typeNames = 'DA', ng = 25, burnin = 15,  
+  modelList <- list(typeNames = 'DA', ng = 2500, burnin = 1500,  
                     timeList = timeList, effort = effort)
   cat("    running gjam \n")
   output <- gjam(formula, xdata=xdata, ydata=ydata, modelList=modelList)

@@ -19,8 +19,8 @@ refPeriods <- c("1984-1990",
 
 varlist <- list(
   topography = c("elev", "slope", "cosasp", "tpi"),
-  x = FALSE,
-  y = FALSE,
+  x = TRUE,
+  y = TRUE,
   climate = c("tas", "tasw", "tass", "pr", "prw", "prs"),
   wildfire = c(),
   soil = c("scwd"),

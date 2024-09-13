@@ -11,7 +11,7 @@ rho <- readRDS(file.path(path_analysis_scripts, ".rhoMu.rds"))
 
 ## wstar 1990 ####
 x_1990 <- rast(file.path(path_analysis_data_rast,"x_1990.tif"))
-wstar_1990 <- matrixProd(-inv(alpha) %*% rho, x_1990)
+wstar_1990 <- matrixProd(-inv(alpha) %*% rho, x_1990) 
 names(wstar_1990) <- rownames(rho)
 writeRaster(wstar_1990,
             file.path(path_analysis_data_rast, "wstar_1990_nontriv.tif"),
