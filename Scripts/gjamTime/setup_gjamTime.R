@@ -753,6 +753,11 @@ fit_gjamTime <- function(setup,
     gjamPlot(output, plotPars)
   }
   if(saveOutput){
+    call <- setup
+    call$xdata <- NULL
+    call$ydata <- NULL
+    call$edata <- NULL
+    saveRDS(call, file = file.path(outFolder, "call.rds"))
     output_short <- select_output(output) #to not blow up output file
     save(output_short, file = paste0(outFolder, "/output.rdata"))
     print_call(setup, output_file = paste0(outFolder, "/call.txt"))
