@@ -3,7 +3,7 @@
 #set up environment:
 library(here)
 setwd(here::here())
-source("Scripts/Analysis/analysisHfunctions.R")
+source("Scripts/Analysis_Interaction/analysisHfunctions.R")
 
 ## General SETUP ####
 time <- 1

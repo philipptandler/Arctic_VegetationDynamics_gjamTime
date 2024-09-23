@@ -5,7 +5,7 @@
 #set up environment:
 library(here)
 setwd(here::here())
-source("Scripts/Analysis/analysisHfunctions.R")
+source("Scripts/Analysis_Interaction/analysisHfunctions.R")
 
 
 ## prepare parameter estimations ####
@@ -41,6 +41,20 @@ writeRaster(wobs_2020, filename = file.path(path_analysis_data_rast, "wobs_2020.
 #' select rasters for respective variables used in the order of rho() from gjam.
 #' currently for lat lon as predictors not available 
 
+## start from x_1990 in data/analysis
+#load known data
+x_1990 <- rast("data/analysis/rasters/x_1990.tif")
+x_1990[["wvol"]] <- rast("data/gjamTime_data/soil_const_scwd_full.tif")
+x_names <- names(x_1990)
+x_names[which(x_names == "wvol")] <- "scwd"
+names(x_1990) <- x_names
+path_ref_list_fullname <- paste0(path_norm_list, name_norm_list)
+ref_list <- readRDS(path_ref_list_fullname)
+x_1990[["scwd"]] <- (x_1990[["scwd"]]-ref_list$scwd$mean)/ref_list$scwd$sd
+x_1990 <- WriteAndLoad(x_1990, "x_1990", path = path_analysis_data_rast, datatype = "FLT4S")
+
+
+## start from scratch
 # x_1990
 filePred1990 <- c("data/gjamTime_data/topo_const_elev_full.tif",
                   "data/gjamTime_data/topo_const_slope_full.tif",
@@ -52,16 +66,6 @@ filePred1990 <- c("data/gjamTime_data/topo_const_elev_full.tif",
                   "data/gjamTime_data/clim_1984-1990_prw_full.tif",
                   "data/gjamTime_data/clim_1984-1990_prs_full.tif")
 
-#load known data
-x_1990 <- rast("data/analysis/rasters/x_1990.tif")
-x_1990[["wvol"]] <- rast("data/gjamTime_data/soil_const_scwd_full.tif")
-x_names <- names(x_1990)
-x_names[which(x_names == "wvol")] <- "scwd"
-names(x_1990) <- x_names
-path_ref_list_fullname <- paste0(path_norm_list, name_norm_list)
-ref_list <- readRDS(path_ref_list_fullname)
-x_1990[["scwd"]] <- (x_1990[["scwd"]]-ref_list$scwd$mean)/ref_list$scwd$sd
-
 # load and normalize variable rasters
 x_1990 <- rast(filePred1990)
 names(x_1990) <- colnames(rhoMu)[2:10]
@@ -72,26 +76,36 @@ intercept_layer <- rast(x_1990, nlyrs=1)
 names(intercept_layer) <- colnames(rhoMu)[1]
 values(intercept_layer) <- 1
 
-# add product layer
-for(pair in colnames(rhoMu)[11:20]){
-  vars <- unlist(strsplit(pair, ":"))
-  x_1990[[pair]] <- x_1990[[vars[1]]]*df[[vars[2]]]
-}
 # unite and write
 x_1990 <- c(intercept_layer, x_1990)
 names(x_1990) <- colnames(rhoMu)
 writeRaster(x_1990, filename = file.path(path_analysis_data_rast, "x_1990.tif"),
             overwrite = TRUE)
-# to make x_1990 for analysis inter
-x_1990 <- rast("data/analysis/rasters/x_1990.tif")
-x_1990 <- subset(x_1990, c(1:5, 7:10)) #except "wvol"
-x_1990[["scwd"]] <- rast("data/gjamTime_data/soil_const_scwd_full.tif")
+
+## calculate products
+# add product layer
+for(pair in colnames(rhoMu)[11:20]){
+  vars <- unlist(strsplit(pair, ":"))
+  x_1990[[pair]] <- x_1990[[vars[1]]]*x_1990[[vars[2]]]
+}
+# save
+x_1990 <- WriteAndLoad(x_1990, "x_1990", path = path_analysis_data_rast, datatype = "FLT4S")
+
+
+## start from x_2020 in data/analysis
+#load known data
+x_2020 <- rast("data/analysis/rasters/x_2020.tif")
+x_2020[["wvol"]] <- rast("data/gjamTime_data/soil_const_scwd_full.tif")
+x_names <- names(x_2020)
+x_names[which(x_names == "wvol")] <- "scwd"
+names(x_2020) <- x_names
 path_ref_list_fullname <- paste0(path_norm_list, name_norm_list)
 ref_list <- readRDS(path_ref_list_fullname)
+x_2020[["scwd"]] <- (x_2020[["scwd"]]-ref_list$scwd$mean)/ref_list$scwd$sd
+x_2020 <- WriteAndLoad(x_2020, "x_2020", path = path_analysis_data_rast, datatype = "FLT4S")
 
-x_1990[["scwd"]] <- x_1990[["scwd"]]- 
 
-
+## start from scratch
 # x_2020
 filePred2020 <- c("data/gjamTime_data/topo_const_elev_full.tif",
                   "data/gjamTime_data/topo_const_slope_full.tif",
@@ -116,8 +130,30 @@ x_2020 <- c(intercept_layer, x_2020)
 writeRaster(x_2020, filename = file.path(path_analysis_data_rast, "x_2020.tif"),
             overwrite = TRUE)
 
+## calculate products
+# add product layer
+for(pair in colnames(rhoMu)[11:20]){
+  vars <- unlist(strsplit(pair, ":"))
+  x_2020[[pair]] <- x_2020[[vars[1]]]*x_2020[[vars[2]]]
+}
+x_2020 <- WriteAndLoad(x_2020, "x_2020", path = path_analysis_data_rast, datatype = "FLT4S")
+
+
+## start from x_2100 in data/analysis
+#load known data
+x_2100 <- rast("data/analysis/rasters/x_2100.tif")
+x_2100[["wvol"]] <- rast("data/gjamTime_data/soil_const_scwd_full.tif")
+x_names <- names(x_2100)
+x_names[which(x_names == "wvol")] <- "scwd"
+names(x_2100) <- x_names
+path_ref_list_fullname <- paste0(path_norm_list, name_norm_list)
+ref_list <- readRDS(path_ref_list_fullname)
+x_2100[["scwd"]] <- (x_2100[["scwd"]]-ref_list$scwd$mean)/ref_list$scwd$sd
+x_2100 <- WriteAndLoad(x_2100, "x_2100", path = path_analysis_data_rast, datatype = "FLT4S")
+
 
 # x_2100
+## start from scratch
 filePred2100 <- c("data/gjamTime_data/topo_const_elev_full.tif",
                   "data/gjamTime_data/topo_const_slope_full.tif",
                   "data/gjamTime_data/topo_const_cosasp_full.tif",
@@ -140,6 +176,16 @@ values(intercept_layer) <- 1
 x_2100 <- c(intercept_layer, x_2100)
 writeRaster(x_2100, filename = file.path(path_analysis_data_rast, "x_2100.tif"),
             overwrite = TRUE)
+
+
+## calculate products
+# add product layer
+for(pair in colnames(rhoMu)[11:20]){
+  vars <- unlist(strsplit(pair, ":"))
+  x_2100[[pair]] <- x_2100[[vars[1]]]*x_2100[[vars[2]]]
+}
+x_2100 <- WriteAndLoad(x_2100, "x_2100", path = path_analysis_data_rast, datatype = "FLT4S")
+
 
 # create dummylayer with 0 in mastermask and NA outside
 zero_layer <- !rast("data/Masks/master_mask.tif")

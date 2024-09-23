@@ -3,7 +3,7 @@
 #set up environment:
 library(here)
 setwd(here::here())
-source("Scripts/Analysis/analysisHfunctions.R")
+source("Scripts/Analysis_Interaction/analysisHfunctions.R")
 
 #load matrices
 alpha <- readRDS(file.path(path_analysis_scripts, ".alphaMu.rds"))

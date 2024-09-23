@@ -3,7 +3,7 @@
 #set up environment:
 library(here)
 setwd(here::here())
-source("Scripts/Analysis/analysisHfunctions.R")
+source("Scripts/Analysis_Interaction/analysisHfunctions.R")
 
 wstar_2020 <- rast(file.path(path_analysis_data_rast, "wstar_2020_nontriv.tif"))
 wdelta <- rast(file.path(path_analysis_data_rast, "wdelta.tif"))
