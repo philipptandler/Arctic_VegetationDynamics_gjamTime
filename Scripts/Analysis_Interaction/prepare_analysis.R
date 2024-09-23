@@ -42,16 +42,16 @@ writeRaster(wobs_2020, filename = file.path(path_analysis_data_rast, "wobs_2020.
 #' currently for lat lon as predictors not available 
 
 ## start from x_1990 in data/analysis
-#load known data
-x_1990 <- rast("data/analysis/rasters/x_1990.tif")
-x_1990[["wvol"]] <- rast("data/gjamTime_data/soil_const_scwd_full.tif")
-x_names <- names(x_1990)
-x_names[which(x_names == "wvol")] <- "scwd"
-names(x_1990) <- x_names
-path_ref_list_fullname <- paste0(path_norm_list, name_norm_list)
-ref_list <- readRDS(path_ref_list_fullname)
-x_1990[["scwd"]] <- (x_1990[["scwd"]]-ref_list$scwd$mean)/ref_list$scwd$sd
-x_1990 <- WriteAndLoad(x_1990, "x_1990", path = path_analysis_data_rast, datatype = "FLT4S")
+# #load known data
+# x_1990 <- rast("data/analysis/rasters/x_1990.tif")
+# x_1990[["wvol"]] <- rast("data/gjamTime_data/soil_const_scwd_full.tif")
+# x_names <- names(x_1990)
+# x_names[which(x_names == "wvol")] <- "scwd"
+# names(x_1990) <- x_names
+# path_ref_list_fullname <- paste0(path_norm_list, name_norm_list)
+# ref_list <- readRDS(path_ref_list_fullname)
+# x_1990[["scwd"]] <- (x_1990[["scwd"]]-ref_list$scwd$mean)/ref_list$scwd$sd
+# x_1990 <- WriteAndLoad(x_1990, "x_1990", path = path_analysis_data_rast, datatype = "FLT4S")
 
 
 ## start from scratch
@@ -93,16 +93,16 @@ x_1990 <- WriteAndLoad(x_1990, "x_1990", path = path_analysis_data_rast, datatyp
 
 
 ## start from x_2020 in data/analysis
-#load known data
-x_2020 <- rast("data/analysis/rasters/x_2020.tif")
-x_2020[["wvol"]] <- rast("data/gjamTime_data/soil_const_scwd_full.tif")
-x_names <- names(x_2020)
-x_names[which(x_names == "wvol")] <- "scwd"
-names(x_2020) <- x_names
-path_ref_list_fullname <- paste0(path_norm_list, name_norm_list)
-ref_list <- readRDS(path_ref_list_fullname)
-x_2020[["scwd"]] <- (x_2020[["scwd"]]-ref_list$scwd$mean)/ref_list$scwd$sd
-x_2020 <- WriteAndLoad(x_2020, "x_2020", path = path_analysis_data_rast, datatype = "FLT4S")
+# #load known data
+# x_2020 <- rast("data/analysis/rasters/x_2020.tif")
+# x_2020[["wvol"]] <- rast("data/gjamTime_data/soil_const_scwd_full.tif")
+# x_names <- names(x_2020)
+# x_names[which(x_names == "wvol")] <- "scwd"
+# names(x_2020) <- x_names
+# path_ref_list_fullname <- paste0(path_norm_list, name_norm_list)
+# ref_list <- readRDS(path_ref_list_fullname)
+# x_2020[["scwd"]] <- (x_2020[["scwd"]]-ref_list$scwd$mean)/ref_list$scwd$sd
+# x_2020 <- WriteAndLoad(x_2020, "x_2020", path = path_analysis_data_rast, datatype = "FLT4S")
 
 
 ## start from scratch
@@ -140,16 +140,16 @@ x_2020 <- WriteAndLoad(x_2020, "x_2020", path = path_analysis_data_rast, datatyp
 
 
 ## start from x_2100 in data/analysis
-#load known data
-x_2100 <- rast("data/analysis/rasters/x_2100.tif")
-x_2100[["wvol"]] <- rast("data/gjamTime_data/soil_const_scwd_full.tif")
-x_names <- names(x_2100)
-x_names[which(x_names == "wvol")] <- "scwd"
-names(x_2100) <- x_names
-path_ref_list_fullname <- paste0(path_norm_list, name_norm_list)
-ref_list <- readRDS(path_ref_list_fullname)
-x_2100[["scwd"]] <- (x_2100[["scwd"]]-ref_list$scwd$mean)/ref_list$scwd$sd
-x_2100 <- WriteAndLoad(x_2100, "x_2100", path = path_analysis_data_rast, datatype = "FLT4S")
+# #load known data
+# x_2100 <- rast("data/analysis/rasters/x_2100.tif")
+# x_2100[["wvol"]] <- rast("data/gjamTime_data/soil_const_scwd_full.tif")
+# x_names <- names(x_2100)
+# x_names[which(x_names == "wvol")] <- "scwd"
+# names(x_2100) <- x_names
+# path_ref_list_fullname <- paste0(path_norm_list, name_norm_list)
+# ref_list <- readRDS(path_ref_list_fullname)
+# x_2100[["scwd"]] <- (x_2100[["scwd"]]-ref_list$scwd$mean)/ref_list$scwd$sd
+# x_2100 <- WriteAndLoad(x_2100, "x_2100", path = path_analysis_data_rast, datatype = "FLT4S")
 
 
 # x_2100
@@ -184,7 +184,7 @@ for(pair in colnames(rhoMu)[11:20]){
   vars <- unlist(strsplit(pair, ":"))
   x_2100[[pair]] <- x_2100[[vars[1]]]*x_2100[[vars[2]]]
 }
-x_2100 <- WriteAndLoad(x_2100, "x_2100", path = path_analysis_data_rast, datatype = "FLT4S")
+x_2100 <- writeRaster(x_2100, filename = file.path(path_analysis_data_rast, "x_2100_new.tif"), overwrite = TRUE, datatype = "FLT4S")
 
 
 # create dummylayer with 0 in mastermask and NA outside
