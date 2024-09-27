@@ -184,7 +184,7 @@ for(pair in colnames(rhoMu)[11:20]){
   vars <- unlist(strsplit(pair, ":"))
   x_2100[[pair]] <- x_2100[[vars[1]]]*x_2100[[vars[2]]]
 }
-x_2100 <- writeRaster(x_2100, filename = file.path(path_analysis_data_rast, "x_2100_new.tif"), overwrite = TRUE, datatype = "FLT4S")
+x_2100 <- writeRaster(x_2100, filename = file.path(path_analysis_data_rast, "x_2100.tif"), overwrite = TRUE, datatype = "FLT4S")
 
 
 # create dummylayer with 0 in mastermask and NA outside

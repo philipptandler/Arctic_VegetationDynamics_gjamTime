@@ -35,7 +35,7 @@ x_2020 <- rast(file.path(path_analysis_data_rast,"x_2020.tif"))
 wstar_2020 <- matrixProd(-inv(alpha) %*% rho, x_2020)
 names(wstar_2020) <- rownames(rho)
 writeRaster(wstar_2020,
-            file.path(path_analysis_data_rast, "wstar_2020_nontriv_ints.tif"),
+            file.path(path_analysis_data_rast, "wstar_2020_nontriv.tif"),
             datatype = "INT2S", overwrite =TRUE)
 wstar_2020 <- rast(file.path(path_analysis_data_rast, "wstar_2020_nontriv.tif"))
 

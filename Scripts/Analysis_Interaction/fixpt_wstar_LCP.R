@@ -84,7 +84,7 @@ cat(" => solved LCP for wstar chunks", period_char,"\n\n\n\n\n\n")
 cat("merging chunks \n")
 wstar_chunks_list <- list.files(path = path_analysis_lcpout,
 			       	pattern = paste0(nameChunkconst,"*"),
-				full.names = TRUE)
+			       	full.names = TRUE)
 rasters <- lapply(wstar_chunks_list, rast)
 
 merged_raster <- do.call(mosaic, rasters)
