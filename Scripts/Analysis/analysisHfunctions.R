@@ -55,9 +55,9 @@ load_estimates_gjam <- function(folderPattern, directory=NULL, save=TRUE){
   if(save){
     for(estimate in names(outputlist)){
       est <- outputlist[[estimate]]
-      saveRDS(est, file = file.path(path_analysis_scripts, paste0(".",estimate, ".rds")))
+      saveRDS(est, file = file.path(path_analysis_saveParameters, paste0(".",estimate, ".rds")))
     }
-    cat("saved estimates under", paste0(path_analysis_scripts, "/<estimate>.rds\n"))
+    cat("saved estimates under", paste0(path_analysis_saveParameters, "/<estimate>.rds\n"))
   }
   
   # Return the list of somevalue
@@ -358,17 +358,35 @@ solve_LCP <- function(rho, alpha, x, wstar, mask_valid, subset=NULL, startWith=N
 
 
 ## variable definitions ####
+
 # bash calls
 sysArgs <- commandArgs(trailingOnly = TRUE)
 
 ## paths
+
+# set this! select gjam model fit
+# gjamModel <- "gjam_singleVars"
+gjamModel <- "gjam_interaction"
+
+# paths
 path_gjamTime_outputs <- "data/gjamTime_outputs"
-path_analysis_scripts <- "Scripts/Analysis"
-path_analysis_data_rast <- "data/analysis/rasters"
-path_analysis_tmprast <- "data/analysis/tmp_rasters"
-path_analysis_lcpout <- "data/analysis/wstar_lcp_out"
 path_norm_list <- "Scripts/gjamTime/"
-path_analysis_chunkprocesses <- "data/analysis/chunk_processes"
+
+if(gjamModel == "gjam_singleVars"){
+  gjam_out_pattern <- "gjam_official_full_subs100_[0-9]{4}"
+  path_analysis_saveParameters <- "Scripts/Analysis/.parameters_singleVars"
+  path_analysis_data_rast <- "data/analysis_singleVars/rasters"
+  path_analysis_tmprast <- "data/analysis_singleVars/tmp_rasters"
+  path_analysis_lcpout <- "data/analysis_singleVars/wstar_lcp_out"
+  path_analysis_chunkprocesses <- "data/analysis_singleVars/chunk_processes"
+} else if(gjamModel == "gjam_interaction"){
+  gjam_out_pattern <- "gjam_interaction_full_subs100_[0-9]{4}"
+  path_analysis_saveParameters <- "Scripts/Analysis/.parameters_interaction"
+  path_analysis_data_rast <- "data/analysis_interaction/rasters"
+  path_analysis_tmprast <- "data/analysis_interaction/tmp_rasters"
+  path_analysis_lcpout <- "data/analysis_interaction/wstar_lcp_out"
+  path_analysis_chunkprocesses <- "data/analysis_interaction/chunk_processes"
+} else {stop("please specify gjamModel, i.e. wihch gjam fitted gjam model to use")}
 
 ## names
 name_norm_list <- "normalization.rds"
