@@ -356,11 +356,80 @@ solve_LCP <- function(rho, alpha, x, wstar, mask_valid, subset=NULL, startWith=N
   return(w_valid)
 }
 
+## calculate Jacobian ####
+
+## Code for 0 solutions
+
+get_wstar_zerocode <- function(w){
+  w_zero <- (w > 0)
+  codes <- w_zero[[1]] * 1 + w_zero[[2]] * 2 + w_zero[[3]] * 4 + w_zero[[4]] * 8
+  return(codes)
+}
+decode_code <- function(code) {
+  # Ensure the code is within valid range
+  if (code < 0 || code > 15) stop("Code must be between 0 and 15")
+  
+  # Convert the code to binary and split into a vector of digits
+  bin_digits <- as.integer(intToBits(code)[1:4])
+  
+  # Convert to TRUE/FALSE (1 -> TRUE, 0 -> FALSE)
+  return(bin_digits == 1)
+}
+
+# position function
+pos <- function(row, col, which = "J"){
+  m <- matrix(c(1:32), byrow = T, ncol = 4)
+  if(missing(row)){row <- 1:4}
+  if(which == "inv"){
+    row <- row+4
+  }
+  return(as.vector(t(m[row, col])))
+}
+
+## calculate jacobian and jacobian inverse
+# returns a spatial raster r which holds the jacobian r[[1:16]] and the 
+# jacobian^-1 r[[17:32]] filled by row
+jacobian_subs_thiscomb <- function(alpha, alpha_inv, rho, w, x, mask, combination){
+  # get indices
+  nontriv_ind <- c(1:4)[combination]
+  triv_ind <- c(1:4)[!combination]
+  n_nontriv <- length(nontriv_ind)
+  n_triv <- length(triv_ind)
+  
+  # create raster to fill
+  J <- rast(nrows = nrow(w), ncols = ncol(w), nlyr = 32)
+  reclass_matrix <- matrix(c(0, NA,   # map 0 -> NA
+                             1, 0),   # map 1 -> 0
+                           ncol = 2, byrow = TRUE)
+
+  if(n_triv > 0){
+    # create zerolayer
+    zero_layer <- classify(mask, reclass_matrix)
+    # fill zero lines
+    for(i in triv_ind){
+      J[[pos(i,,"J")]] <- zero_layer
+      J[[pos(i,,"inv")]] <- zero_layer
+    }
+    # calculate diagonal elements for trivial solutions
+    
+  }
+  
+
+
+  # calculate off blocks
+  
+  # calculate inBlocks
+  
+  
+}
+
 
 ## variable definitions ####
 
 # bash calls
 sysArgs <- commandArgs(trailingOnly = TRUE)
+useScratch <- FALSE
+if(length(sysArgs) > 0 & useScratchifTerminal){useScratch <- TRUE}
 
 ## paths
 
@@ -387,6 +456,13 @@ if(gjamModel == "gjam_singleVars"){
   path_analysis_lcpout <- "data/analysis_interaction/wstar_lcp_out"
   path_analysis_chunkprocesses <- "data/analysis_interaction/chunk_processes"
 } else {stop("please specify gjamModel, i.e. wihch gjam fitted gjam model to use")}
+
+if(useScratch){
+  path_analysis_tmprast <- "/cluster/scratch/tandlerp/tmp_rasters"
+  path_analysis_chunkprocesses <- "/cluster/scratch/tandlerp/chunk_processes"
+  path_analysis_data_rast <- "/cluster/scratch/tandlerp/rasters"
+  
+}
 
 ## names
 name_norm_list <- "normalization.rds"
