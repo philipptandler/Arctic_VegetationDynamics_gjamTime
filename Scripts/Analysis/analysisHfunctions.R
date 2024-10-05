@@ -108,6 +108,40 @@ normalizeRaster <- function(raster){
 
 ## raster linear algebra ####
 
+# get matrix
+# raster has nxn layers that represent the coefficients of a matrix filled by row
+# returns matrix at i j
+get_RasterMatrix <- function(raster, i=1,j=1){
+  dim <- as.integer(sqrt(nlyr(raster)))
+  values <- values(raster[i,j, drop = F])
+  M <- matrix(values, nrow = dim, ncol = dim, byrow = T)
+  return(M)
+}
+
+
+# Treats spatial raster M as nXn matrix and w as lenght n vector
+# M is interpreted by first filling the rows
+# only implemented for 4x4 matrix currently
+rasterMatrixProd <- function(M, w){
+  if(nlyr(M) != 4**2){stop("dimensions do not match in matrix product")}
+  result_list <- list()
+  for(i in 1:4){
+    layer <- rast(nrows = nrow(w), 
+                   ncols = ncol(w), 
+                   nlyrs = 1, 
+                   crs = crs(w), 
+                   ext = ext(w),
+                   vals = 0)
+    for(j in 1:4){
+      layer <- layer + M[[pos(i, j)]]*w[[j]]
+    }
+    result_list[[i]] <- layer
+  }
+  result <- rast(result_list)
+  names(result) <- names(w)
+  return(result)
+}
+
 # Matrix M and raster w, each pixel treated as vector by its layers
 matrixProd <- function(M, w){
   if (is.null(M) ||
@@ -358,11 +392,20 @@ solve_LCP <- function(rho, alpha, x, wstar, mask_valid, subset=NULL, startWith=N
 
 ## calculate Jacobian ####
 
+## euclidian distance in a raster
+
+euclidianDist <- function(raster){
+  result <- raster*raster
+  result <- sum(result)
+  result <- sqrt(result)
+  return(result)
+}
+
 ## Code for 0 solutions
 
 get_wstar_zerocode <- function(w){
-  w_zero <- (w > 0)
-  codes <- w_zero[[1]] * 1 + w_zero[[2]] * 2 + w_zero[[3]] * 4 + w_zero[[4]] * 8
+  w_nonzero <- (w >= 1)
+  codes <- w_nonzero[[1]] * 1 + w_nonzero[[2]] * 2 + w_nonzero[[3]] * 4 + w_nonzero[[4]] * 8
   return(codes)
 }
 decode_code <- function(code) {
@@ -376,6 +419,21 @@ decode_code <- function(code) {
   return(bin_digits == 1)
 }
 
+## create names for jacobian and jacobian inversed
+
+get_namesJ <- function(n){
+  
+  # Generate names for the Jacobian entries (by row)
+  jacobian_names <- as.vector(sapply(1:n, function(i) sapply(1:n, function(j) paste0("J_", i, j))))
+  
+  # Generate names for the inverse Jacobian entries (by row)
+  inverse_jacobian_names <- as.vector(sapply(1:n, function(i) sapply(1:n, function(j) paste0("Jinv_", i, j))))
+  
+  # Combine the two name sets into one vector
+  layer_names <- c(jacobian_names, inverse_jacobian_names)
+  return(layer_names)
+}
+
 # position function
 pos <- function(row, col, which = "J"){
   m <- matrix(c(1:32), byrow = T, ncol = 4)
@@ -386,10 +444,29 @@ pos <- function(row, col, which = "J"){
   return(as.vector(t(m[row, col])))
 }
 
+## get d
+#' d is the linearisation at the fixedpoint in the idrection of the trivial dimension
+# for wi*(rho*x + sum(aij*wj, j)), the linearisation d/dwi at
+# wi = 0 is rho*x + sum(aij*wj, j) =: di
+
+get_di <- function(i, alpha, rho, x, w, nontriv_ind){
+  di <- matrixProd(rho[i,], x)
+  if(length(nontriv_ind) > 0){
+    alphaW <- matrixProd(alpha[i,nontriv_ind], w[[nontriv_ind]])
+    di <- di+alphaW
+  }
+  mask_di_pos <- (di > alpha[i,i])
+  di_pos <- mask(di,mask_di_pos, maskvalues = 1, updatevalue = alpha[i,i])
+  return(di)
+}
+
+
 ## calculate jacobian and jacobian inverse
 # returns a spatial raster r which holds the jacobian r[[1:16]] and the 
 # jacobian^-1 r[[17:32]] filled by row
-jacobian_subs_thiscomb <- function(alpha, alpha_inv, rho, w, x, mask, combination){
+# for a given combination of 0 (trivial) and nonzero (nontrivial) solutions in wstar
+# this whole function is hardcoded for 4 dimensional w_star
+get_jacobian <- function(alpha, rho, w, x, mask, combination){
   # get indices
   nontriv_ind <- c(1:4)[combination]
   triv_ind <- c(1:4)[!combination]
@@ -397,7 +474,7 @@ jacobian_subs_thiscomb <- function(alpha, alpha_inv, rho, w, x, mask, combinatio
   n_triv <- length(triv_ind)
   
   # create raster to fill
-  J <- rast(nrows = nrow(w), ncols = ncol(w), nlyr = 32)
+  J <- list()
   reclass_matrix <- matrix(c(0, NA,   # map 0 -> NA
                              1, 0),   # map 1 -> 0
                            ncol = 2, byrow = TRUE)
@@ -407,20 +484,67 @@ jacobian_subs_thiscomb <- function(alpha, alpha_inv, rho, w, x, mask, combinatio
     zero_layer <- classify(mask, reclass_matrix)
     # fill zero lines
     for(i in triv_ind){
-      J[[pos(i,,"J")]] <- zero_layer
-      J[[pos(i,,"inv")]] <- zero_layer
+      for(j in c(1:4)[-i]){
+        J[[pos(i,j,"J")]] <- zero_layer
+        J[[pos(i,j,"inv")]] <- zero_layer
+      }
+      # calculate diagonal elements for trivial solutions
+      d_i <- get_di(i, alpha, rho, x, w, nontriv_ind) #rho*x + sum(aij*wj), contros if d == 0, add d <- aii
+      J[[pos(i,i,"J")]] <- d_i
+      J[[pos(i,i,"inv")]] <- 1/d_i
     }
-    # calculate diagonal elements for trivial solutions
-    
   }
   
+  if(n_nontriv > 0){
+    if(n_nontriv >= 2){
+      inv_alphaSubs <- inv(alpha[nontriv_ind,nontriv_ind])
+    }else{ #i.e. if n_nontriv == 1
+      inv_alphaSubs <- as.matrix(1/(alpha[nontriv_ind,nontriv_ind]))
+    }
+    if(n_triv > 0){
+      inv_alpha_box <- inv_alphaSubs %*% alpha[nontriv_ind, triv_ind]
+    }
+    for(i in nontriv_ind){
+      ## jacobian
+      for(j in 1:4){
+        J[[pos(i,j,"J")]] <- alpha[i,j]*w[[i]]
+      }
+      ## inv(jacobian)
+      # calculate outBlocks [non_tirv, non_triv]
+      for(j in nontriv_ind){
+        inv_alphaSubs_ij <- inv_alphaSubs[which(nontriv_ind==i), which(nontriv_ind==j)]
+        J[[pos(i,j,"inv")]] <- inv_alphaSubs_ij/w[[j]]
+      }
+      # calculate inBlocks [non_tirv, triv]
+      for(j in triv_ind){
+        inv_alpha_box_ij <- inv_alpha_box[which(nontriv_ind==i), which(triv_ind==j)]
+        J[[pos(i,j,"inv")]] <- -inv_alpha_box_ij*J[[pos(j,j,"inv")]]
+      }
+    }
+  }
+  J_rast <- rast(J)
+  names(J_rast) <- get_namesJ(4)
+  return(J_rast)
+}
 
+## mergeAnd Write chunks
 
-  # calculate off blocks
+mergeAndWrite <- function(name, save = TRUE, datatype = NULL){
   
-  # calculate inBlocks
+  f_list <- list.files(path = path_analysis_chunkprocesses,
+                     pattern = paste0(name,"*"),
+                     full.names = TRUE)
   
-  
+  r_list <- lapply(f_list, rast)
+  r <- do.call(mosaic, r_list)
+  if(save){
+    writeRaster(r,
+                file.path(path_analysis_data_rast,
+                          paste0(name,".tif")),
+                overwrite = TRUE,
+                datatype = datatype)
+  }
+  return(r)
 }
 
 
