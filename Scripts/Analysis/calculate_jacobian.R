@@ -12,12 +12,12 @@ source("Scripts/Analysis/analysisHfunctions.R")
 
 ## General SETUP ####
 time <- 1
-chunk_size <- 1
+chunk_size <- 80
 chunkprossessing <- TRUE
 
 ## system Arguments
 if(length(sysArgs) > 0){time <- as.integer(sysArgs[1])}
-if(time < 0 || time > 3){stop("invalid argument: time")}
+if(time < 0 || time > 2){stop("invalid argument: time")}
 if(length(sysArgs) > 1){
   chunk_size <- as.integer(sysArgs[2])
   chunkprossessing = TRUE
