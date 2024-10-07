@@ -48,15 +48,15 @@ cat("Calculating eigenvalues for", period_char, ":\n")
 for(chunk in 1:n_chunks){
   cat("process", chunk, "of", n_chunks, "chunks: ")
   # subset boundaries
-  # xmin <- (chunk-1)*chunk_size+1
-  # xmax <- min(chunk*chunk_size, X_DIM_RASTER)
-  # ymin <- 1
-  # ymax <- Y_DIM_RASTER
+  xmin <- (chunk-1)*chunk_size+1
+  xmax <- min(chunk*chunk_size, X_DIM_RASTER)
+  ymin <- 1
+  ymax <- Y_DIM_RASTER
   ## to test
-  xmin <- 4623
-  xmax <- 4683
-  ymin <- 7001+chunk*100
-  ymax <- 7100+chunk*100
+  # xmin <- 4623
+  # xmax <- 4683
+  # ymin <- 7001+chunk*100
+  # ymax <- 7100+chunk*100
   cat("subset...")
   J_subs <- J[ymin:ymax, xmin:xmax, drop = F]
   
