@@ -547,11 +547,29 @@ mergeAndWrite <- function(name, save = TRUE, datatype = NULL){
   return(r)
 }
 
+## Eigenvalues ####
+
+# Function to compute eigenvalues for each cell
+compute_eigenvalues <- function(cell_values) {
+  
+  if (any(is.na(cell_values))) {
+    return(c(NA, NA, NA, NA))  # Return 4 NAs if there's any NA in the input
+  }
+  
+  # Reshape the vector of length 16 into a 4x4 matrix
+  jacobian <- matrix(cell_values, nrow = 4, ncol = 4)
+  
+  # Compute the eigenvalues of the matrix
+  eigenvals <- Re(eigen(jacobian)$values)
+  
+  return(eigenvals)
+}
 
 ## variable definitions ####
 
 # bash calls
 sysArgs <- commandArgs(trailingOnly = TRUE)
+if(!exists("useScratchifTerminal")){useScratchifTerminal <- FALSE}
 useScratch <- FALSE
 if(length(sysArgs) > 0 & useScratchifTerminal){useScratch <- TRUE}
 
