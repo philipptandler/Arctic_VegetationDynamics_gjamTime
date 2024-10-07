@@ -23,7 +23,7 @@ dtime_period <- 6
 # get rates
 wrate_1990 <- (wstar_2020 - wstar_1990)*(dtime_period/dTime_1990)
 wrate_2020 <- (wstar_2100 - wstar_2020)*(dtime_period/dTime_2020)
-wrate_obs <- (wobs_2020 - wobs_1990)*(dtime_period/dTime_1990)
+wrate_1990_obs <- (wobs_2020 - wobs_1990)*(dtime_period/dTime_1990)
 
 # write rasters
 writeRaster(wrate_1990,
@@ -32,6 +32,19 @@ writeRaster(wrate_1990,
 writeRaster(wrate_2020,
             file.path(path_analysis_data_rast,
                       paste0("wrate_2020.tif")))
-writeRaster(wrate_obs,
+writeRaster(wrate_1990_obs,
             file.path(path_analysis_data_rast,
                       paste0("wrate_1990_obs.tif")))
+# normalized distances
+wrate_1990_norm <- euclidianDist(wrate_1990)
+writeRaster(wrate_1990_norm,
+            file.path(path_analysis_data_rast,
+                      paste0("wrate_1990_norm.tif")))
+wrate_2020_norm <- euclidianDist(wrate_2020)
+writeRaster(wrate_2020_norm,
+            file.path(path_analysis_data_rast,
+                      paste0("wrate_2020_norm.tif")))
+wrate_1990_obs_norm <- euclidianDist(wrate_1990_obs)
+writeRaster(wrate_1990_obs_norm,
+            file.path(path_analysis_data_rast,
+                      paste0("wrate_1990_obs_norm.tif")))

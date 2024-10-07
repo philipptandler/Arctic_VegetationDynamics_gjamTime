@@ -21,8 +21,7 @@ if(length(sysArgs) > 1){
 }
 if(chunk_size < 1){stop("invalid argument: chunk_size")}
 n_chunks <- ceiling(X_DIM_RASTER/chunk_size)
-# to test
-n_chunks = 3
+
 
 # periods
 periods_list <- list(
