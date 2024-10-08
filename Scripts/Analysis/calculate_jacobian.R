@@ -28,13 +28,16 @@ n_chunks <- ceiling(X_DIM_RASTER/chunk_size)
 # periods
 periods_list <- list(
   "1" = "1990",
-  "2" = "2020"
+  "2" = "2020",
+  "3" = "2100"
 )
 period_char <- periods_list[[time]]
 name_jacobian <-paste0("jacobian_", period_char)
 name_jacobianInv <- paste0("jacobianInv_", period_char)
-name_lag_star <- paste0("w_lag_",period_char, "_star")
-name_lag_norm_star <- paste0("w_lagnorm_",period_char, "_star")
+if(time == 1 | time == 2){
+  name_lag_star <- paste0("w_lag_",period_char, "_star")
+  name_lag_norm_star <- paste0("w_lagnorm_",period_char, "_star")
+}
 if(time == 1){
   name_lag_obs <- paste0("w_lag_",period_char, "_obs")
   name_lag_norm_obs <- paste0("w_lagnorm_",period_char, "_obs")
@@ -50,13 +53,15 @@ x_time <- rast(file.path(path_analysis_data_rast,
 w_star <- rast(file.path(path_analysis_data_rast,
                          paste0("wstar_lcpSolved_", period_char,".tif")))
 # make wstar_zero which contains a code {0,..,15} which layers are nonzero
-# wstar_zerocode <- get_wstar_zerocode(w_star)
-# wstar_zerocode <- WriteAndLoad(wstar_zerocode, paste0("wstarLCP_zerocode_",period_char),
-#                                path_analysis_data_rast, datatype = "INT1S")
-wstar_zerocode <- rast(file.path(path_analysis_data_rast,
-                                 paste0("wstarLCP_zerocode_",period_char,".tif")))
-w_rate <- rast(file.path(path_analysis_data_rast,
-                         paste0("wrate_",period_char,".tif")))
+wstar_zerocode <- get_wstar_zerocode(w_star)
+wstar_zerocode <- WriteAndLoad(wstar_zerocode, paste0("wstarLCP_zerocode_",period_char),
+                               path_analysis_data_rast, datatype = "INT1S")
+# wstar_zerocode <- rast(file.path(path_analysis_data_rast,
+#                                  paste0("wstarLCP_zerocode_",period_char,".tif")))
+if(time == 1 | time == 2){
+  w_rate <- rast(file.path(path_analysis_data_rast,
+                           paste0("wrate_",period_char,".tif")))
+}
 if(time == 1){
   w_rate_obs <- rast(file.path(path_analysis_data_rast,
                            paste0("wrate_1990_obs.tif")))
@@ -81,7 +86,9 @@ for(chunk in 1:n_chunks){
   x_time_subs <- x_time[ymin:ymax, xmin:xmax, drop = F]
   w_star_subs <- w_star[ymin:ymax, xmin:xmax, drop = F]
   wstar_zerocode_subs <- wstar_zerocode[ymin:ymax, xmin:xmax, drop = F]
-  w_rate_subs <- w_rate[ymin:ymax, xmin:xmax, drop = F]
+  if(time == 1 | time == 2){
+    w_rate_subs <- w_rate[ymin:ymax, xmin:xmax, drop = F]
+  }
   if(time == 1){
     w_rate_obs_subs <- w_rate_obs[ymin:ymax, xmin:xmax, drop = F]
   }
@@ -124,23 +131,24 @@ for(chunk in 1:n_chunks){
               datatype = "FLT4S")
   cat("done. ")
   
-  
   ## find lagging rate ##
-  cat("Find lagging... ")
-  # vector
-  w_laggin_subs <- rasterMatrixProd(jacobianInv_subs, w_rate_subs)
-  writeRaster(w_laggin_subs,
-              file.path(path_analysis_chunkprocesses,
-                        paste0(name_lag_star, "-", chunk,".tif")),
-              overwrite = TRUE,
-              datatype = "INT4S")
-  # euclidian
-  w_laggin_euc_subs <- euclidianDist(w_laggin_subs)
-  writeRaster(w_laggin_euc_subs,
-              file.path(path_analysis_chunkprocesses,
-                        paste0(name_lag_norm_star, "-", chunk,".tif")),
-              overwrite = TRUE,
-              datatype = "INT4S")
+  if(time == 1 | time == 2){
+    cat("Find lagging... ")
+    # vector
+    w_laggin_subs <- rasterMatrixProd(jacobianInv_subs, w_rate_subs)
+    writeRaster(w_laggin_subs,
+                file.path(path_analysis_chunkprocesses,
+                          paste0(name_lag_star, "-", chunk,".tif")),
+                overwrite = TRUE,
+                datatype = "INT4S")
+    # euclidian
+    w_laggin_euc_subs <- euclidianDist(w_laggin_subs)
+    writeRaster(w_laggin_euc_subs,
+                file.path(path_analysis_chunkprocesses,
+                          paste0(name_lag_norm_star, "-", chunk,".tif")),
+                overwrite = TRUE,
+                datatype = "INT4S")
+  }
   if(time == 1){
     # vector
     w_laggin_obs_subs <- rasterMatrixProd(jacobianInv_subs, w_rate_obs_subs)
@@ -170,11 +178,11 @@ jacobianInv <- mergeAndWrite(name_jacobianInv, save = TRUE, datatype = "FLT4S")
 cat(" => merged Jacobian and inv(Jacobian) for wstar", period_char,":))\n\n\n")
 
 ## merge and write lagging wstar
-
-cat("merging chunks w_lag \n")
-w_lag_star <- mergeAndWrite(name_lag_star, save = TRUE, datatype = "INT4S")
-w_lag_star_norm <- mergeAndWrite(name_lag_norm_star, save = TRUE, datatype = "INT4S")
-
+if(time == 1 | time == 2){
+  cat("merging chunks w_lag \n")
+  w_lag_star <- mergeAndWrite(name_lag_star, save = TRUE, datatype = "INT4S")
+  w_lag_star_norm <- mergeAndWrite(name_lag_norm_star, save = TRUE, datatype = "INT4S")
+}
 
 ## merge and write lagging observed
 if(time == 1){
