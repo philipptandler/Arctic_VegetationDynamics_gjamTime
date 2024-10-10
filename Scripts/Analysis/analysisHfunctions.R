@@ -570,7 +570,7 @@ compute_eigenvalues <- function(cell_values) {
 # bash calls
 sysArgs <- commandArgs(trailingOnly = TRUE)
 if(!exists("useScratchifTerminal")){useScratchifTerminal <- FALSE}
-useScratch <- FALSE
+if(!exists("useScratch")){useScratch <- FALSE}
 if(length(sysArgs) > 0 & useScratchifTerminal){useScratch <- TRUE}
 
 ## paths

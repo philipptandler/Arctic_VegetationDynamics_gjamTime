@@ -1,6 +1,8 @@
 #set up environment:
 library(here)
 setwd(here::here())
+useScratchifTerminal <- TRUE 
+useScratch <- TRUE
 source("Scripts/Analysis/analysisHfunctions.R")
 
 ## set paths and names
