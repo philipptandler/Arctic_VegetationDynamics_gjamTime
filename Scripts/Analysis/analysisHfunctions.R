@@ -582,6 +582,8 @@ gjamModel <- "gjam_interaction"
 # paths
 path_gjamTime_outputs <- "data/gjamTime_outputs"
 path_norm_list <- "Scripts/gjamTime/"
+path_ndvi <- "data/NDVI_trends_Ju"
+
 
 if(gjamModel == "gjam_singleVars"){
   gjam_out_pattern <- "gjam_official_full_subs100_[0-9]{4}"
@@ -603,6 +605,7 @@ if(useScratch){
   path_analysis_tmprast <- "/cluster/scratch/tandlerp/tmp_rasters"
   path_analysis_chunkprocesses <- "/cluster/scratch/tandlerp/chunk_processes"
   path_analysis_data_rast <- "/cluster/scratch/tandlerp/rasters"
+  path_ndvi <- "/cluster/scratch/tandlerp/NDVI"
   
 }
 

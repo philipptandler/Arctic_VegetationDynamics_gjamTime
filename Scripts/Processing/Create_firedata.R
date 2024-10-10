@@ -5,26 +5,41 @@ library(terra)
 
 ##Prepare paths and masks ####
 
-path_firedata<- "data/CNFDB/fire_polygons_all/"
-path_gjamTime_data <- "data/gjamTime_data/"
+path_firedata_In<- "data/CanadianNationalFireDataBase/fire_polygons_all"
+path_firedata_Out<- "data/CanadianNationalFireDataBase"
+name_wildfire_in <- "NFDB_poly_20210707.shp"
+name_wildfire_out <- "wildfire_mask"
 
 # Read masks
 mask_StudyRegion <- rast("data/Masks/study_region_mask.tif")
-mastermask_full <- rast("data/Masks/master_mask.tif")
-mastermask_r100 <- rast("data/Masks/master_mask_r100.tif")
-mastermask_crop <- rast("data/Masks/master_mask_crop.tif")
+mastermask <- rast("data/Masks/master_mask.tif")
+
+## parameter
+cutOffYear <- 1970
+cutInYear <- 2012
+
 
 ## process polygon layer ####
-
 # read shapefile
+wildfire_perimeters <- vect(file.path(path_firedata_In, name_wildfire_in))
+# select wildfires
+wildfire_perimeters <- wildfire_perimeters[wildfire_perimeters$YEAR >= cutOffYear,]
+wildfire_perimeters <- wildfire_perimeters[wildfire_perimeters$YEAR <= cutInYear,]
+# project to CRS used
+wildfire_perimeters <- project(wildfire_perimeters, crs(mask_StudyRegion))
+wildfire_perimeters <- crop(wildfire_perimeters, mask_StudyRegion)
 
-# project to study area
+# rasterize
+wildfire_raster <- rasterize(wildfire_perimeters, mask_StudyRegion, field=1,
+                             background = 0, touches=TRUE)
+# mask with mastermask to have NA (no data, i.e. water, glacier, ...), FALSE (no fire) or TRUE (fire)
+combined_mask <- mask(wildfire_raster, mastermask, maskvalues=0, updatevalue=NA)
 
-# crop to study area
-
-# create fire mask total and per period
-
-
+# write Raster
+writeRaster(combined_mask, file.path(path_firedata_Out, paste0(name_wildfire_out,
+                                                           "_", cutOffYear,
+                                                           "-", cutInYear,
+                                                           ".tif")))
 
 
 
