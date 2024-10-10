@@ -56,7 +56,7 @@ for(response in names(response_list)){
     y <- values(response_list[[response]])
     x <- values(predictor_list[[predictor]])
     this_lm <- lm(y ~ x)
-    summary(this_lm)
+    print(summary(this_lm))
     cat("\n\n\n\n\n")
   }
 }
