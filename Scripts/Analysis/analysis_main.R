@@ -1,8 +1,8 @@
 #set up environment:
 library(here)
 setwd(here::here())
-useScratchifTerminal <- TRUE 
-useScratch <- TRUE
+# useScratchifTerminal <- TRUE 
+# useScratch <- TRUE
 source("Scripts/Analysis/analysisHfunctions.R")
 
 ## set paths and names
@@ -47,17 +47,17 @@ predictor_list <- list(
   "lamda_harmonic"=lamda_harmonic,
   "tau_harmonic"=tau_harmonic
 )
-
+sink("output.txt")
 ## linear model
 for(response in names(response_list)){
   for(predictor in names(predictor_list)){
     cat("=====================================================================\n")
     cat("Linear Model", response, "~", predictor,":\n")
-    y <- values(response)
-    x <- values(predictor)
+    y <- values(response_list[[response]])
+    x <- values(predictor_list[[predictor]])
     this_lm <- lm(y ~ x)
     summary(this_lm)
     cat("\n\n\n\n\n")
   }
 }
-
+sink()
