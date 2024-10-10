@@ -1,8 +1,8 @@
 #set up environment:
 library(here)
 setwd(here::here())
-# useScratchifTerminal <- TRUE 
-# useScratch <- TRUE
+useScratchifTerminal <- TRUE
+useScratch <- TRUE
 source("Scripts/Analysis/analysisHfunctions.R")
 
 ## set paths and names
@@ -47,17 +47,55 @@ predictor_list <- list(
   "lamda_harmonic"=lamda_harmonic,
   "tau_harmonic"=tau_harmonic
 )
+
+sample <- FALSE
+n_samples <- 4
 sink("output.txt")
 ## linear model
 for(response in names(response_list)){
   for(predictor in names(predictor_list)){
+    r <- c(response_list[[response]],predictor_list[[predictor]])
     cat("=====================================================================\n")
-    cat("Linear Model", response, "~", predictor,":\n")
-    y <- values(response_list[[response]])
-    x <- values(predictor_list[[predictor]])
-    this_lm <- lm(y ~ x)
-    print(summary(this_lm))
+    if(sample){
+      for(i in 1:n_samples){
+        r_subs <- sample
+        cat("Linear Model",i,":", response, "~", predictor,":\n")
+        y <- values(r_subs[[1]])
+        x <- values(r_subs[[2]])
+        this_lm <- lm(y ~ x)
+        print(summary(this_lm))
+      }
+    }else{
+      cat("Linear Model:", response, "~", predictor,":\n")
+      y <- values(r[[1]])
+      x <- values(r[[2]])
+      this_lm <- lm(y ~ x)
+      print(summary(this_lm))
+      cat("\n\n\n")
+    }
     cat("\n\n\n\n\n")
   }
 }
 sink()
+
+# ## for Rstudio
+# # r[[1]] is treated as y, r[[2]] is treated as x
+# printlm <- function(r, sample=TRUE, size = 1, n_samples=1){
+#   if(sample){
+#     for(i in 1:n_samples){
+#       r_subs <- spatSample(r, size)
+#       y <- r_subs[,1]
+#       x <- r_subs[,2]
+#       lm_this <- lm(y~x)
+#       cat("Linear Model",i,":", names(r_subs[1]), "~", names(r_subs[2]),":\n")
+#       cat("\ny:", names(r_subs)[1], "\n")
+#       print(summary(y))
+#       cat("\nx:", names(r_subs)[2], "\n")
+#       print(summary(x))
+#       print(summary(lm_this))
+#       cat("\n\n\n")
+#     }
+#   }
+# }
+# 
+# printlm(c(ndvi_abs_sig_nf, lamda_sh), size = 10000, n_samples = 1)
