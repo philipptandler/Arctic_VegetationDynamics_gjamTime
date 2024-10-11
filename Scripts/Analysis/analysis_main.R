@@ -82,9 +82,9 @@ for(response in names(response_list)){
     lm_this <- lm(y~x)
     cat("Linear Model:", response, "~", predictor,":\n")
     print(summary(lm_this))
-    plot(y~x, cex = 0.05, pch = 16, ylab = response, xlab = predictor)
-    abline(h=0)
-    abline(a = lm_this$coefficients[1], b = lm_this$coefficients[2])
+    # plot(y~x, cex = 0.05, pch = 16, ylab = response, xlab = predictor)
+    # abline(h=0)
+    # abline(a = lm_this$coefficients[1], b = lm_this$coefficients[2])
     cat("\n\n\n")
   }
 }
