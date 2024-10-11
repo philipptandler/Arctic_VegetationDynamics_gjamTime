@@ -5,12 +5,12 @@
 library(here)
 setwd(here::here())
 useScratchifTerminal <- TRUE 
-useScratch <- FALSE
+useScratch <- TRUE
 source("Scripts/Analysis/analysisHfunctions.R")
 
 
 ## General SETUP ####
-time <- 1
+time <- 160
 chunk_size <- 1
 chunkprossessing <- TRUE
 
