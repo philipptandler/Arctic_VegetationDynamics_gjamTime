@@ -55,10 +55,13 @@ predictor_list <- list(
 
 
 ## run Linear Models for all combinations ####
-sink(file.path(path_analysis_data_rast,"outputLM.txt"))
+sink(file.path(path_analysis_data_rast,"outputLM_coefList.txt"))
 subsample <- FALSE
-subSize <- 10000
+plot <- FALSE
+subSize <- 100000
+lm_list <- list()
 for(response in names(response_list)){
+  lm_list_response <- list()
   for(predictor in names(predictor_list)){
     r <- c(response_list[[response]],predictor_list[[predictor]])
     cat("=====================================================================\n")
@@ -68,17 +71,22 @@ for(response in names(response_list)){
     lm_this <- lm(y~x)
     cat("Linear Model:", response, "~", predictor,":\n")
     print(summary(lm_this))
-    if(subsample & !useScratch){
-      plot(y~x, cex = 0.05, pch = 16)
+    if(subsample & plot){
+      plot(y~x, cex = 0.05, pch = 16, ylab=response, xlab=predictor)
       abline(h=0)
       abline(a = lm_this$coefficients[1], b = lm_this$coefficients[2])
     }
+    lm_list_response[[predictor]] <- lm_this
     cat("\n\n\n")
   }
+  lm_list[[response]] <- lm_list_response
   cat("\n\n\n\n")
 }
-sink()
 
+lm_matrix <- lm_matrix_summary(lm_list, coef="slope")
+print(lm_matrix[,1:4])
+print(lm_matrix[,5:8])
+sink()
 ## for Rstudio, comment out
 # # r[[1]] is treated as y, r[[2]] is treated as x
 # printlm <- function(r, sample=TRUE, size = 1, n_samples=1){

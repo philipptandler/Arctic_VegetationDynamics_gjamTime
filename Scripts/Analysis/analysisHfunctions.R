@@ -581,6 +581,29 @@ compute_eigenvalues2 <- function(cell_values) {
   return(eigenvals)
 }
 
+## get matrix from list of linear models
+# lm_list <- list with names "response" and whic hold a list of "predictor" which
+#holds the linear model
+lm_matrix_summary <- function(lm_list, coef="slope"){
+  if(coef == "intercept" | coef == 1){
+    coef <- 1
+  }
+  if(coef == "slope" | coef == 2){
+    coef <- 2
+  }
+  n_resp <- length(lm_list)
+  n_pred <- length(lm_list[[1]])
+  lm_mat <- matrix(0, ncol = n_resp, nrow = n_pred)
+  rownames(lm_mat) <- names(lm_list[[1]])
+  colnames(lm_mat) <- names(lm_list)
+  for(i in 1:n_pred){
+    for(j in 1:n_resp){
+      lm_mat[i,j] <- lm_list[[j]][[i]]$coefficients[coef]
+    }
+  }
+  return(lm_mat)
+}
+
 ## variable definitions ####
 
 # bash calls
