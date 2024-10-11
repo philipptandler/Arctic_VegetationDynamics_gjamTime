@@ -39,15 +39,15 @@ response_list <- list(
 #lamda harmonic
 lamda_shcf_1990_harm <- rast(file.path(path_analysis_data_rast,"lamda_shcf_harmonic_1990.tif"))
 lamda_shcf_2020_harm <- rast(file.path(path_analysis_data_rast,"lamda_shcf_harmonic_2020.tif"))
-lamda_shcf_harm <- mean(lamda_shcf_1990, lamda_shcf_2020)
-lamda_shcf_harm <- WriteAndLoad(lamda_shcf, "lamda_shcf_harmonic_mean_1990-2020",
+lamda_shcf_harm <- mean(lamda_shcf_1990_harm, lamda_shcf_2020_harm)
+lamda_shcf_harm <- WriteAndLoad(lamda_shcf_harm, "lamda_shcf_harmonic_mean_1990-2020",
                            path = path_analysis_data_rast,
                            datatype = "FLT4S")
 #lamda dominant
 lamda_shcf_1990_dom <- rast(file.path(path_analysis_data_rast,"lamda_shcf_dominant_1990.tif"))
 lamda_shcf_2020_dom <- rast(file.path(path_analysis_data_rast,"lamda_shcf_dominant_2020.tif"))
-lamda_shcf_dom <- mean(lamda_shcf_1990, lamda_shcf_2020)
-lamda_shcf_dom <- WriteAndLoad(lamda_shcf, "lamda_shcf_dominant_mean_1990-2020",
+lamda_shcf_dom <- mean(lamda_shcf_1990_dom, lamda_shcf_2020_dom)
+lamda_shcf_dom <- WriteAndLoad(lamda_shcf_dom, "lamda_shcf_dominant_mean_1990-2020",
                            path = path_analysis_data_rast,
                            datatype = "FLT4S")
 #lamda harmonic = lamda dominant (Jacobian for only shrub has only 1 ev)
