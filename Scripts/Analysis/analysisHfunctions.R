@@ -551,19 +551,22 @@ mergeAndWrite <- function(name, save = TRUE, datatype = NULL){
 
 # Function to compute eigenvalues for each cell
 compute_eigenvalues <- function(cell_values) {
-  
+  nsq <- length(cell_values)
+  dim <- as.integer(sqrt(nsq))
   if (any(is.na(cell_values))) {
-    return(c(NA, NA, NA, NA))  # Return 4 NAs if there's any NA in the input
+    return(rep(NA, times=nsq))  # Return 4 NAs if there's any NA in the input
   }
   
   # Reshape the vector of length 16 into a 4x4 matrix
-  jacobian <- matrix(cell_values, nrow = 4, ncol = 4)
+  jacobian <- matrix(cell_values, nrow = dim, ncol = dim)
   
   # Compute the eigenvalues of the matrix
   eigenvals <- Re(eigen(jacobian)$values)
   
   return(eigenvals)
 }
+
+
 
 ## variable definitions ####
 

@@ -36,20 +36,16 @@ response_list <- list(
 )
 
 ## load predictors
-lamda_harmonic <- rast(file.path(path_analysis_data_rast,"lamda_harmonic_mean_1990-2020.tif"))
-tau_harmonic <- rast(file.path(path_analysis_data_rast,"tau_harmonic_mean_1990-2020.tif"))
+
 lamda_sh <- rast(file.path(path_analysis_data_rast,"lamda_sh_mean_1990-2020.tif"))
-tau_sh <- rast(file.path(path_analysis_data_rast,"tau_sh_mean_1990-2020.tif"))
 
 predictor_list <- list(
   "lamda_sh"=lamda_sh,
   "tau_sh"=tau_sh,
-  "lamda_harmonic"=lamda_harmonic,
-  "tau_harmonic"=tau_harmonic
+  "lamda_shcf"=
 )
 
-sample <- TRUE
-n_samples <- 4
+
 sink("output.txt")
 ## linear model
 for(response in names(response_list)){
@@ -58,7 +54,7 @@ for(response in names(response_list)){
     cat("=====================================================================\n")
     if(sample){
       for(i in 1:n_samples){
-        r_subs <- sample
+        r_subs <- spatSample(r, 10000)
         cat("Linear Model",i,":", response, "~", predictor,":\n")
         y <- values(r_subs[[1]])
         x <- values(r_subs[[2]])
@@ -73,30 +69,34 @@ for(response in names(response_list)){
       print(summary(this_lm))
       cat("\n\n\n")
     }
-
     cat("\n\n\n\n\n")
   }
 }
 sink()
 
-# ## for Rstudio
-# # r[[1]] is treated as y, r[[2]] is treated as x
-# printlm <- function(r, sample=TRUE, size = 1, n_samples=1){
-#   if(sample){
-#     for(i in 1:n_samples){
-#       r_subs <- spatSample(r, size)
-#       y <- r_subs[,1]
-#       x <- r_subs[,2]
-#       lm_this <- lm(y~x)
-#       cat("Linear Model",i,":", names(r_subs[1]), "~", names(r_subs[2]),":\n")
-#       cat("\ny:", names(r_subs)[1], "\n")
-#       print(summary(y))
-#       cat("\nx:", names(r_subs)[2], "\n")
-#       print(summary(x))
-#       print(summary(lm_this))
-#       cat("\n\n\n")
-#     }
-#   }
-# }
-# 
-# printlm(c(ndvi_abs_sig_nf, lamda_sh), size = 10000, n_samples = 1)
+## for Rstudio
+# r[[1]] is treated as y, r[[2]] is treated as x
+printlm <- function(r, sample=TRUE, size = 1, n_samples=1){
+  if(sample){
+    for(i in 1:n_samples){
+      r_subs <- spatSample(r, size)
+      y <- r_subs[,1]
+      x <- r_subs[,2]
+      lm_this <- lm(y~x)
+      cat("Linear Model",i,":", names(r_subs[1]), "~", names(r_subs[2]),":\n")
+      cat("\ny:", names(r_subs)[1], "\n")
+      print(summary(y))
+      cat("\nx:", names(r_subs)[2], "\n")
+      print(summary(x))
+      print(summary(lm_this))
+      plot(y~x, cex = 0.1, pch = 16)
+      abline(h=0)
+      abline(a = lm_this$coefficients[1], b = lm_this$coefficients[2])
+      cat("\n\n\n")
+    }
+  }
+}
+
+printlm(c(ndvi_abs_trend_nf, lamda_sh), size = 10000, n_samples = 1)
+
+

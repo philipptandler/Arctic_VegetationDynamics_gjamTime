@@ -1,9 +1,11 @@
-# this Script calculates the eigenvalues for each cell
+# this Script calculates the eigenvalues for each cell for the reduced jacobian
+# J[1:2,1:2], only accounting for change in shrub and conifer abundance
 
 #set up environment:
 library(here)
 setwd(here::here())
 useScratchifTerminal <- TRUE 
+useScratch <- TRUE
 source("Scripts/Analysis/analysisHfunctions.R")
 
 
@@ -26,17 +28,16 @@ n_chunks <- ceiling(X_DIM_RASTER/chunk_size)
 # periods
 periods_list <- list(
   "1" = "1990",
-  "2" = "2020",
-  "3" = "2100"
+  "2" = "2020"
 )
 period_char <- periods_list[[time]]
 
 ## names
-name_jacobian <-paste0("jacobian_", period_char)
-name_lamda <- paste0("lamda_all_", period_char)
-name_lamdaDominant <- paste0("lamda_dominant_", period_char)
-name_lamdaHarmonic <- paste0("lamda_harmonic_", period_char)
-name_tauHarmonic <- paste0("tau_harmonic_", period_char)
+name_jacobian <-paste0("jacobian_shcf_", period_char)
+name_lamda <- paste0("lamda_shcf_", period_char)
+name_lamdaDominant <- paste0("lamda_shcf_dominant_", period_char)
+name_lamdaHarmonic <- paste0("lamda_shcf_harmonic_", period_char)
+name_tauHarmonic <- paste0("tau_shcf_harmonic_", period_char)
 
 
 ## load rasters
@@ -56,15 +57,14 @@ for(chunk in 1:n_chunks){
   cat("subset...")
   J_subs <- J[ymin:ymax, xmin:xmax, drop = F]
   
+  
   # eigenvalues
   cat(", calculate eigen values...")
   lamda_subs <- app(J_subs, compute_eigenvalues)
   mask_lamdaPos <- (lamda_subs[[1]]<0 &
-                    lamda_subs[[2]]<0 &
-                    lamda_subs[[3]]<0 &
-                    lamda_subs[[4]]<0)
+                    lamda_subs[[2]]<0 )
   lamda_subs <- mask(lamda_subs, mask_lamdaPos, maskvalues=0, updatevalue=NA)
-  names(lamda_subs) <- c("lamda_1","lamda_2","lamda_3","lamda_4")
+  names(lamda_subs) <- c("lamda_1","lamda_2")
   writeRaster(lamda_subs,
               file.path(path_analysis_chunkprocesses,
                         paste0(name_lamda, "-", chunk,".tif")),
@@ -83,7 +83,7 @@ for(chunk in 1:n_chunks){
               overwrite = TRUE,
               datatype = "FLT4S")
   # harmonic reactiontime tau_harmonic = 1/lamda_harmonic = mean(tau_i) = mean(1/lamda_i)
-  cat(" and tau harmonic...")
+  cat(" and lamda/tau harmonic...")
   tau_i_subs <- 1/lamda_subs
   tau_mean_subs <- mean(tau_i_subs)
   # harmonic lamda
