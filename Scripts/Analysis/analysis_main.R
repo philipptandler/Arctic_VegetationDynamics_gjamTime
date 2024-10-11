@@ -1,7 +1,6 @@
 #set up environment:
 library(here)
 setwd(here::here())
-useScratchifTerminal <- TRUE
 useScratch <- TRUE
 source("Scripts/Analysis/analysisHfunctions.R")
 
@@ -36,30 +35,16 @@ response_list <- list(
 )
 
 ## load predictors
-#lamda harmonic
-lamda_shcf_1990_harm <- rast(file.path(path_analysis_data_rast,"lamda_shcf_harmonic_1990.tif"))
-lamda_shcf_2020_harm <- rast(file.path(path_analysis_data_rast,"lamda_shcf_harmonic_2020.tif"))
-lamda_shcf_harm <- mean(lamda_shcf_1990_harm, lamda_shcf_2020_harm)
-lamda_shcf_harm <- WriteAndLoad(lamda_shcf_harm, "lamda_shcf_harmonic_mean_1990-2020",
-                           path = path_analysis_data_rast,
-                           datatype = "FLT4S")
-#lamda dominant
-lamda_shcf_1990_dom <- rast(file.path(path_analysis_data_rast,"lamda_shcf_dominant_1990.tif"))
-lamda_shcf_2020_dom <- rast(file.path(path_analysis_data_rast,"lamda_shcf_dominant_2020.tif"))
-lamda_shcf_dom <- mean(lamda_shcf_1990_dom, lamda_shcf_2020_dom)
-lamda_shcf_dom <- WriteAndLoad(lamda_shcf_dom, "lamda_shcf_dominant_mean_1990-2020",
-                           path = path_analysis_data_rast,
-                           datatype = "FLT4S")
-#lamda harmonic = lamda dominant (Jacobian for only shrub has only 1 ev)
+#lamda shurb
 lamda_sh <- rast(file.path(path_analysis_data_rast,"lamda_sh_mean_1990-2020.tif"))
+#lamda conifer
+lamda_cf <- rast(file.path(path_analysis_data_rast,"lamda_cf_mean_1990-2020.tif"))
+#lamda_shurb_conifer
+lamda_shcf_harm <- rast(file.path(path_analysis_data_rast,
+                                  "lamda_shcf_harmonic_mean_1990-2020.tif"))
+lamda_shcf_dom <- rast(file.path(path_analysis_data_rast,
+                                 "lamda_shcf_dominant_mean_1990-2020.tif"))
 
-#lamda harmonic = lamda dominant (Jacobian for only conifer has only 1 ev)
-lamda_cf_1990 <- rast(file.path(path_analysis_data_rast, "jacobian_1990.tif"))[[6]]
-lamda_cf_2020 <- rast(file.path(path_analysis_data_rast, "jacobian_2020.tif"))[[6]]
-lamda_cf <- mean(lamda_cf_1990, lamda_cf_2020)
-lamda_cf <- WriteAndLoad(lamda_cf, "lamda_cf_mean_1990-2020",
-                         path = path_analysis_data_rast,
-                         datatype = "FLT4S")
 
 predictor_list <- list(
   "lamda_sh"=lamda_sh,
@@ -68,10 +53,11 @@ predictor_list <- list(
   "lamda_shcf_dominant"=lamda_shcf_dom
 )
 
+
+## run Linear Models for all combinations ####
 sink(file.path(path_analysis_data_rast,"outputLM.txt"))
 subsample <- FALSE
 subSize <- 10000
-## linear model
 for(response in names(response_list)){
   for(predictor in names(predictor_list)){
     r <- c(response_list[[response]],predictor_list[[predictor]])
@@ -82,11 +68,14 @@ for(response in names(response_list)){
     lm_this <- lm(y~x)
     cat("Linear Model:", response, "~", predictor,":\n")
     print(summary(lm_this))
-    # plot(y~x, cex = 0.05, pch = 16, ylab = response, xlab = predictor)
-    # abline(h=0)
-    # abline(a = lm_this$coefficients[1], b = lm_this$coefficients[2])
+    if(subsample & !useScratch){
+      plot(y~x, cex = 0.05, pch = 16)
+      abline(h=0)
+      abline(a = lm_this$coefficients[1], b = lm_this$coefficients[2])
+    }
     cat("\n\n\n")
   }
+  cat("\n\n\n\n")
 }
 sink()
 
