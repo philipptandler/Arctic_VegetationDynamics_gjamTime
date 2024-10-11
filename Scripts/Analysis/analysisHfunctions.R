@@ -584,12 +584,17 @@ compute_eigenvalues2 <- function(cell_values) {
 ## get matrix from list of linear models
 # lm_list <- list with names "response" and whic hold a list of "predictor" which
 #holds the linear model
-lm_matrix_summary <- function(lm_list, coef="slope"){
-  if(coef == "intercept" | coef == 1){
+lm_matrix_summary <- function(lm_list, coef="slope", measure="estimate"){
+  if(coef != "intercept" & coef != "slope"){stop("invalid argument:", coef)}
+  if(measure != "estimate" & measure != "p-value"){stop("invalid argument:", measure)}
+  if(coef == "intercept"){
     coef <- 1
   }
-  if(coef == "slope" | coef == 2){
+  if(coef == "slope"){
     coef <- 2
+  }
+  if(measure == "p-value"){
+    coef <- coef+6
   }
   n_resp <- length(lm_list)
   n_pred <- length(lm_list[[1]])
@@ -598,7 +603,7 @@ lm_matrix_summary <- function(lm_list, coef="slope"){
   colnames(lm_mat) <- names(lm_list)
   for(i in 1:n_pred){
     for(j in 1:n_resp){
-      lm_mat[i,j] <- lm_list[[j]][[i]]$coefficients[coef]
+      lm_mat[i,j] <- lm_list[[j]][[i]][coef]
     }
   }
   return(lm_mat)

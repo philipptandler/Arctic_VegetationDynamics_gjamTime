@@ -1,7 +1,7 @@
 #set up environment:
 library(here)
 setwd(here::here())
-useScratch <- TRUE
+useScratch <- TRUE # change to TRUE for run on cluster
 source("Scripts/Analysis/analysisHfunctions.R")
 
 ## set paths and names
@@ -58,7 +58,7 @@ predictor_list <- list(
 sink(file.path(path_analysis_data_rast,"outputLM_coefList.txt"))
 subsample <- FALSE
 plot <- FALSE
-subSize <- 100000
+subSize <- 1000
 lm_list <- list()
 for(response in names(response_list)){
   lm_list_response <- list()
@@ -70,25 +70,30 @@ for(response in names(response_list)){
     x <- values(r[[2]])
     lm_this <- lm(y~x)
     cat("Linear Model:", response, "~", predictor,":\n")
-    print(summary(lm_this))
+    lm_summary <- summary(lm_this)
+    print(lm_summary)
     if(subsample & plot){
       plot(y~x, cex = 0.05, pch = 16, ylab=response, xlab=predictor)
       abline(h=0)
       abline(a = lm_this$coefficients[1], b = lm_this$coefficients[2])
     }
-    lm_list_response[[predictor]] <- lm_this
-    cat("\n\n\n")
+    lm_list_response[[predictor]] <- lm_summary$coefficients
   }
   lm_list[[response]] <- lm_list_response
   cat("\n\n\n\n")
 }
 
-lm_matrix <- lm_matrix_summary(lm_list, coef="slope")
+cat("=====================================================================\n")
+lm_matrix <- lm_matrix_summary(lm_list, coef="slope", measure = "estimate")
+print(lm_matrix[,1:4])
+print(lm_matrix[,5:8])
+cat("\n\n")
+lm_matrix <- lm_matrix_summary(lm_list, coef="slope", measure = "p-value")
 print(lm_matrix[,1:4])
 print(lm_matrix[,5:8])
 sink()
 ## for Rstudio, comment out
-# # r[[1]] is treated as y, r[[2]] is treated as x
+# r[[1]] is treated as y, r[[2]] is treated as x
 # printlm <- function(r, sample=TRUE, size = 1, n_samples=1){
 #   if(TRUE){
 #     for(i in 1:n_samples){
@@ -106,6 +111,6 @@ sink()
 #   }
 # }
 # 
-# printlm(c(ndvi_abs_trend_nf, lamda_sh), size = 1000, n_samples = 1)
+# printlm(c(ndvi_trend, lamda_shcf_harm), size = 200000, n_samples = 1)
 
 
