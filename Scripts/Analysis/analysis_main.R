@@ -76,9 +76,9 @@ for(response in names(response_list)){
   for(predictor in names(predictor_list)){
     r <- c(response_list[[response]],predictor_list[[predictor]])
     cat("=====================================================================\n")
-    if(subsample){r <- spatSample(r, subSize)}
-    y <- r[,1]
-    x <- r[,2]
+    if(subsample){r <- spatSample(r, subSize, as.raster=TRUE)}
+    y <- values(r[[1]])
+    x <- values(r[[2]])
     lm_this <- lm(y~x)
     cat("Linear Model:", response, "~", predictor,":\n")
     print(summary(lm_this))
