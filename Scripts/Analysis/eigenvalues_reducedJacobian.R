@@ -5,13 +5,13 @@
 library(here)
 setwd(here::here())
 useScratchifTerminal <- TRUE 
-useScratch <- TRUE
+useScratch <- FALSE
 source("Scripts/Analysis/analysisHfunctions.R")
 
 
 ## General SETUP ####
 time <- 1
-chunk_size <- 160
+chunk_size <- 1
 chunkprossessing <- TRUE
 
 ## system Arguments
@@ -60,7 +60,7 @@ for(chunk in 1:n_chunks){
   
   # eigenvalues
   cat(", calculate eigen values...")
-  lamda_subs <- app(J_subs, compute_eigenvalues)
+  lamda_subs <- app(J_subs, compute_eigenvalues2)
   mask_lamdaPos <- (lamda_subs[[1]]<0 &
                     lamda_subs[[2]]<0 )
   lamda_subs <- mask(lamda_subs, mask_lamdaPos, maskvalues=0, updatevalue=NA)

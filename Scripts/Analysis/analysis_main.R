@@ -36,7 +36,9 @@ response_list <- list(
 )
 
 ## load predictors
-
+lamda_shcf_1990 <- rast(file.path(path_analysis_data_rast,"lamda_shcf_harmonic_1990.tif"))
+lamda_shcf_2020 <- rast(file.path(path_analysis_data_rast,"lamda_shcf_harmonic_2020.tif"))
+lamda_shcf <- mean()
 lamda_sh <- rast(file.path(path_analysis_data_rast,"lamda_sh_mean_1990-2020.tif"))
 
 predictor_list <- list(
