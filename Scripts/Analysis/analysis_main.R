@@ -53,8 +53,17 @@ lamda_shcf_dom <- WriteAndLoad(lamda_shcf, "lamda_shcf_dominant_mean_1990-2020",
 #lamda harmonic = lamda dominant (Jacobian for only shrub has only 1 ev)
 lamda_sh <- rast(file.path(path_analysis_data_rast,"lamda_sh_mean_1990-2020.tif"))
 
+#lamda harmonic = lamda dominant (Jacobian for only conifer has only 1 ev)
+lamda_cf_1990 <- rast(file.path(path_analysis_data_rast, "jacobian_1990.tif"))[[6]]
+lamda_cf_2020 <- rast(file.path(path_analysis_data_rast, "jacobian_2020.tif"))[[6]]
+lamda_cf <- mean(lamda_cf_1990, lamda_cf_2020)
+lamda_cf <- WriteAndLoad(lamda_cf, "lamda_cf_mean_1990-2020",
+                         path = path_analysis_data_rast,
+                         datatype = "FLT4S")
+
 predictor_list <- list(
   "lamda_sh"=lamda_sh,
+  "lamda_cf"=lamda_cf,
   "lamda_shcf_harmonic"=lamda_shcf_harm,
   "lamda_shcf_dominant"=lamda_shcf_dom
 )
