@@ -31,7 +31,7 @@ response_list <- list(
   "ndvi_abs_sig"=ndvi_abs_sig,
   "ndvi_sig"=ndvi_sig,
   "ndvi_abs_sig_nf"=ndvi_abs_sig_nf,
-  "ndvi_sig_nf"=ndvi_trend_nf
+  "ndvi_sig_nf"=ndvi_sig_nf
 )
 
 ## load predictors
@@ -55,7 +55,7 @@ predictor_list <- list(
 
 
 ## run Linear Models for all combinations ####
-sink(file.path(path_analysis_data_rast,"outputLM_coefList.txt"))
+sink(file.path(path_analysis_data_rast,"LM_coefficients.txt"))
 subsample <- FALSE
 plot <- FALSE
 subSize <- 1000
@@ -83,6 +83,8 @@ for(response in names(response_list)){
   cat("\n\n\n\n")
 }
 
+saveRDS(lm_list, file = file.path(path_analysis_data_rast, "lm_list.rds"))
+
 cat("=====================================================================\n")
 lm_matrix <- lm_matrix_summary(lm_list, coef="slope", measure = "estimate")
 print(lm_matrix[,1:4])
@@ -92,9 +94,11 @@ lm_matrix <- lm_matrix_summary(lm_list, coef="slope", measure = "p-value")
 print(lm_matrix[,1:4])
 print(lm_matrix[,5:8])
 sink()
-## for Rstudio, comment out
+
+
+# for Rstudio, comment out
 # r[[1]] is treated as y, r[[2]] is treated as x
-# printlm <- function(r, sample=TRUE, size = 1, n_samples=1){
+# printPlotlm <- function(r, sample=TRUE, size = 1, n_samples=1){
 #   if(TRUE){
 #     for(i in 1:n_samples){
 #       r_subs <- spatSample(r, size)
@@ -103,7 +107,7 @@ sink()
 #       lm_this <- lm(y~x)
 #       cat("Linear Model",i,":", names(r_subs[1]), "~", names(r_subs[2]),":\n")
 #       print(summary(lm_this))
-#       plot(y~x, cex = 0.05, pch = 16)
+#       plot(y~x, cex = 0.05, pch = 16, ylab=names(r)[1], xlab=names(r)[2], xlim = c(-0.25,0))
 #       abline(h=0)
 #       abline(a = lm_this$coefficients[1], b = lm_this$coefficients[2])
 #       cat("\n\n\n")
@@ -111,6 +115,7 @@ sink()
 #   }
 # }
 # 
-# printlm(c(ndvi_trend, lamda_shcf_harm), size = 200000, n_samples = 1)
+# printPlotlm(c(ndvi_trend, lamda_shcf_harm), size = 200000, n_samples = 1)
+# printPlotlm(c(ndvi_sig, lamda_shcf_harm), size = 200000, n_samples = 1)
 
 
