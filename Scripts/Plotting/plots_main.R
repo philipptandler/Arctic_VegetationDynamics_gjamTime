@@ -1,0 +1,69 @@
+# This is to plot the data
+
+#set up environment:
+library(here)
+setwd(here::here())
+source("Scripts/Plotting/plottingHfunctions.R")
+
+## load linear model ####
+lm_list <- readRDS(file = file.path(path_analysis_data_rast,"lm_list.rds"))
+
+## load rasters ####
+# as list
+response_list <- list(
+  "ndvi_trend"=list(r=ndvi_trend,lab="NDVI trend"),
+  "ndvi_trend_nf"=list(r=ndvi_trend_nf,lab="NDVI trend"),
+  "ndvi_sig"=list(r=ndvi_sig,lab="NDVI significance"),
+  "ndvi_sig_nf"=list(r=ndvi_sig_nf,lab="NDVI significance")
+)
+# as list
+predictor_list <- list(
+  "lamda_sh"=list(r=lamda_sh,lab=expression(lambda[sh])),
+  "lamda_cf"=list(r=lamda_cf,lab=expression(lambda[cf])),
+  "lamda_shcf_harmonic"=list(r=lamda_shcf_harm,lab=expression(lambda[harmonic]))
+)
+
+
+## plot list ####
+
+# plotlist <- list(
+#   c("ndvi_trend", "lamda_shcf_harmonic"),
+#   c("ndvi_trend", "lamda_sh"),
+#   c("ndvi_trend", "lamda_cf"),
+#   c("ndvi_sig", "lamda_shcf_harmonic"),
+#   c("ndvi_sig", "lamda_sh"),
+#   c("ndvi_sig", "lamda_cf"),
+#   c("ndvi_trend_nf", "lamda_shcf_harmonic"),
+#   c("ndvi_trend_nf", "lamda_sh"),
+#   c("ndvi_trend_nf", "lamda_cf"),
+#   c("ndvi_sig_nf", "lamda_shcf_harmonic"),
+#   c("ndvi_sig_nf", "lamda_sh"),
+#   c("ndvi_sig_nf", "lamda_cf")
+# )
+
+plotlist <- list(
+  c("ndvi_trend", "lamda_shcf_harmonic")
+)
+
+## plotting ####
+for(pair in plotlist){
+  #raster
+  ry <- response_list[[pair[1]]]$r
+  rx <- predictor_list[[pair[2]]]$r
+  # plotnames
+  laby <- response_list[[pair[1]]]$lab
+  labx <- predictor_list[[pair[2]]]$lab
+  # file out
+  filename <- paste0(pair[1], "_", pair[2], ".png")
+  raster <- c(ry,rx)
+  # lm to plot
+  lm_sum <- lm_list[[pair[1]]][[pair[2]]]
+  hexagon_plot(raster,
+               lnames = c(laby,labx),
+               lm_sum = lm_sum,
+               samplesize = 1e6,
+               save=FALSE,
+               showplot=TRUE,
+               filename=filename)
+  
+}
