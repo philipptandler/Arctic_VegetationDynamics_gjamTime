@@ -5,6 +5,15 @@ library(paletteer)
 library(scales)
 library(grid)
 
+## check if element exist in list of list:
+check_exists <- function(lst, var1, var2) {
+  if (!is.null(lst[[var1]])) {
+    return(!is.null(lst[[var1]][[var2]]))
+  }
+  return(FALSE)
+}
+
+
 ## making hexplot
 make_hexplot <- function(df,
                          n_bins = 80,
@@ -14,15 +23,21 @@ make_hexplot <- function(df,
                          abline_lm_width = 0.3,
                          xname,
                          yname,
-                         xlim = c(NA,NA)){
+                         xlim = c(NA,NA),
+                         ylim = c(NA,NA)){
   xmin <- xlim[1]
   if(is.na(xmin)){xmin <- range(df$x)[1]}
   xmax <- xlim[2]
   if(is.na(xmax)){xmax <- range(df$x)[2]}
+  ymin <- ylim[1]
+  if(is.na(ymin)){ymin <- range(df$y)[1]}
+  ymax <- ylim[2]
+  if(is.na(ymax)){ymax <- range(df$y)[2]}
   colpalette <- rev(paletteer_c("viridis::magma", 30)[1:29])
   p <- ggplot(df, aes(x = x, y = y)) +
     geom_hex(bins = n_bins) +
     xlim(xmin,xmax) +
+    ylim(ymin,ymax) +
     # Add a horizontal abline at y = 0
     geom_hline(yintercept = 0, linewidth = abline_h_width) +
     # Add an abline with intercept and slope from the linear model
@@ -60,26 +75,41 @@ make_testplot()
 
 
 ## plotting ####
-hexagon_plot <- function(raster, lnames = c("y", "x"), lm_sum, sample = TRUE, samplesize = 1e4,
-                         nsamples = 1, setseed = 1234, save=FALSE,showplot=TRUE, filename=NULL,
+hexagon_plot <- function(raster, lnames = c("y", "x"), lm, sample = TRUE, samplesize = 1e4,
+                         nsamples = 1, setseed = 1234, save=FALSE,showplot=TRUE, 
+                         xlim = c(NA,NA), ylim = c(NA,NA),
+                         filename=NULL,
                          path = path_analysis_plots){
+  lm_sum <- lm
+  max_lm <- 1e5
   for(i in 1:nsamples){
-    
-    # linear model
-    cat("Linear Model:", names(raster)[1], "~", names(raster)[2],":\n")
-    print(lm_sum)
-    
     # prepare plot
     set.seed(setseed+(i-1))
+    
     r_subs <- spatSample(raster, samplesize)
     y <- r_subs[,1]
     x <- r_subs[,2]
     df <- data.frame(x = x, y = y)
     df <- df[is.finite(df$x) & is.finite(df$y), ]
+    
+    # linear model
+    cat("Linear Model:", names(raster)[1], "~", names(raster)[2],":\n")
+    if(is.null(lm)){
+      if(samplesize > max_lm){
+        r_lm <- spatSample(raster, max_lm)
+        y_lm <- r_lm[,1]
+        x_lm <- r_lm[,2]
+        lm_sum <- summary(lm(y_lm~x_lm))$coefficients
+      }else{
+        lm_sum <- summary(lm(y~x))$coefficients
+      }
+    }
+    print(lm_sum)
     ## make hexagon density plot
     p <- make_hexplot(df,
                       abline_a = lm_sum[1], abline_b = lm_sum[2],
-                      # xlim = c(-0.45,0),
+                      xlim = xlim,
+                      ylim = ylim,
                       xname = lnames[2], yname = lnames[1])
     if(save){
       ggsave(file.path(path_analysis_plots, filename), 

@@ -192,3 +192,4 @@ zero_layer <- !rast("data/Masks/master_mask.tif")
 zero_layer <- mask(zero_layer, zero_layer, maskvalue=TRUE, updatevalue=NA)
 zero_layer <- WriteAndLoad(zero_layer, "zero_layer", path_analysis_data_rast)
 
+    
