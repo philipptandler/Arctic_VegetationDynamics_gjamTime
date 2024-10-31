@@ -1,7 +1,7 @@
 #set up environment:
 library(here)
 setwd(here::here())
-useScratch <- F # change to TRUE for run on cluster
+useScratch <- TRUE # change to TRUE for run on cluster
 source("Scripts/Analysis/analysisHfunctions.R")
 
 ## set paths and names
@@ -84,8 +84,8 @@ for(response in names(response_list)){
     y <- values(r[[1]])
     x1 <- values(r[[2]])
     x2 <- values(r[[3]])
-    lm_this <- lm(y~x1*x2)
-    cat("Linear Model:", response, "~", v1, "*", v2, ":\n")
+    lm_this <- lm(y~x1+x2)
+    cat("Linear Model:", response, "~", v1, "+", v2, ":\n")
     lm_summary <- summary(lm_this)
     print(lm_summary)
     if(subsample & plot){
