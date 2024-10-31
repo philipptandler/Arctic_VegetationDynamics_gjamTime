@@ -585,7 +585,7 @@ compute_eigenvalues2 <- function(cell_values) {
 # lm_list <- list with names "response" and whic hold a list of "predictor" which
 #holds the linear model
 lm_matrix_summary <- function(lm_list, coef="slope", measure="estimate"){
-  if(coef != "intercept" & coef != "slope"){stop("invalid argument:", coef)}
+  if(coef != "intercept" & coef != "slope" & coef != "slope2"){stop("invalid argument:", coef)}
   if(measure != "estimate" & measure != "p-value"){stop("invalid argument:", measure)}
   if(coef == "intercept"){
     coef <- 1
