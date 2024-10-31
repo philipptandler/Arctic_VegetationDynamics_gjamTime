@@ -593,6 +593,9 @@ lm_matrix_summary <- function(lm_list, coef="slope", measure="estimate"){
   if(coef == "slope"){
     coef <- 2
   }
+  if(coef == "slope2"){
+    coef <- 3
+  }
   if(measure == "p-value"){
     coef <- coef+6
   }

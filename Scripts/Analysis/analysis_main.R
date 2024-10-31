@@ -46,24 +46,19 @@ wrate_cf <- rast(file.path(path_analysis_data_rast,"wrate_cf.tif"))
 wrate_shcf <- rast(file.path(path_analysis_data_rast,"wrate_shcf.tif"))
 
 
-# predictor_list <- list(
-#   "lamda_sh"=lamda_sh,
-#   "lamda_cf"=lamda_cf,
-#   "lamda_shcf_harmonic"=lamda_shcf_harm,
-#   "wrate_sh" = wrate_sh,
-#   "wrate_cf" = wrate_cf,
-#   "wrate_shcf" = wrate_shcf
-# )
-
 predictor_list <- list(
   "lamda_sh"=lamda_sh,
   "lamda_cf"=lamda_cf,
+  "lamda_shcf_harmonic"=lamda_shcf_harm,
   "wrate_sh" = wrate_sh,
-  "wrate_cf" = wrate_cf
+  "wrate_cf" = wrate_cf,
+  "wrate_shcf" = wrate_shcf
 )
+
 interaction_list <- list(
   c("lamda_sh", "wrate_sh"),
-  c("lamda_cf", "wrate_cf")
+  c("lamda_cf", "wrate_cf"),
+  c("lamda_shcf_harmonic", "wrate_shcf")
 )
 
 
@@ -105,7 +100,7 @@ cat("=====================================================================\n")
 lm_matrix <- lm_matrix_summary(lm_list, coef="slope", measure = "estimate")
 print(lm_matrix)
 cat("\n\n")
-lm_matrix <- lm_matrix_summary(lm_list, coef="slope", measure = "p-value")
+lm_matrix <- lm_matrix_summary(lm_list, coef="slope2", measure = "estimate")
 print(lm_matrix)
 sink()
 
