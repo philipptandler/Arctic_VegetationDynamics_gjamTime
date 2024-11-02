@@ -2,6 +2,8 @@
 #set up environment:
 library(here)
 setwd(here::here())
+useScratchifTerminal <- TRUE 
+useScratch <- TRUE # change to TRUE for run on cluster
 source("Scripts/Analysis/analysisHfunctions.R")
 
 
