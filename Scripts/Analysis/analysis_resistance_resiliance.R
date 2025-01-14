@@ -3,7 +3,7 @@
 library(here)
 setwd(here::here())
 useScratchifTerminal <- TRUE 
-useScratch <- TRUE # change to TRUE for run on cluster
+useScratch <- F # change to TRUE for run on cluster
 source("Scripts/Analysis/analysisHfunctions.R")
 
 

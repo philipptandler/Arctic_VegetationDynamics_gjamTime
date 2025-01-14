@@ -59,7 +59,7 @@ var_list <- list(
 #   c("ndvi_sig_nf", "wrate_cf")
 # )
 plotlist <- list(
-  c("SI_ndvi_trend", "slope")
+  c("ndvi_trend", "lamda_sh")
 )
 
 ## plotting ####
@@ -83,8 +83,7 @@ for(pair in plotlist){
                lm = lm_sum,
                samplesize = 1e6,
                save=F,
-               ylim = c(-0.2,0.2),
-               xlim = c(0,10),
+               xlim = c(-0.4,0.0),
                showplot=T,
                filename=filename)
   

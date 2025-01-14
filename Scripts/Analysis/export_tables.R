@@ -14,15 +14,13 @@ names_species <- c("shrub", "conifer", "herbaceous", "lichen")
 rownames(alphaMu) <- names_species
 rownames(alphaSe) <- names_species
 
-copy_matrix <- function(M){
+copy_matrix <- function(M, names = NULL){
   df <- as.data.frame(M)
-  colnames(df) <- names_species
-  df <- cbind(data.frame("predictor" = rownames(M)), df)
-  # colnames(df)[1] <- "predictor"
+  if(!is.null(names)){colnames(df) <- names_species}
   print(df)
   write.table(df, "clipboard", sep = "\t", row.names = FALSE, col.names = TRUE)
 }
 
-copy_matrix(alphaMu)
+copy_matrix(Im(eigen(alphaMu)$values))
 
 
