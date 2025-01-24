@@ -5,6 +5,17 @@
 library(terra)
 # library(matlib)
 
+## summarize gjamTime outputs ####
+
+summarize_estimates_gjam <- function(directory=NULL, save=TRUE){
+  
+  directories <- list.dirs(file.path(directory),
+                           recursive = FALSE, full.names = TRUE)
+  matching_dirs <- directories[grepl(folderPattern, basename(directories))]
+  
+  
+}
+
 
 ## load output gjamTime ####
 

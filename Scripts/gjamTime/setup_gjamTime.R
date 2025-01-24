@@ -47,7 +47,7 @@ updateArgs <- function(vlist, sysArgs){
     if(length(sysArgs) > 1){
       vlist$subFact <- as.integer(sysArgs[2])
       if(length(sysArgs) > 2){
-	n_reps <- as.integer(sysArgs[3])
+        n_reps <- as.integer(sysArgs[3])
         set.seed(1234)
         random_numbers <- sample(0:((vlist$subFact**2)-1), n_reps, replace = FALSE)
         index <- as.integer(sysArgs[4]) 
@@ -231,7 +231,7 @@ assert_gjamCall <- function(vlist, xvars, yvars, periods, callName){
 }
 
 
-## Prepare the geotifs (from main.R) to load in further step (in gjamTime.R)
+## Prepare the geotifs to load in further step (in gjamTime.R)
 #' this function writes for each variable and period (each geotiff in 
 #' data/gjamTime_data) a subset in data/gjamTime_tmp with the current seed.
 prepare_geodata <- function(call){
@@ -310,6 +310,15 @@ make_samplemask <- function(subSeed, subFact){
   
   return(samplemask)
 }
+# #for random sample:
+# sample_indices <- spatSample(r, size = 1e6, method = "random", cells = TRUE, na.rm = TRUE)
+# rs <- r
+# values(rs) <- 0
+# rs[sample_indices$cell] <- 1
+# rss <- rs & r
+# df <- sample_indices[sample_indices[,2] == 1,]
+# dim(df)
+# [1] 579322      2
 
 
 ## helper function get files ####
@@ -628,7 +637,7 @@ select_output<- function(output){
     rhoStandXmu = rhoStandXmu,
     rhoStandXse = rhoStandXse,
     sensAlpha = sensAlpha,
-    sensRho =sensRho
+    sensRho = sensRho
   )
   return(outlist)
 }

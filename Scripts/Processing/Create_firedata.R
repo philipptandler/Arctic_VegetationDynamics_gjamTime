@@ -15,6 +15,7 @@ mask_StudyRegion <- rast("data/Masks/study_region_mask.tif")
 mastermask <- rast("data/Masks/master_mask.tif")
 
 ## parameter
+selectTimeperiod <- FALSE
 cutOffYear <- 1970
 cutInYear <- 2012
 
@@ -23,8 +24,10 @@ cutInYear <- 2012
 # read shapefile
 wildfire_perimeters <- vect(file.path(path_firedata_In, name_wildfire_in))
 # select wildfires
-wildfire_perimeters <- wildfire_perimeters[wildfire_perimeters$YEAR >= cutOffYear,]
-wildfire_perimeters <- wildfire_perimeters[wildfire_perimeters$YEAR <= cutInYear,]
+if(selectTimeperiod){
+  wildfire_perimeters <- wildfire_perimeters[wildfire_perimeters$YEAR >= cutOffYear,]
+  wildfire_perimeters <- wildfire_perimeters[wildfire_perimeters$YEAR <= cutInYear,]
+}
 # project to CRS used
 wildfire_perimeters <- project(wildfire_perimeters, crs(mask_StudyRegion))
 wildfire_perimeters <- crop(wildfire_perimeters, mask_StudyRegion)

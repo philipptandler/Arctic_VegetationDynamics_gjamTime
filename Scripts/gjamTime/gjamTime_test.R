@@ -17,7 +17,7 @@ source("Scripts/gjamTime/setup_gjamTime.R")
 ## define version
 
 vlist <- list(
-  vers = "full", # "full" or "crop"
+  vers = "full", # "full"
   subset = TRUE, #recommended TRUE: FALSE might crash due to memory overflow
   subFact = 1000, # for subs
   subSeed = 9696 # for subs
@@ -31,8 +31,8 @@ callName <- "test_someVars"
 
 xvars <- list(
   topography = c("elev", "slope"),
-  y = FALSE, # to get latitude
-  x = FALSE, # to get longitude
+  y = FALSE, # introduces variable 'lat' for latitude
+  x = FALSE, # introduces variable 'lon' for longitude
   climate = c("tass"),
   soil = c("scwd"),
   interaction = c("elev:slope", "tass:elev", "scwd:slope", "elev:scwd", "slope:tass", "tass:scwd")

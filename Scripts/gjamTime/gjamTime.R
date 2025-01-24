@@ -17,7 +17,7 @@ source("Scripts/gjamTime/setup_gjamTime.R")
 ## define version
 
 vlist <- list(
-  vers = "full", # "full" or "crop"
+  vers = "full", # "full"
   subset = TRUE, #recommended TRUE: FALSE might crash due to memory overflow
   subFact = 100, # for subs
   subSeed = 9696 # for subs
