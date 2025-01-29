@@ -23,7 +23,7 @@ for(run in 1:n_replicates){
   task_id <- run
   call_scrpt <- call
   source("scripts/run_gjamTime.R")
-  call_name #TODO
+  call_name #TODO save call name and nreps in call object
 }
 
 #TODO summarize output

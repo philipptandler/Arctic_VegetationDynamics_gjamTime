@@ -708,7 +708,7 @@ fit_gjamTime <- function(setup,
   n_spec <- ncol(ydata)
   effort <- list(columns = 1:n_spec, values = edata)
   
-  # fill means of not group varaibles manually
+  # fill means of not group varibles manually
   xdata  <- fillmeans(xdata, allVars)
   
   # check if there are missing values

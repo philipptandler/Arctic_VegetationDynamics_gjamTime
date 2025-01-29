@@ -145,7 +145,7 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
 
 # returns a list of the recieved called from call_scrpt
 .receive_call <- function(call_scrpt){
-  
+  # TODO source script and return as list
 }
 
 # returns a list of the valid variables in path_gjamTime_mastervariables
@@ -169,7 +169,8 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
   # for each entry in default list
   for(entry in names(call_default)){
     # if available, fill entry with received call
-    if(exists(entry, where = call_received)){
+    if(exists(entry, where = call_received) &&
+       !.is_equivalent_to_default(call_received[[entry]])){
       call_build[[entry]] <- call_received[[entry]]
     # if not available, fill default entry
     } else {
@@ -178,7 +179,6 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
   }
   return(call_build)
 }
-
 
 ## validates variables in yvars, xvars
 
@@ -190,40 +190,41 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
   if(! all(names(provided_vars) %in% vars_default_names)){
     stop("Invalid entry in ", which)
   }
+  # vector storing all unique variables
   varVecUnique <- c()
   for(entry in vars_default_names){
     # if an entry exists
     if(exists(entry, where = provided_vars)){
-      
       # validate if its a true variable
       if(exists(entry, where = valid_vars)){
         if(!all(provided_vars[[entry]] %in% valid_vars[[entry]]$varnames)){
           stop("Invalid variable name in ", which, " : ", entry)
         }
         varVecUnique <- append(varVecUnique, provided_vars[[entry]])
-      # if x,y, interaction 
+      # if x,y
       } else {
         if(entry == "x" || entry == "y"){
           if(isTRUE(provided_vars[[entry]])){provided_vars[[entry]] <- TRUE}
           else {provided_vars[[entry]] <- FALSE}
         }
       }
-      
-
     # set default  
     } else {
       provided_vars[[entry]] <- vars_default[[entry]]
     }
   }
-  ## add uniqueVars
-  provided_vars$varVecUnique <- varVecUnique
+  
+  # ## add uniqueVars # TODO maybe include?
+  # provided_vars$varVecUnique <- varVecUnique
   
   ## assert all interaction variables are in varvec unique
   if(!isFALSE(provided_vars$interaction)){
     .check_unique_variables(provided_vars$interaction, varVecUnique)
   }
-  
-  
+  ## assert no interactions for response variable
+  if(which == "yvars"){
+    provided_vars$interaction <- FALSE
+  }
 }
 
 
@@ -234,27 +235,58 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
 # asserts call is valid
 .validate_call <- function(call){
   
-  call_default <- .default_call()
   valid_vars <- .receive_validVariables()
-  
-  # changes to default in case
-  for(entry in names(call)){
-    if(.is_equivalent_to_default(entry)){
-      call$entry = call_default$entry
-    }
-  }
   
   ## validate name
   call$name <- .get_outfolder(path_gjamTime_out, call$name)
   
+  ## validate periods
+  # if FALSE, needs to be specified
+  if(isFALSE(call$periods)){stop("Please specify periods")}
+  if(!all(call$periods %in% valid_vars$periods)){
+    stop("Invalid periods specified")
+  }
+  
+  ## validate version
+  # if FALSE, initialize as first element in valid_versions from 
+  if(isFALSE(call$version)){
+    call$version <- valid_vars$versions[1]
+  } else{
+    if(!(all(call$version %in% valid_vars$versions) &&
+         length(call$version) == 1)){
+      stop("Invalid version specified")
+    }
+  }
+  
   ## validate yvars
   call$yvars <- .validate_variables(call$yvars, valid_vars$variables, "yvars")
+  call$yvars$periods = call$periods
+  call$yvars$version = call$version
   
   ## validate xvars
   call$xvars <- .validate_variables(call$xvars, valid_vars$variables, "xvars")
+  call$xvars$periods = call$periods
+  call$xvars$version = call$version
   
-  ## validate 
+  ## validate subset
+  if(!isFALSE(call$subset)){
+    if(!file.exists(file.path(path_masks,call$subset$mask))){
+      stop("Mask for subset not found: ", file.path(path_masks,call$subset$mask))
+    } else {
+      call$subset$doSubset <- TRUE
+    }
+  }
   
+  ## validate subsample
+  if(!isFALSE(call$subsample)){
+    
+  }
+  
+  ## validate model
+  
+  ## validate priorList
+  
+  ## validate modelRunntime
   
 }
 

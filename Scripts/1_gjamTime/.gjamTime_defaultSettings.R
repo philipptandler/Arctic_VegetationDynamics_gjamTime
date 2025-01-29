@@ -79,15 +79,9 @@
   default_vars$x <- FALSE
   default_vars$y <- FALSE
   default_vars$interaction <- FALSE
+  default_vars$periods <- FALSE
+  default_vars$version <- FALSE
   return(default_vars)
-}
-
-.default_subset <- function(){
-  subset <- list(
-    doSubset <- TRUE,
-    mask <- NULL
-  )
-  return(subset)
 }
 
 .default_subsample <- function(){
