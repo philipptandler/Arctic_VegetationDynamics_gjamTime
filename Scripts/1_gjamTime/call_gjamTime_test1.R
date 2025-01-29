@@ -13,14 +13,16 @@ yvars <- list(
 #' y, x can be added predictor variables for longitude and latitude, assuming
 #' the y direction of the raster equals north-south and the x direction equals
 #' west-east
+#' Also, interaction variables can be specified. Either between two variables
+#' (e.g. elev:slope) or as higher order terms (e.g. tass2)
+#' ! Important, all interaction variables must exist as single variables too
 
 xvars <- list(
   topography = c("elev", "slope", "cosasp", "tpi"),
   y = FALSE, # to get latitude
   x = FALSE, # to get longitude
-  climate = c("tasw", "tass"),
-  soil = c("scwd"),
-  interaction = c("elev:slope", "tass:prw", "tass2") 
+  climate = c("prs", "tass"),
+  interaction = c("elev:slope", "tass:prs", "tass2") 
 )
 
 #' what time periods are considered for this model fit 
@@ -63,12 +65,12 @@ model <- list(
 #' For beta and rho, set intercept=list(lo=..., hi=...),
 #' For alpha set either a value (for all interactions)
 #' or a matrix of S x S, where S = the number of variables in yvars above
-priors <- list(rho=list(intercept=list(lo=-2, hi=2),
+priorList <- list(rho=list(intercept=list(lo=-2, hi=2),
                         vals=list(lo=-100, hi=100)),
                alpha=-1)
 
 # set how many iterations MCMC runs, and how many are burned
-model_runntime <- list(
+modelRunntime <- list(
   ng = 100,
   burnin = 50
 )

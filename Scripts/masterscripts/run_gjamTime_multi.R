@@ -12,7 +12,7 @@ if (getwd() != here::here()) {
 
 #' the variable 'call' holds the Script that specifies the input for gjamTime
 # set call script here
-call <- "some/call_script.R"
+call <- "some/call_gjamTime_script.R"
 
 # set replicates for multiple simulations
 n_replicates <- 200

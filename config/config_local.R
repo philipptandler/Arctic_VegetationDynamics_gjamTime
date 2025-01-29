@@ -21,7 +21,10 @@ name_gjamTime_output <- "output.Rdata"
 path_masks <- "data/Masks"
 name_master_mask <- "master_mask.tif"
 
-## analayis ####
+## scripts ####
+path_gjamTime_validVariables <- "config/gjamTime_validVariables.R"
+
+## analysis ####
 # paths
 path_analysis <- "analysis"
 

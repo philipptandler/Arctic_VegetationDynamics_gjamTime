@@ -9,14 +9,16 @@ valid_periods <- c("1984-1990",
                    "2009-2014",
                    "2015-2020")
 
-# name of variables that are constant over all periods
-period_const <- "const"
+# name of period for variables that are constant over all periods
+valid_period_const <- "const"
 
 # var_list captures all variables
 # name is used to acess this variable group in path_gjam_in
 # isDynamic tells if variable changes over time (TRUE) or is constant (FALSE)
+# safe the files as groupname_period_variable_version.tif. E.g.:
+# veg_1984-1990_sh_full.tif, or topo_const_elev_full.tif
 
-var_list <- list(
+valid_variables_list <- list(
   vegetation = list(
     groupname = "veg",
     isDynamic = TRUE,

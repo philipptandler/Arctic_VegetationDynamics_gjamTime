@@ -4,8 +4,14 @@
 #' sizes are small enough !!!!
 #' the variable 'call' holds the Script that specifies the input for gjamTime
 
+## sourcing general scripts ####
+source("config/config_local.R")
+source("scripts/1_gjamTime/.gjamTime_Hfunctions.R")
+
 # set calling script here
 call_scrpt_local <- "some/call_script.R"
+
+
 
 # set wd
 library(here)
@@ -25,7 +31,6 @@ if(!exists("call_scrpt")){
 }
 
 ## initialize and validate call
-source("scripts/1_gjamTime/.gjamTime_Hfunctions.R")
 call <- .initialize_and_validate_call(call_scrpt)
 
 ## prepare geospatial rasters for model
