@@ -4,17 +4,14 @@
 #' sizes are small enough !!!!
 #' the variable 'call' holds the Script that specifies the input for gjamTime
 
+library(here)
 ## sourcing general scripts ####
 source("config/config_local.R")
 source("scripts/1_gjamTime/.gjamTime_Hfunctions.R")
 
 # set calling script here
-call_scrpt_local <- "some/call_script.R"
+call_this_script <- "some/call_script.R"
 
-
-
-# set wd
-library(here)
 # Set working directory only if not already set
 if (getwd() != here::here()) {
   setwd(here::here())
@@ -25,13 +22,19 @@ sysArgs <- commandArgs(trailingOnly = TRUE)
 
 if(length(sysArgs) > 0){
   call_scrpt <- sysArgs[1]
+  if(length(sysArgs) > 1){
+    task_id <- as.integer(sysArgs[2])
+  }
 }
 if(!exists("call_scrpt")){
-  call_scrpt <- call_scrpt_local
+  call_scrpt <- call_this_script
+}
+if(!exists("task_id")){
+  task_id <- .default_call()$task_id
 }
 
 ## initialize and validate call
-call <- .initialize_and_validate_call(call_scrpt)
+call <- .initialize_and_validate_call(call_scrpt, task_id)
 
 ## prepare geospatial rasters for model
 

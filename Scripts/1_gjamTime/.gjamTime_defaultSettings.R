@@ -1,6 +1,9 @@
 .default_call <- function(){
   ## these are the default parameters
   def_name <- "gjamTime_model"
+  def_continue <- FALSE
+  def_outfolder <- FALSE
+  def_task_id <- 1
   
   def_yvars <- FALSE 
   def_xvars <- FALSE
@@ -55,6 +58,9 @@
   
   default <- list(
     name = def_name,
+    continue = def_continue,
+    outfolder = def_outfolder,
+    task_id = def_task_id,
     yvars = def_yvars,
     xvars = def_xvars,
     periods = def_periods,
@@ -88,7 +94,7 @@
   subsample <- list(
     doSubsample <- TRUE,
     mode <- "random",
-    parameter <- 100, 
+    size <- 100, 
     seed <- 1
   )
   return(subsample)

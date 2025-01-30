@@ -4,6 +4,8 @@
 
 name <- "test1"
 
+# continue <- "e4ca783bd375"
+
 # use the same names as in the list "var_list" in config/set_gjam_variables.R
 yvars <- list(
   vegetation = c("sh", "cf", "hb", "lc")
@@ -47,7 +49,7 @@ subsample <- list(
   doSubsample <- TRUE, #recommended TRUE: FALSE might crash due to memory overflow
   mode <- "regular", # or "random"
   # if 'regular' distance between grid points, if 'ramdom' number of subsamples
-  parameter <- 1000, 
+  size <- 1000, 
   seed <- 1 # sets a first seed
 )
 
