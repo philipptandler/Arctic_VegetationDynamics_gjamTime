@@ -70,7 +70,7 @@ model <- list(
 priorSettings <- list(
   rho=list(
     variables=list(
-      lo=-100,
+      lo=-1234,
       hi=100)),
   alpha=-1)
 

@@ -271,11 +271,25 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
 }
 
 
-.validate_priorSettings <- function(given_priors){
-  default_priors <- .default_call()$priorSettings
-  priors_build <- list()
-  
+.validate_iteratively_numeric <- function(given_list, default_list) {
+  # Iterate through each element in the default_list
+  for (name in names(default_list)) {
+    # If there is a corresponding entry in given_list
+    if (!is.null(given_list[[name]])) {
+      # If the value in given_list is a number (and not a vector)
+      if (is.numeric(given_list[[name]]) && length(given_list[[name]]) == 1) {
+        default_list[[name]] <- given_list[[name]]  # Replace with given value
+      } else if (is.list(default_list[[name]]) && is.list(given_list[[name]])) {
+        # If both entries are lists, call the function recursively
+        default_list[[name]] <- .replace_iteratively_numeric(given_list[[name]], default_list[[name]])
+      }
+    }
+    # If no entry in given_list, keep the default value
+  }
+  return(default_list)
 }
+
+
 
 
 #' each and only the entry from default in .gjamTime_defaultSettings exists in
@@ -330,15 +344,18 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
   call$model <- .validate_model(call$model)
   
   ## validate priorSettings
-  
-  call$priorSettings <- .validate_priorSettings(call$priorSettings)
+  call$priorSettings <- .validate_iteratively_numeric(call$priorSettings,
+                                                      .default_call()$priorSettings)
   
   ## validate modelRunntime
-  
-  #TODO
+  call$modelRunntime <- .validate_iteratively_numeric(call$modelRunntime,
+                                                      .default_call()$modelRunntime)
   
   ## validate name and outfolder
   call <- .prepare_outfolder(call, call_scrpt)
+  
+  ## return
+  call
 }
 
 
@@ -351,5 +368,6 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
   ## validate call
   call <- .validate_call(call, call_scrpt)
   
+  ## return
   call
 }
