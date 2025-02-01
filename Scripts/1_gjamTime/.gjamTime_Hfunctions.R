@@ -256,15 +256,32 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
   call
 }
 
+.validate_model <- function(given_model){
+  default_model <- .default_call()$model
+  model_build <- list()
+  for(entry in names(default_model)){
+    if(exists(entry, where = given_model) &&
+       (isTRUE(given_model[[entry]]) || isFALSE(given_model[[entry]]))){
+      model_build[[entry]] <- given_model[[entry]]
+    } else {
+      model_build[[entry]] <- default_model[[entry]]
+    }
+  }
+  model_build
+}
+
+
+.validate_priorSettings <- function(given_priors){
+  default_priors <- .default_call()$priorSettings
+  priors_build <- list()
+  
+}
 
 
 #' each and only the entry from default in .gjamTime_defaultSettings exists in
 #' object 'call'
 # asserts call is valid
 .validate_call <- function(call, call_scrpt){
-  
-  ## validate name and outfolder
-  call <- .prepare_outfolder(call, call_scrpt)
   
   ## reference for validation  
   valid_vars <- .receive_validVariables()
@@ -310,16 +327,18 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
   call <- .validate_subsample(call)
   
   ## validate model
-  
-  #TODO
+  call$model <- .validate_model(call$model)
   
   ## validate priorSettings
   
-  #TODO
+  call$priorSettings <- .validate_priorSettings(call$priorSettings)
   
   ## validate modelRunntime
   
   #TODO
+  
+  ## validate name and outfolder
+  call <- .prepare_outfolder(call, call_scrpt)
 }
 
 

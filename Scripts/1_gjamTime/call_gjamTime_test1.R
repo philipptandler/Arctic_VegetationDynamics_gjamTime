@@ -69,9 +69,6 @@ model <- list(
 #' or a matrix of S x S, where S = the number of variables in yvars above
 priorSettings <- list(
   rho=list(
-    intercept=list(
-      lo=-2, hi=2
-      ),
     variables=list(
       lo=-100,
       hi=100)),
