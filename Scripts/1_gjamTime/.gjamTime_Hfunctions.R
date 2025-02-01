@@ -281,7 +281,7 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
         default_list[[name]] <- given_list[[name]]  # Replace with given value
       } else if (is.list(default_list[[name]]) && is.list(given_list[[name]])) {
         # If both entries are lists, call the function recursively
-        default_list[[name]] <- .replace_iteratively_numeric(given_list[[name]], default_list[[name]])
+        default_list[[name]] <- .validate_iteratively_numeric(given_list[[name]], default_list[[name]])
       }
     }
     # If no entry in given_list, keep the default value
