@@ -32,13 +32,13 @@ periods <- c("1984-1990",
              "1991-1996")
 
 # what version of the data is used
-version = "full"
+version <- "full"
 
 # if a specific area within the study area is selected,
 # if TRUE, specify what mask should be used to subset in path_masks
 subset <- list(
-  doSubset <- TRUE, #if TRUE, set mask for subset
-  mask <- "mask_test1.tif"
+  doSubset = TRUE, #if TRUE, set mask for subset
+  mask = "mask_test1.tif"
 )
 
 #' Use a subsample within the study area to fit the model, highly recommended! 
@@ -46,11 +46,11 @@ subset <- list(
 #' if mode = "regular", 'parameter' sets distance of grid
 #' if mode = "random", parameter sets sample size
 subsample <- list(
-  doSubsample <- TRUE, #recommended TRUE: FALSE might crash due to memory overflow
-  mode <- "regular", # or "random"
+  doSubsample = TRUE, #recommended TRUE: FALSE might crash due to memory overflow
+  mode = "regular", # or "random"
   # if 'regular' distance between grid points, if 'ramdom' number of subsamples
-  size <- 1000, 
-  seed <- 1 # sets a first seed
+  size = 2, 
+  seed = 1 # sets a first seed
 )
 
 #' what model to choose, see gjamTime vignette
@@ -58,18 +58,24 @@ subsample <- list(
 #' termR = density independent growth
 #' termA = density dependent growth
 model <- list(
-  termB <- FALSE,
-  termR <- TRUE,
-  termA <- TRUE
+  termB = FALSE,
+  termR = TRUE,
+  termA = TRUE
 )
 
 #' here set the list of priors for beta, rho, alpha.
 #' For beta and rho, set intercept=list(lo=..., hi=...),
 #' For alpha set either a value (for all interactions)
 #' or a matrix of S x S, where S = the number of variables in yvars above
-priorList <- list(rho=list(intercept=list(lo=-2, hi=2),
-                        vals=list(lo=-100, hi=100)),
-               alpha=-1)
+priorSettings <- list(
+  rho=list(
+    intercept=list(
+      lo=-2, hi=2
+      ),
+    variables=list(
+      lo=-100,
+      hi=100)),
+  alpha=-1)
 
 # set how many iterations MCMC runs, and how many are burned
 modelRunntime <- list(

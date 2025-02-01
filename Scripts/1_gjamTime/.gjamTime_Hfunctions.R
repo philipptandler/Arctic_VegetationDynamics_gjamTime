@@ -6,8 +6,8 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
 
 
 .is_equivalent_to_default <- function(entry){
-  return(is.null(entry) || is.na(entry) || isFALSE(entry) ||
-           length(entry) == 0 || entry == 0 || entry == "")
+  return(identical(entry, NULL) || identical(entry, NA) || isFALSE(entry) ||
+           length(entry) == 0 || identical(entry,0) || identical(entry,""))
 }
 
 
@@ -26,7 +26,13 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
 
 # returns a list of the recieved called from call_scrpt
 .receive_call <- function(call_scrpt){
-  # TODO source script and return as list
+  if(!file.exists(call_scrpt)){
+    stop("Call Script not found")
+  }
+  call_env <- new.env()
+  # Source the script inside this environment
+  source(call_scrpt, local = call_env)
+  as.list(call_env)
 }
 
 ## initializes call from calling script
@@ -41,13 +47,12 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
        !.is_equivalent_to_default(call_received[[entry]])){
       call_build[[entry]] <- call_received[[entry]]
       # if not available, fill default entry
-    } 
-    else {
+    } else {
       call_build[[entry]] <- call_default[[entry]]
     }
   }
   call_build$task_id <- task_id
-  return(call_build)
+  call_build
 }
 
 # returns a list of the valid variables in path_gjamTime_mastervariables
@@ -59,7 +64,7 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
     variables = valid_variables_list,
     versions = valid_versions
   )
-  return(valid_vars)
+  valid_vars
 }
 
 ## for initializing folder
@@ -90,7 +95,7 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
   
   # Filter directories that match the pattern
   matching_dirs <- grep(pattern, subdirs, value = TRUE)
-  for (subdir in matching_dirs) {
+  for (subdir in rev(matching_dirs)) {
     # Path to .hash_id.txt in each subdirectory
     hash_file <- file.path(subdir, ".hash_id.txt")
 
@@ -137,8 +142,7 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
   if(isFALSE(call$continue)){
     if(task_id == .default_call()$task_id){
       outfolder <- .initialize_new_outfolder(path_gjamTime_out, basename, call_script)
-    }
-    else {
+    } else {
       hash_id <- .get_hash_id(call_script) # unique string calling script (length 12)
       outfolder <- .find_continuing_outfolder(path_gjamTime_out, 
                                               name = basename, 
@@ -148,12 +152,10 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
         call$task_id <- .default_call()$task_id
       }
     }
-  }
-  else {
+  } else {
     if(dir.exists(file.path(path_gjamTime_out, call$continue))){
       outfolder <- file.path(path_gjamTime_out, call$continue)
-    }
-    else{
+    } else {
       outfolder <- .find_continuing_outfolder(path_gjamTime_out, 
                                               name = basename, 
                                               hash = call$continue)
@@ -164,7 +166,7 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
     call$task_id <- .update_continuing_task_id(outfolder)
   }
   call$outfolder <- outfolder
-  return(call)
+  call
 }
 
 
@@ -191,16 +193,14 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
         }
         varVecUnique <- append(varVecUnique, provided_vars[[entry]])
       # if x,y
-      }
-      else {
+      } else {
         if(entry == "x" || entry == "y"){
           if(isTRUE(provided_vars[[entry]])){provided_vars[[entry]] <- TRUE}
           else {provided_vars[[entry]] <- FALSE}
         }
       }
     # set default  
-    } 
-    else {
+    } else {
       provided_vars[[entry]] <- vars_default[[entry]]
     }
   }
@@ -216,45 +216,44 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
   if(which == "yvars"){
     provided_vars$interaction <- FALSE
   }
+  provided_vars
 }
 
 .validate_subsample <- function(call){
   if(isFALSE(call$subsample)){
     warning("No subsampling might require more memory than available")
-  }
+  } 
   # build subsample from default and overwrite existing entries
-  else{
-    build_subsample <- .default_subsample()
-    for(entry in names(build_subsample)){
-      if(exists(entry, where = call$subsample) &&
-         !.is_equivalent_to_default(build_subsample[[entry]])){
-        build_subsample[[entry]] <- call$subsample[[entry]]
-      }
-    }
-    call$subsample <- build_subsample
-    # assertions
-    all$subsample$doSubsample <- TRUE
-    call$subsample$size <- as.integer(call$subsample$size)
-    call$subsample$seed <- as.integer(call$subsample$seed)
-    if(call$subsample$size <= 1){stop("Invalid parameter in subsample")}
-    if(call$subsample$mode != "regular" && call$subsample$mode != "random"){
-      stop("Invalid mode in subsample$mode")
-    }
-    # build subsampling
-    if(call$subsample$mode == "regular"){
-      max_samples <- call$subsample$size**2
-      set.seed(call$subsample$seed)
-      random_numbers <- sample(0:(max_samples-1))
-      new_seed <- call$task_id %% max_samples
-      call$subsample$seed <- random_numbers[new_seed + 1]
-      set.seed(call$subsample$seed)
-    }
-    if(call$subsample$mode == "random"){
-      call$subsample$seed <- call$subsample$seed + call$task_id
-      set.seed(call$subsample$seed)
+  build_subsample <- .default_subsample()
+  for(entry in names(build_subsample)){
+    if(exists(entry, where = call$subsample) &&
+       !.is_equivalent_to_default(build_subsample[[entry]])){
+      build_subsample[[entry]] <- call$subsample[[entry]]
     }
   }
-  return(call)
+  call$subsample <- build_subsample
+  # assertions
+  call$subsample$doSubsample <- TRUE
+  call$subsample$size <- as.integer(call$subsample$size)
+  call$subsample$seed <- as.integer(call$subsample$seed)
+  if(call$subsample$size <= 1){stop("Invalid parameter in subsample")}
+  if(call$subsample$mode != "regular" && call$subsample$mode != "random"){
+    stop("Invalid mode in subsample$mode")
+  }
+  # build subsampling
+  if(call$subsample$mode == "regular"){
+    max_samples <- call$subsample$size**2
+    set.seed(call$subsample$seed)
+    random_numbers <- sample(0:(max_samples-1))
+    new_seed <- call$task_id %% max_samples
+    call$subsample$seed <- random_numbers[new_seed + 1]
+    set.seed(call$subsample$seed)
+  }
+  if(call$subsample$mode == "random"){
+    call$subsample$seed <- call$subsample$seed + call$task_id
+    set.seed(call$subsample$seed)
+  }
+  call
 }
 
 
@@ -262,10 +261,10 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
 #' each and only the entry from default in .gjamTime_defaultSettings exists in
 #' object 'call'
 # asserts call is valid
-.validate_call <- function(call, call_script){
+.validate_call <- function(call, call_scrpt){
   
   ## validate name and outfolder
-  call <- .prepare_outfolder(call, call_script)
+  call <- .prepare_outfolder(call, call_scrpt)
   
   ## reference for validation  
   valid_vars <- .receive_validVariables()
@@ -281,8 +280,7 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
   # if FALSE, initialize as first element in valid_versions from 
   if(isFALSE(call$version)){
     call$version <- valid_vars$versions[1]
-  } 
-  else{
+  } else {
     if(!(all(call$version %in% valid_vars$versions) &&
          length(call$version) == 1)){
       stop("Invalid version specified")
@@ -303,8 +301,7 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
   if(!isFALSE(call$subset)){
     if(!file.exists(file.path(path_masks,call$subset$mask))){
       stop("Mask for subset not found: ", file.path(path_masks,call$subset$mask))
-    } 
-    else {
+    } else {
       call$subset$doSubset <- TRUE
     }
   }
@@ -316,7 +313,7 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
   
   #TODO
   
-  ## validate priorList
+  ## validate priorSettings
   
   #TODO
   
@@ -327,14 +324,13 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
 
 
 
-.initialize_and_validate_call <- function(call_script, task_id){
+.initialize_and_validate_call <- function(call_scrpt, task_id){
   
   ## initialize call
-  call <- .initialize_call(call_script, task_id)
+  call <- .initialize_call(call_scrpt, task_id)
   
   ## validate call
-  call <- .validate_call(call, call_script)
+  call <- .validate_call(call, call_scrpt)
   
-  return(call)
-
+  call
 }

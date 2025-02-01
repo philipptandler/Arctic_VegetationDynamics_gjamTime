@@ -45,7 +45,7 @@
     alphaSign = -1
   )
 
-  def_priorList <- list(
+  def_priorSettings <- list(
     beta = def_betaPrior,
     rho = def_rhoPrior,
     alpha = def_alphaPrior
@@ -68,10 +68,10 @@
     subset = def_subset,
     subsample = def_subsample,
     model = def_model,
-    priorList = def_priorList,
+    priorSettings = def_priorSettings,
     modelRunntime = def_modelRunntime
   )
-  return(default)
+  default
 }
 
 # depends on function in .gjamTime_Hfunctions
@@ -87,15 +87,15 @@
   default_vars$interaction <- FALSE
   default_vars$periods <- FALSE
   default_vars$version <- FALSE
-  return(default_vars)
+  default_vars
 }
 
 .default_subsample <- function(){
   subsample <- list(
-    doSubsample <- TRUE,
-    mode <- "random",
-    size <- 100, 
-    seed <- 1
+    doSubsample = TRUE,
+    mode = "random",
+    size = 100, 
+    seed = 1
   )
-  return(subsample)
+  subsample
 }

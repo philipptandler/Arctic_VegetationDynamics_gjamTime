@@ -10,7 +10,7 @@ source("config/config_local.R")
 source("scripts/1_gjamTime/.gjamTime_Hfunctions.R")
 
 # set calling script here
-call_this_script <- "some/call_script.R"
+call_this_script <- "scripts/1_gjamTime/call_gjamTime_test1.R"
 
 # Set working directory only if not already set
 if (getwd() != here::here()) {
