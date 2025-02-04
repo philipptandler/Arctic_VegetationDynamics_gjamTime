@@ -7,7 +7,7 @@
   
   def_yvars <- FALSE 
   def_xvars <- FALSE
-  def_periods <- FALSE
+  def_times <- FALSE
   def_version <- .receive_validVariables()$versions[1]
   
   def_subset <- FALSE
@@ -63,7 +63,7 @@
     task_id = def_task_id,
     yvars = def_yvars,
     xvars = def_xvars,
-    periods = def_periods,
+    times = def_times,
     version = def_version,
     subset = def_subset,
     subsample = def_subsample,
@@ -85,7 +85,7 @@
   default_vars$x <- FALSE
   default_vars$y <- FALSE
   default_vars$interaction <- FALSE
-  default_vars$periods <- FALSE
+  default_vars$times <- FALSE
   default_vars$version <- FALSE
   default_vars
 }

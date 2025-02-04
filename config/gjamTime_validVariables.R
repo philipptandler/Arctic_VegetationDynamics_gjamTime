@@ -2,20 +2,20 @@
 #' will look in path_gjam_in for those variables
 
 # periods captures the names of the observed periods in order
-valid_periods <- c("1984-1990",
-                   "1991-1996",
-                   "1997-2002",
-                   "2003-2008",
-                   "2009-2014",
-                   "2015-2020")
+valid_times <- c("1984-1990",
+                 "1991-1996",
+                 "1997-2002",
+                 "2003-2008",
+                 "2009-2014",
+                 "2015-2020")
 
 # name of period for variables that are constant over all periods
-valid_period_const <- "const"
+valid_time_const <- "const"
 
 # var_list captures all variables
 # name is used to acess this variable group in path_gjam_in
 # isDynamic tells if variable changes over time (TRUE) or is constant (FALSE)
-# safe the files as groupname_period_variable_version.tif. E.g.:
+# safe the files as groupname_time_variable_version.tif. E.g.:
 # veg_1984-1990_sh_full.tif, or topo_const_elev_full.tif
 
 valid_variables_list <- list(

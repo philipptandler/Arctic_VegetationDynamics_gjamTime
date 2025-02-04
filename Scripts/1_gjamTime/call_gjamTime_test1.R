@@ -28,8 +28,8 @@ xvars <- list(
 )
 
 #' what time periods are considered for this model fit 
-periods <- c("1984-1990",
-             "1991-1996")
+times <- c("1984-1990",
+           "1991-1996")
 
 # what version of the data is used
 version <- "full"

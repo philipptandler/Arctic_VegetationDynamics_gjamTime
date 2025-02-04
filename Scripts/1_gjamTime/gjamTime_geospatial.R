@@ -11,13 +11,13 @@ gjamTime_geospatial <- function(call_scrpt, task_id){
   call <- .prepare_geodata(call)
   
   ## load predictors (xdata) as dataframe
-  call <- .load_predictors(call)
+  call$xdata <- .load_predictors(call)
   
   ## load response (ydata) as dataframe
-  call <- .load_response(call)
+  call$ydata <- .load_response(call)
   
   ## fit gjamTime
-  call <- .fit_gjamTime()
+  call <- .fit_gjamTime(call)
   
   ## done
   return(call)

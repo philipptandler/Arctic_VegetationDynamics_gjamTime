@@ -10,6 +10,7 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
 
 ################################################################################
 ## initialize and validate call ####
+################################################################################
 
 
 .is_equivalent_to_default <- function(entry){
@@ -66,8 +67,8 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
 .receive_validVariables <- function(){
   source(path_gjamTime_validVariables)
   valid_vars <- list(
-    periods = valid_periods,
-    period_const = valid_period_const,
+    times = valid_times,
+    time_const = valid_time_const,
     variables = valid_variables_list,
     versions = valid_versions
   )
@@ -307,11 +308,11 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
   ## reference for validation  
   valid_vars <- .receive_validVariables()
   
-  ## validate periods
+  ## validate times
   # if FALSE, needs to be specified
-  if(isFALSE(call$periods)){stop("Please specify periods")}
-  if(!all(call$periods %in% valid_vars$periods)){
-    stop("Invalid periods specified")
+  if(isFALSE(call$times)){stop("Please specify times")}
+  if(!all(call$times %in% valid_vars$times)){
+    stop("Invalid times specified")
   }
   
   ## validate version
@@ -327,12 +328,12 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
   
   ## validate yvars
   call$yvars <- .validate_variables(call$yvars, valid_vars$variables, "yvars")
-  call$yvars$periods = call$periods
+  call$yvars$times = call$times
   call$yvars$version = call$version
   
   ## validate xvars
   call$xvars <- .validate_variables(call$xvars, valid_vars$variables, "xvars")
-  call$xvars$periods = call$periods
+  call$xvars$times = call$times
   call$xvars$version = call$version
   
   ## validate subset
@@ -381,6 +382,7 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
 
 ################################################################################
 ## prepare Geodata ####
+################################################################################
 
 
 # make sample mask
@@ -391,7 +393,7 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
   
   ## subsample
   if(!isFALSE(call$subset)){
-    subsetmask <- rast(call$subset$mask)
+    subsetmask <- rast(file.path(path_masks,call$subset$mask))
     if(ext(subsetmask) != ext(mastermask)){
       mastermask <- crop(mastermask, subsetmask)
     }
@@ -434,57 +436,67 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
   return(mastermask)
 }
 
-.get_filenames <- function(period, var_list){
+.get_filenames <- function(time, var_list){
   vers <- var_list$version
   file_vec <- c()
   var_vec <- c()
-  
-  potential_variables <- .receive_validVariables()$variables
-  for(entry in names(potential_variables)){
-    groupname <- potential_variables[[entry]]$groupname
-    if(potential_variables[[entry]]$isDynamic){
-      period_name <- period
-    } else {period_name <- valid_period_const}
-    for(var in var_list[[entry]]){
-      filename <- paste(groupname, period_name, var, vers, sep = "_")
-      filename <- paste0(filename, ".tif")
-      file_vec <- append(file_vec, filename)
-      var_vec <- append(var_vec, var)
-    }
+  valid_variables <- .receive_validVariables()
+  # for all potential variables
+  for(entry in names(valid_variables$variables)){
+    # for the non FALSE variable groups
+    if(!isFALSE(var_list[[entry]])){
+      groupname <- valid_variables$variables[[entry]]$groupname
+      
+      if(valid_variables$variables[[entry]]$isDynamic){time_name <- time}
+      else {time_name <- valid_variables$time_const}
+      
+      for(var in var_list[[entry]]){
+        filename <- paste(groupname, time_name, var, vers, sep = "_")
+        filename <- paste0(filename, ".tif")
+        file_vec <- append(file_vec, filename)
+        var_vec <- append(var_vec, var)
+      }
+    } #end if
   }
-  f_list <- list("files" = file_vec,
-                 "variables" = var_vec)
+  f_list <- list(
+    files = file_vec,
+    variables = var_vec
+    )
   return(f_list)
 }
 
 .sample_geodata <- function(var_list, which, samplemask){
-  n_time <- length(var_list$periods)
-  for(per in 1:n_time){
+  n_time <- length(var_list$times)
+  for(tm in 1:n_time){
     
     # get files
-    file_var_list <- .get_filenames(var_list$periods[per], var_list)
-    files_this_period <- file_var_list$files
-    vars_this_period <- file_var_list$variables
+    file_var_list <- .get_filenames(var_list$times[tm], var_list)
+    files_this_time <- file_var_list$files
+    vars_this_time <- file_var_list$variables
     
     #file paths
-    file_paths_in <- file.path(path_gjamTime_in, files_this_period)
-    file_paths_tmp <- file.path(path_gjamTime_tmp, files_this_period)
+    file_paths_in <- file.path(path_gjamTime_in, files_this_time)
+    file_paths_tmp <- file.path(path_gjamTime_tmp, files_this_time)
     # load, mask and save each independently
-    for(i in 1:length(files_this_period)){
+    for(i in 1:length(files_this_time)){
       if(!file.exists(file_paths_tmp[i])){
-        #load
+        # load
         raster <- rast(file_paths_in[i])
-        names(raster) <- vars_this_period[i]
-        #mask
+        names(raster) <- vars_this_time[i]
+        # crop if necessary
+        if(ext(raster) != ext(samplemask)){
+          raster <- crop(raster, samplemask)
+        }
+        # mask
         raster <- mask(x=raster,
                        mask = samplemask,
                        maskvalues=0, updatevalue=NA)
-        #save
+        # save
         writeRaster(raster,
                     file_paths_tmp[i])
       } # if not exists (excludes constant variables)
     } # for loop variables
-  } # for loop period
+  } # for loop time
 }
 
 # prepare datasets
@@ -516,28 +528,43 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
 
 ################################################################################
 ## load geospatial rasters as dataframes ####
+################################################################################
+
+
+# Function to return the elements of each interaction. 
+.process_interaction <- function(x) {
+  if (grepl("^[A-Za-z]+\\d+$", x)) {
+    # Handles cases like "A2", "A3"
+    var <- gsub("\\d+", "", x)                # Extract "A"
+    count <- as.numeric(gsub("\\D+", "", x))  # Extract "2" or "3"
+    rep(var, count)                           # Repeat "A" accordingly
+  } else {
+    # Handles cases like "A:B" or "A:C:E"
+    unlist(strsplit(x, ":"))                  # Split by ":"
+  }
+}
 
 .load_geodata_as_dataframe <- function(var_list,
                                        path_files,
                                        which,
                                        dropgroup = TRUE,
-                                       dropperiod = TRUE){
+                                       droptime = TRUE){
   # list for dataframes
   data_list <- list()
-  n_timesteps <- length(var_list$periods)
+  n_timesteps <- length(var_list$times)
   
-  # for all periods, load the raster as dataframes
-  for(per in 1:n_timesteps){
-    file_var_list <- .get_filenames(var_list$periods[per], var_list)
+  # for all times, load the raster as dataframes
+  for(tm in 1:n_timesteps){
+    file_var_list <- .get_filenames(var_list$times[tm], var_list)
     # get files
-    files_this_period <- file_var_list$files
-    file_paths_full <- file.path(path_files, files_this_period)
-    # make a raster with all variables for this period
-    raster_this_period <- rast(file_paths_full)
-    names(raster_this_period) <- file_var_list$variables
+    files_this_time <- file_var_list$files
+    file_paths_full <- file.path(path_files, files_this_time)
+    # make a raster with all variables for this time
+    raster_this_time <- rast(file_paths_full)
+    names(raster_this_time) <- file_var_list$variables
     # make dataframe
     getxy <- (var_list$x | var_list$y) #whether to include latitude or longitude
-    df <- as.data.frame(raster_this_period, xy = getxy,
+    df <- as.data.frame(raster_this_time, xy = getxy,
                         cells = TRUE, na.rm = NA)
     # Rename x and y to lat and lon
     colnames(df)[colnames(df) == "x"] <- "lon"
@@ -547,79 +574,27 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
       if(!var_list$y){df <- df %>% dplyr::select(-lat)}
     }
     # add interactions
-    for(pair in var_list$interaction){
-      vars <- unlist(strsplit(pair, ":"))
-      df[[pair]] <- df[[vars[1]]]*df[[vars[2]]]
+    if(!isFALSE(var_list$interaction)){
+      for(entry in var_list$interaction){
+        vars <- .process_interaction(entry)
+        df[[entry]] <- Reduce(`*`, lapply(vars, function(v) df[[v]]))
+      }
     }
     # add time
-    df$period <- per
-    data_list[[per]] <- df
+    df$time <- tm
+    data_list[[tm]] <- df
   }
-  
-  # >>>>>>>>>>>> (old)
-  var_list <- NULL
-  if(which == "xdata" || which == "ydata"){
-    if(which == "xdata"){var_list = call$xvars}
-    if(which == "ydata"){var_list = call$yvars}
-  }else{stop("invalid argument: which, should be either 'xdata' or 'ydata' \n")}
-  
-  # initialize list of dataframes
-  data_list <- list()
-  path_files <- path_vars
-  if(call$subset){path_files = path_tmp}
-  # iterate over all periods
-  n_time <- length(var_list$periods)
-  for(per in 1:n_time){
-    cat("    loading period", var_list$periods[per])
-    # get files and variables in same order
-    file_var_list <- get_filenames(var_list$periods[per], var_list)
-    # get files
-    files_this_period <- file_var_list$files
-    # make raster
-    file_paths_full <- file.path(path_files, files_this_period)
-    raster_this_period <- rast(file_paths_full)
-    names(raster_this_period) <- file_var_list$variables
-    
-    # make dataframe
-    getxy <- (var_list$x | var_list$y)
-    cat(", converting to dataframe...")
-    df <- as.data.frame(raster_this_period, xy = getxy,
-                        cells = TRUE, na.rm = NA)
-    cat(" done. \n")
-    # Rename x and y to lat and lon
-    colnames(df)[colnames(df) == "x"] <- "lon"
-    colnames(df)[colnames(df) == "y"] <- "lat"
-    if(getxy){
-      if(!var_list$x){df <- df %>% dplyr::select(-lon)}
-      if(!var_list$y){df <- df %>% dplyr::select(-lat)}
-    }
-    
-    # add interactions
-    for(pair in var_list$interaction){
-      vars <- unlist(strsplit(pair, ":"))
-      df[[pair]] <- df[[vars[1]]]*df[[vars[2]]]
-    }
-    
-    # add time
-    df$period <- per
-    data_list[[per]] <- df
-    
-  }
-  #conbine the dataframes
+  # combine the dataframes
   combined_df <- do.call(rbind, data_list)
   # order
   ordered_df <- combined_df %>%
-    dplyr::arrange(cell, period)
-  
+    dplyr::arrange(cell, time)
   # Get the current column names
   cols <- colnames(ordered_df)
-  
   # Define the new order of columns
-  new_order <- c("cell", "period", cols[!cols %in% c("cell", "period")])
-  
+  new_order <- c("cell", "time", cols[!cols %in% c("cell", "time")])
   # Reorder the columns
   ordered_df <- ordered_df[, new_order]
-  
   # Set row names starting from 1
   row.names(ordered_df) <- NULL
   
@@ -627,30 +602,34 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
   if (dropgroup) {
     ordered_df <- subset(ordered_df, select = -c(cell))
   }
-  if (dropperiod) {
-    ordered_df <- subset(ordered_df, select = -c(period))
+  if (droptime) {
+    ordered_df <- subset(ordered_df, select = -c(time))
   }
-  cat("    returning dataframe of nrows =", nrow(ordered_df), ", ncols =", ncol(ordered_df), "\n")
   
-  # returning dataframe
   return(ordered_df)
-  
-  
-  # (old) <<<<<<<<<<<
-  
 }
 
 
 .load_predictors <- function(call){
   df <- .load_geodata_as_dataframe(call$xvars,
                                    call$gjamTime_data_in, which = "xdata",
-                                   dropgroup = FALSE, dropperiod = FALSE)
+                                   dropgroup = FALSE, droptime = FALSE)
   return(df)
 }
 
 .load_response <- function(call){
   df <- .load_geodata_as_dataframe(call$yvars, 
                                    call$gjamTime_data_in, which = "ydata",
-                                   dropgroup = TRUE, dropperiod = TRUE)
+                                   dropgroup = TRUE, droptime = TRUE)
   return(df)
+}
+
+
+################################################################################
+## fit gjamTime ####
+################################################################################
+
+
+.fit_gjamTime <- function(call){
+  
 }
