@@ -1,8 +1,13 @@
 library(dplyr)
 library(digest)
+library(terra)
 
 source("scripts/__helper/.get_outfolder.R")
 source("scripts/1_gjamTime/.gjamTime_defaultSettings.R") 
+
+
+################################################################################
+## initialize and validate call ####
 
 
 .is_equivalent_to_default <- function(entry){
@@ -370,4 +375,137 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
   
   ## return
   call
+}
+
+################################################################################
+## prepare Geodata ####
+
+
+# make sample mask
+.make_samplemask <- function(call){
+  
+  ## load master_mask 
+  mastermask <- rast(file.path(path_masks, name_master_mask))
+  
+  ## subsample
+  if(!isFALSE(call$subset)){
+    subsetmask <- rast(call$subset$mask)
+    if(ext(subsetmask) != ext(mastermask)){
+      mastermask <- crop(mastermask, subsetmask)
+    }
+    mastermask <- mastermask & subsetmask
+  }
+  ## subset
+  if(!isFALSE(call$subsample)){
+    sample_size <- call$subsample$size
+    samplemask <- mastermask
+    samplemask[] <- FALSE
+    if(call$subsample$mode == "random"){
+      # init sample
+      init_sample_ind <- spatSample(mastermask, size = sample_size, 
+                                    method = "random", cells = TRUE)
+      ratio <- sum(init_sample_ind[,2] == 1)/sample_size
+      if(sum(init_sample_ind[,2] == 1) == 0){ ratio <- 1/sample_size}
+      # true sample corrected for NA
+      true_sample_ind <- spatSample(mastermask, size = as.integer(sample_size/ratio), 
+                                    method = "random", cells = TRUE)
+      samplemask[true_sample_ind] <- TRUE
+    }
+    if(call$subsample$mode == "regular"){
+      seedI <- as.integer(floor(call$subsample$seed/sample_size))
+      seedJ <- as.integer(call$subsample$seed %% sample_size)
+      fact <- sample_size
+      
+      # Get the dimensions and seed of the raster
+      dims <- dim(samplemask)
+      
+      # Create indices for the reduced sampling
+      reduce_i <- seq(seedI+1, dims[1], by = fact)
+      reduce_j <- seq(seedJ+1, dims[2], by = fact)
+      
+      # Create a matrix of indices to set to TRUE
+      indices <- expand.grid(reduce_i, reduce_j)
+      samplemask[cbind(indices$Var1, indices$Var2)] <- TRUE
+    }
+    mastermask <- mastermask & samplemask
+  }
+  return(mastermask)
+}
+
+.get_filenames <- function(period, var_list){
+  vers <- var_list$version
+  file_vec <- c()
+  var_vec <- c()
+  
+  potential_variables <- .receive_validVariables()$variables
+  for(entry in names(potential_variables)){
+    groupname <- potential_variables[[entry]]$groupname
+    if(potential_variables[[entry]]$isDynamic){
+      period_name <- period
+    } else {period_name <- valid_period_const}
+    for(var in var_list[[entry]]){
+      filename <- paste(groupname, period_name, var, vers, sep = "_")
+      filename <- paste0(filename, ".tif")
+      file_vec <- append(file_vec, filename)
+      var_vec <- append(var_vec, var)
+    }
+  }
+  f_list <- list("files" = file_vec,
+                 "variables" = var_vec)
+  return(f_list)
+}
+
+.sample_geodata <- function(var_list, which, samplemask){
+  n_time <- length(var_list$periods)
+  for(per in 1:n_time){
+    
+    # get files
+    file_var_list <- .get_filenames(var_list$periods[per], var_list)
+    files_this_period <- file_var_list$files
+    vars_this_period <- file_var_list$variables
+    
+    #file paths
+    file_paths_in <- file.path(path_gjamTime_in, files_this_period)
+    file_paths_tmp <- file.path(path_gjamTime_tmp, files_this_period)
+    # load, mask and save each independently
+    for(i in 1:length(files_this_period)){
+      if(!file.exists(file_paths_tmp[i])){
+        #load
+        raster <- rast(file_paths_in[i])
+        names(raster) <- vars_this_period[i]
+        #mask
+        raster <- mask(x=raster,
+                       mask = samplemask,
+                       maskvalues=0, updatevalue=NA)
+        #save
+        writeRaster(raster,
+                    file_paths_tmp[i])
+      } # if not exists (excludes constant variables)
+    } # for loop variables
+  } # for loop period
+}
+
+# prepare datasets
+.prepare_geodata <- function(call){
+  # if no subset or subsample
+  if(isFALSE(call$subset) && isFALSE(call$subsample)){
+    call$gjamTime_data_in <- path_gjamTime_in
+    return(call)
+  }
+  # clean path_gjamTime_tmp directory
+  filesRM <- list.files(path_gjamTime_tmp, full.names = TRUE)
+  file.remove(filesRM)
+  
+  #make samplemask
+  samplemask <- .make_samplemask(call)
+  writeRaster(samplemask, file.path(path_gjamTime_tmp, "samplemask.tif"))
+  
+  # subset and subsample
+  # writes subsetted and subsampled data in path_gjamTime_tmp
+  .sample_geodata(var_list = call$xvars, which = "xdata", samplemask = samplemask)
+  .sample_geodata(var_list = call$yvars, which = "ydata", samplemask = samplemask)
+  
+  # adjust path for subsetted, subsampled vairables and return
+  call$gjamTime_data_in <- path_gjamTime_tmp
+  return(call)
 }

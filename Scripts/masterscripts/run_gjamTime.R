@@ -5,17 +5,16 @@
 #' the variable 'call' holds the Script that specifies the input for gjamTime
 
 library(here)
-## sourcing general scripts ####
-source("config/config_local.R")
-source("scripts/1_gjamTime/.gjamTime_Hfunctions.R")
-
-# set calling script here
-call_this_script <- "scripts/1_gjamTime/call_gjamTime_test1.R"
+source("scripts/1_gjamTime/gjamTime_geospatial.R")
 
 # Set working directory only if not already set
 if (getwd() != here::here()) {
   setwd(here::here())
 }
+
+# set calling script here
+call_this_script <- "scripts/1_gjamTime/call_gjamTime_test1.R"
+
 
 ## read system Arguments and set call
 sysArgs <- commandArgs(trailingOnly = TRUE)
@@ -33,9 +32,8 @@ if(!exists("task_id")){
   task_id <- .default_call()$task_id
 }
 
-## initialize and validate call
-call <- .initialize_and_validate_call(call_scrpt, task_id)
 
-## prepare geospatial rasters for model
+## call gjamTime_goespatial()
 
-## 
+
+call <- gjamTime_geospatial(call_scrpt, task_id)

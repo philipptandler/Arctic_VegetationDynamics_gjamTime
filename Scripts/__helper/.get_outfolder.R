@@ -7,7 +7,7 @@
     # If it exists, find a new directory name
     i <- 1
     while (dir.exists(dir_path)) {
-      dir_path <- file.path(path_save, paste0(name, "-", i))
+      dir_path <- file.path(path, paste0(name, "-", i))
       i <- i + 1
     }
   }

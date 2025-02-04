@@ -18,7 +18,7 @@ name_gjamTime_output <- "output.Rdata"
 #' area, or represents unusable data (such as water, infrastructure, ...). The 
 #' mastermask is the main filter for what pixels are considered in the study and
 #' what are excluded
-path_masks <- "data/Masks"
+path_masks <- "data/masks"
 name_master_mask <- "master_mask.tif"
 
 ## scripts ####
@@ -28,6 +28,5 @@ path_gjamTime_validVariables <- "config/gjamTime_validVariables.R"
 # paths
 path_analysis <- "analysis"
 
-# files
 
 
