@@ -8,7 +8,7 @@
   def_yvars <- FALSE 
   def_xvars <- FALSE
   def_periods <- FALSE
-  def_version <- FALSE
+  def_version <- .receive_validVariables()$versions[1]
   
   def_subset <- FALSE
   def_subsample <- FALSE

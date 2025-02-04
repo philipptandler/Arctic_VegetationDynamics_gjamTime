@@ -1,6 +1,8 @@
 library(dplyr)
 library(digest)
 library(terra)
+library(devtools)
+library(gjam)
 
 source("scripts/__helper/.get_outfolder.R")
 source("scripts/1_gjamTime/.gjamTime_defaultSettings.R") 
@@ -508,4 +510,147 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
   # adjust path for subsetted, subsampled vairables and return
   call$gjamTime_data_in <- path_gjamTime_tmp
   return(call)
+}
+
+
+
+################################################################################
+## load geospatial rasters as dataframes ####
+
+.load_geodata_as_dataframe <- function(var_list,
+                                       path_files,
+                                       which,
+                                       dropgroup = TRUE,
+                                       dropperiod = TRUE){
+  # list for dataframes
+  data_list <- list()
+  n_timesteps <- length(var_list$periods)
+  
+  # for all periods, load the raster as dataframes
+  for(per in 1:n_timesteps){
+    file_var_list <- .get_filenames(var_list$periods[per], var_list)
+    # get files
+    files_this_period <- file_var_list$files
+    file_paths_full <- file.path(path_files, files_this_period)
+    # make a raster with all variables for this period
+    raster_this_period <- rast(file_paths_full)
+    names(raster_this_period) <- file_var_list$variables
+    # make dataframe
+    getxy <- (var_list$x | var_list$y) #whether to include latitude or longitude
+    df <- as.data.frame(raster_this_period, xy = getxy,
+                        cells = TRUE, na.rm = NA)
+    # Rename x and y to lat and lon
+    colnames(df)[colnames(df) == "x"] <- "lon"
+    colnames(df)[colnames(df) == "y"] <- "lat"
+    if(getxy){
+      if(!var_list$x){df <- df %>% dplyr::select(-lon)}
+      if(!var_list$y){df <- df %>% dplyr::select(-lat)}
+    }
+    # add interactions
+    for(pair in var_list$interaction){
+      vars <- unlist(strsplit(pair, ":"))
+      df[[pair]] <- df[[vars[1]]]*df[[vars[2]]]
+    }
+    # add time
+    df$period <- per
+    data_list[[per]] <- df
+  }
+  
+  # >>>>>>>>>>>> (old)
+  var_list <- NULL
+  if(which == "xdata" || which == "ydata"){
+    if(which == "xdata"){var_list = call$xvars}
+    if(which == "ydata"){var_list = call$yvars}
+  }else{stop("invalid argument: which, should be either 'xdata' or 'ydata' \n")}
+  
+  # initialize list of dataframes
+  data_list <- list()
+  path_files <- path_vars
+  if(call$subset){path_files = path_tmp}
+  # iterate over all periods
+  n_time <- length(var_list$periods)
+  for(per in 1:n_time){
+    cat("    loading period", var_list$periods[per])
+    # get files and variables in same order
+    file_var_list <- get_filenames(var_list$periods[per], var_list)
+    # get files
+    files_this_period <- file_var_list$files
+    # make raster
+    file_paths_full <- file.path(path_files, files_this_period)
+    raster_this_period <- rast(file_paths_full)
+    names(raster_this_period) <- file_var_list$variables
+    
+    # make dataframe
+    getxy <- (var_list$x | var_list$y)
+    cat(", converting to dataframe...")
+    df <- as.data.frame(raster_this_period, xy = getxy,
+                        cells = TRUE, na.rm = NA)
+    cat(" done. \n")
+    # Rename x and y to lat and lon
+    colnames(df)[colnames(df) == "x"] <- "lon"
+    colnames(df)[colnames(df) == "y"] <- "lat"
+    if(getxy){
+      if(!var_list$x){df <- df %>% dplyr::select(-lon)}
+      if(!var_list$y){df <- df %>% dplyr::select(-lat)}
+    }
+    
+    # add interactions
+    for(pair in var_list$interaction){
+      vars <- unlist(strsplit(pair, ":"))
+      df[[pair]] <- df[[vars[1]]]*df[[vars[2]]]
+    }
+    
+    # add time
+    df$period <- per
+    data_list[[per]] <- df
+    
+  }
+  #conbine the dataframes
+  combined_df <- do.call(rbind, data_list)
+  # order
+  ordered_df <- combined_df %>%
+    dplyr::arrange(cell, period)
+  
+  # Get the current column names
+  cols <- colnames(ordered_df)
+  
+  # Define the new order of columns
+  new_order <- c("cell", "period", cols[!cols %in% c("cell", "period")])
+  
+  # Reorder the columns
+  ordered_df <- ordered_df[, new_order]
+  
+  # Set row names starting from 1
+  row.names(ordered_df) <- NULL
+  
+  # Optionally drop the 'cell' and 'period' columns if specified
+  if (dropgroup) {
+    ordered_df <- subset(ordered_df, select = -c(cell))
+  }
+  if (dropperiod) {
+    ordered_df <- subset(ordered_df, select = -c(period))
+  }
+  cat("    returning dataframe of nrows =", nrow(ordered_df), ", ncols =", ncol(ordered_df), "\n")
+  
+  # returning dataframe
+  return(ordered_df)
+  
+  
+  # (old) <<<<<<<<<<<
+  
+}
+
+
+.load_predictors <- function(call){
+  df <- .load_geodata_as_dataframe(call$xvars,
+                                   call$gjamTime_data_in, which = "xdata",
+                                   dropgroup = FALSE, dropperiod = FALSE)
+  return(df)
+}
+
+.load_response <- function(call){
+  df <- .load_geodata_as_dataframe(call$yvars, 
+                                   call$gjamTime_data_in, which = "ydata",
+                                   dropgroup = TRUE, dropperiod = TRUE)
+  return(df)
 }
