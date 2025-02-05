@@ -28,5 +28,6 @@ path_gjamTime_validVariables <- "config/gjamTime_validVariables.R"
 # paths
 path_analysis <- "analysis"
 
-
+# paths
+path_analysis <- "$SCRATCH/analysis"
 

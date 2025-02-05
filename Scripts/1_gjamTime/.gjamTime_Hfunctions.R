@@ -6,6 +6,7 @@ library(gjam)
 
 source("scripts/__helper/.get_outfolder.R")
 source("scripts/1_gjamTime/.gjamTime_defaultSettings.R") 
+source("scripts/1_gjamTime/.gjamTime_officialFunctions.R")
 
 
 ################################################################################
@@ -133,8 +134,8 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
 .initialize_new_outfolder <- function(path, name, scrpt){
   outfolder <- .get_outfolder(path, name)
   dir.create(outfolder)
-  .copy_callingscript(scrpt, outfolder) #TODO #write out/somename(1)/.copy_(callscript.R)
-  .write_hash_id(scrpt, outfolder) # TODO writes in out/somename(1)/.hash_id.txt
+  .copy_callingscript(scrpt, outfolder)
+  .write_hash_id(scrpt, outfolder) 
   return(outfolder)
 }
 
@@ -149,14 +150,16 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
   outfolder <- NULL
   if(isFALSE(call$continue)){
     if(task_id == .default_call()$task_id){
-      outfolder <- .initialize_new_outfolder(path_gjamTime_out, basename, call_script)
+      outfolder <- .initialize_new_outfolder(path_gjamTime_out, basename,
+                                             call_script)
     } else {
-      hash_id <- .get_hash_id(call_script) # unique string calling script (length 12)
+      hash_id <- .get_hash_id(call_script) # unique string calling script
       outfolder <- .find_continuing_outfolder(path_gjamTime_out, 
                                               name = basename, 
                                               hash = hash_id)
       if(isFALSE(outfolder)){
-        outfolder <- .initialize_new_outfolder(path_gjamTime_out, basename, call_script)
+        outfolder <- .initialize_new_outfolder(path_gjamTime_out, basename,
+                                               call_script)
         call$task_id <- .default_call()$task_id
       }
     }
@@ -193,7 +196,7 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
   varVecUnique <- c()
   for(entry in vars_default_names){
     # if an entry exists
-    if(exists(entry, where = provided_vars)){
+    if(exists(entry, where = provided_vars) && !isFALSE(provided_vars[[entry]])){
       # validate if its a true variable
       if(exists(entry, where = valid_vars)){
         if(!all(provided_vars[[entry]] %in% valid_vars[[entry]]$varnames)){
@@ -207,7 +210,7 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
           else {provided_vars[[entry]] <- FALSE}
         }
       }
-    # set default  
+    # if no entry, then set default  
     } else {
       provided_vars[[entry]] <- vars_default[[entry]]
     }
@@ -223,6 +226,8 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
   ## assert no interactions for response variable
   if(which == "yvars"){
     provided_vars$interaction <- FALSE
+    provided_vars$x <- FALSE
+    provided_vars$y <- FALSE
   }
   provided_vars
 }
@@ -289,7 +294,8 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
         default_list[[name]] <- given_list[[name]]  # Replace with given value
       } else if (is.list(default_list[[name]]) && is.list(given_list[[name]])) {
         # If both entries are lists, call the function recursively
-        default_list[[name]] <- .validate_iteratively_numeric(given_list[[name]], default_list[[name]])
+        default_list[[name]] <- .validate_iteratively_numeric(given_list[[name]],
+                                                              default_list[[name]])
       }
     }
     # If no entry in given_list, keep the default value
@@ -606,7 +612,7 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
     ordered_df <- subset(ordered_df, select = -c(time))
   }
   
-  return(ordered_df)
+  ordered_df
 }
 
 
@@ -614,14 +620,14 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
   df <- .load_geodata_as_dataframe(call$xvars,
                                    call$gjamTime_data_in, which = "xdata",
                                    dropgroup = FALSE, droptime = FALSE)
-  return(df)
+  df
 }
 
 .load_response <- function(call){
   df <- .load_geodata_as_dataframe(call$yvars, 
                                    call$gjamTime_data_in, which = "ydata",
                                    dropgroup = TRUE, droptime = TRUE)
-  return(df)
+  df
 }
 
 
@@ -629,7 +635,214 @@ source("scripts/1_gjamTime/.gjamTime_defaultSettings.R")
 ## fit gjamTime ####
 ################################################################################
 
+.redirect_gjam <- function(){
+  source("scripts/1_gjamTime/.gjamTime_adjustments.R")
+  environment(.rhoPriorMod) <- asNamespace('gjam')
+  assignInNamespace(".rhoPrior", .rhoPriorMod, ns = "gjam")
+}
+.stop_redirect_gjam <- function(){
+  # reload package
+  detach("package:gjam", unload=TRUE)
+  library(gjam)
+}
 
-.fit_gjamTime <- function(call){
+
+
+.is_const_interaction <- function(interaction){
+  vars <- .process_interaction(interaction)
+  const <- c()
+}
+
+# returns specified variables in call as vector
+.load_variables <- function(var_list, method = "all"){
+  vars_default <- .default_vars()
+  valid_vars <- .receive_validVariables()$variables
   
+  varVec <- c()
+  for(entry in names(valid_vars)){
+    if(!isFALSE(var_list[[entry]])){
+      if(method == "all"){
+        varVec <- append(varVec, var_list[[entry]])
+      } else if (method == "const" && !valid_vars[[entry]]$isDynamic){
+        varVec <- append(varVec, var_list[[entry]])
+      }
+    }
+  }
+  if(var_list$x){varVec <- append(varVec, "lon")}
+  if(var_list$y){varVec <- append(varVec, "lat")}
+  if(!isFALSE(var_list$interaction)){
+    for(interaction in var_list$interaction){
+      if(method == "all"){
+        varVec <- append(varVec, interaction)
+      } 
+      # TODO find constant interactions
+    }
+  }
+  return(varVec)
+}
+
+c(setup,
+termB = FALSE,
+termR = TRUE,
+termA = TRUE,
+normalize = TRUE,
+# normalize = "ref" for normalizing to reference fulldata, 1984-2020
+saveOutput = TRUE,
+showPlot = TRUE)
+
+
+.fit_gjamTime <- function(call,
+                          fixwarning = TRUE){
+  # general version to fix bug
+  if(fixWarning){.redirect_gjam()}
+  
+  # setting up environment
+  xdata <- as.data.frame(call$xdata)
+  ydata <- as.matrix(call$ydata)
+  rownames(ydata) <- NULL
+  edata <- matrix(1, nrow = nrow(ydata), ncol = ncol(ydata))
+  colnames(edata) <- colnames(ydata)
+  
+  xvars_list <- call$xvars
+  yvars_list <- call$yvars
+  name <- call$name
+  
+  ## Missing values in time series data
+  # prepare input
+  timeCol   <- "time" # Column that stores time
+  groupCol  <- "cell" # column that stores the group ID
+  
+  # constVars are time invariant
+  constVars <- .load_variables(call$xvars, "const")
+  allVars < .load_variables(call$xvars, "all")
+
+  ## TODO continue here normalization
+  
+  ## >>>>>>>>>>>>>> (old)
+  # general Vesions
+  if(fixWarning){redirect_gjam()}
+  if(tracking){start_track_gjam()}
+  
+  # setting up environment
+  xdata <- as.data.frame(setup$xdata)
+  ydata <- as.matrix(setup$ydata)
+  rownames(ydata) <- NULL
+  edata <- matrix(1, nrow = nrow(ydata), ncol = ncol(ydata))
+  colnames(edata) <- colnames(ydata)
+  
+  xvars_list <- setup$xvars
+  yvars_list <- setup$yvars
+  name <- setup$name
+  
+  ## Missing values in time series data
+  
+  # prepare input
+  timeCol   <- "period" # Column that stores time
+  groupCol  <- "cell" # column that stores the group ID
+  
+  # constVars are time invariant
+  constVars <- c(xvars_list$topography,
+                 xvars_list$soil) #TODO wildfire when fitting
+  if(xvars_list$x){constVars <- c(constVars, "lon")}
+  if(xvars_list$y){constVars <- c(constVars, "lat")}
+  
+  # allVars are all predictor Variables
+  allVars <- c(constVars,
+               xvars_list$climate,
+               xvars_list$wildfire,
+               xvars_list$interaction)
+  
+  # data normalization
+  if(normalize == "ref"){
+    xdata <- normalize_gjamInput_ref(xdata, allVars)
+  }else if(is.logical(normalize) && normalize){
+    xdata <- normalize_gjamInput_this(xdata, allVars)
+  }else{stop("no valid normalization method")}
+  
+  # fit missing values
+  missingEffort <- 0.1 # set this
+  # groupVars are the time invariant columns, which includes the group ID 'cell'
+  groupVars <- c("cell", constVars)
+  cat("    initialize xdata and ydata \n")
+  tmp <- gjamFillMissingTimes(xdata, ydata, edata, groupCol, timeCol,
+                              FILLMEANS = T, groupVars = groupVars,
+                              typeNames = 'DA', missingEffort = 0.1)
+  xdata  <- tmp$xdata
+  ydata  <- tmp$ydata
+  edata  <- tmp$edata
+  tlist  <- tmp$timeList
+  s_names <- colnames(ydata)
+  n_spec <- ncol(ydata)
+  effort <- list(columns = 1:n_spec, values = edata)
+  
+  # fill means of not group varibles manually
+  xdata  <- fillmeans(xdata, allVars)
+  
+  # check if there are missing values
+  check_dataframe(ydata)
+  check_dataframe(xdata)
+  
+  # defining the formula
+  formula <- as.formula(paste("~ ", paste(allVars, collapse = " + ")))
+  
+  ##  set priorlist
+  cat("    setting priors \n")
+  priorList <- list()
+  if(termB){
+    # set priordistribution (intercept = (-Inf, Inf) and all other vars = (-100, 100))
+    betaPrior  <- list(lo = list(intercept = -10),
+                       hi = list(intercept = 10) )
+    betaPrior <- fill_priorList(allVars, betaPrior)
+    formulaBeta <- formula
+    priorList$formulaBeta = formulaBeta
+    priorList$betaPrior = betaPrior
+  }
+  if(termR){
+    # set priordistribution (intercept = (-1,1), all other vars = (-100, 100))
+    rhoPrior  <- list(lo = list(intercept = -2),
+                      hi = list(intercept = 2) )
+    rhoPrior <- fill_priorList(allVars, rhoPrior)
+    formulaRho <- formula
+    priorList$formulaRho= formulaRho
+    priorList$rhoPrior = rhoPrior
+  }
+  if(termA){
+    alphaSign  <- matrix(-1, n_spec, n_spec)
+    colnames(alphaSign) <- rownames(alphaSign) <- s_names
+    priorList$alphaSign = alphaSign
+  }
+  tmp <- gjamTimePrior(xdata, ydata, edata, priorList)
+  timeList <- mergeList(tlist, tmp)
+  
+  ## fit gjam
+  modelList <- list(typeNames = 'DA', ng = 2500, burnin = 1500,  
+                    timeList = timeList, effort = effort)
+  cat("    running gjam \n")
+  output <- gjam(formula, xdata=xdata, ydata=ydata, modelList=modelList)
+  
+  ## save and plot
+  outFolder <- get_outfolder(name)
+  
+  if(showPlot){
+    plotPars  <- list(PLOTALLY=T,
+                      SAVEPLOTS = saveOutput, outFolder = outFolder)
+    gjamPlot(output, plotPars)
+  }
+  if(saveOutput){
+    call <- setup
+    call$xdata <- NULL
+    call$ydata <- NULL
+    call$edata <- NULL
+    saveRDS(call, file = file.path(outFolder, "call.rds"))
+    output_short <- select_output(output) #to not blow up output file
+    save(output_short, file = paste0(outFolder, "/output.rdata"))
+    print_call(setup, output_file = paste0(outFolder, "/call.txt"))
+    cat("\n    output available in", outFolder, "\n")
+  }
+  # gerneral reset
+  if(tracking || fixWarning){stop_redirect_gjam()}
+  ## return fitted gjam
+  return(output)
+  
+  ## <<<<<<<<<<<< (old)
 }

@@ -17,9 +17,9 @@ gjamTime_geospatial <- function(call_scrpt, task_id){
   call$ydata <- .load_response(call)
   
   ## fit gjamTime
-  call <- .fit_gjamTime(call)
+  output <- .fit_gjamTime(call)
   
   ## done
-  return(call)
+  return(output)
 }
 

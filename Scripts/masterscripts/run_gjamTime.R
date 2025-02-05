@@ -36,4 +36,4 @@ if(!exists("task_id")){
 ## call gjamTime_goespatial()
 
 
-call <- gjamTime_geospatial(call_scrpt, task_id)
+output <- gjamTime_geospatial(call_scrpt, task_id)
