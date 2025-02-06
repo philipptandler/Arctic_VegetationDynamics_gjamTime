@@ -13,7 +13,7 @@ if (getwd() != here::here()) {
 }
 
 # set calling script here
-call_this_script <- "scripts/1_gjamTime/call_gjamTime_test1.R"
+call_this_script <- "scripts/project/1_gjamTime/call_gjamTime_test1.R"
 
 
 ## read system Arguments and set call

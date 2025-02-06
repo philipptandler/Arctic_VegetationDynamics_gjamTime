@@ -20,19 +20,6 @@ source("scripts/1_gjamTime/.gjamTime_officialFunctions.R")
 }
 
 
-.check_unique_variables <- function(interactionVec, uniqueVec) {
-  # Extract base variables
-  extracted_vars <- unique(unlist(lapply(interactionVec, function(x) {
-    # Split by ":" or extract base of power notation
-    unique(gsub("\\d+$", "", unlist(strsplit(x, ":"))))  
-  })))
-  
-  if(!all(extracted_vars %in% uniqueVec)){
-    stop("Interaction variables must exist as single variables: ", 
-         paste(setdiff(extracted_vars, uniqueVec), collapse = ", "))
-  }
-}
-
 # returns a list of the recieved called from call_scrpt
 .receive_call <- function(call_scrpt){
   if(!file.exists(call_scrpt)){
@@ -180,7 +167,18 @@ source("scripts/1_gjamTime/.gjamTime_officialFunctions.R")
   call
 }
 
-
+.check_unique_variables <- function(interactionVec, uniqueVec) {
+  # Extract base variables
+  extracted_vars <- unique(unlist(lapply(interactionVec, function(x) {
+    # Split by ":" or extract base of power notation
+    unique(gsub("\\d+$", "", unlist(strsplit(x, ":"))))  
+  })))
+  
+  if(!all(extracted_vars %in% uniqueVec)){
+    stop("Interaction variables must exist as single variables: ", 
+         paste(setdiff(extracted_vars, uniqueVec), collapse = ", "))
+  }
+}
 
 ## validates variables in yvars, xvars
 
@@ -371,8 +369,6 @@ source("scripts/1_gjamTime/.gjamTime_officialFunctions.R")
   ## return
   call
 }
-
-
 
 .initialize_and_validate_call <- function(call_scrpt, task_id){
   
@@ -681,14 +677,14 @@ source("scripts/1_gjamTime/.gjamTime_officialFunctions.R")
   return(varVec)
 }
 
-c(setup,
-termB = FALSE,
-termR = TRUE,
-termA = TRUE,
-normalize = TRUE,
-# normalize = "ref" for normalizing to reference fulldata, 1984-2020
-saveOutput = TRUE,
-showPlot = TRUE)
+# c(setup,
+# termB = FALSE,
+# termR = TRUE,
+# termA = TRUE,
+# normalize = TRUE,
+# # normalize = "ref" for normalizing to reference fulldata, 1984-2020
+# saveOutput = TRUE,
+# showPlot = TRUE)
 
 
 .fit_gjamTime <- function(call,
