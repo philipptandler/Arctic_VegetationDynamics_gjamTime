@@ -21,7 +21,7 @@ call_name <- NULL
 for(run in 1:n_replicates){
   task_id <- run
   call_scrpt <- call_this_script
-  source("scripts/run_gjamTime.R")
+  source("scripts/masterscripts/run_gjamTime_batch.R")
   call_name #TODO save call name and nreps in call object
 }
 

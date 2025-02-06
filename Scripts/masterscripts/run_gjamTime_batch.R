@@ -12,10 +12,6 @@ if (getwd() != here::here()) {
   setwd(here::here())
 }
 
-# set calling script here
-call_this_script <- "scripts/project/1_gjamTime/call_gjamTime_test1.R"
-
-
 ## read system Arguments and set call
 sysArgs <- commandArgs(trailingOnly = TRUE)
 
@@ -26,14 +22,11 @@ if(length(sysArgs) > 0){
   }
 }
 if(!exists("call_scrpt")){
-  call_scrpt <- call_this_script
+  stop("Missing Argument: calling script")
 }
 if(!exists("task_id")){
   task_id <- .default_call()$task_id
 }
 
-
 ## call gjamTime_goespatial()
-
-
 output <- gjamTime_geospatial(call_scrpt, task_id)

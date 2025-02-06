@@ -1,0 +1,18 @@
+library(here)
+source("scripts/1_gjamTime/normalization_predictors.R")
+
+# Set working directory only if not already set
+setwd(here::here())
+
+## read system Arguments and set call
+sysArgs <- commandArgs(trailingOnly = TRUE)
+
+if(length(sysArgs) > 0){
+  call_scrpt <- sysArgs[1]
+}
+if(!exists("call_scrpt")){
+  stop("Missing Argument: calling script")
+}
+
+## call normalize_predictor_parameters()
+normalize_predictor_parameters()
