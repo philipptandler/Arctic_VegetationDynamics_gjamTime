@@ -1,6 +1,6 @@
 library(here)
 source("config/config_local.R")
-source("scripts/1_gjamTime/gjamTime_geospatial.R")
+source("scripts/1_gjamTime/normalization_predictors.R")
 
 # Set working directory only if not already set
 setwd(here::here())
@@ -8,5 +8,5 @@ setwd(here::here())
 # set calling script here
 call_scrpt <- "scripts/project/1_gjamTime/call_gjamTime_test1.R"
 
-## call gjamTime_goespatial()
-output <- gjamTime_geospatial(call_scrpt)
+## call normalize_predictor_rasters()
+normalize_predictor_rasters(call_scrpt)

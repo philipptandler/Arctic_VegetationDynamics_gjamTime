@@ -1,4 +1,5 @@
 library(here)
+source("config/config_local.R")
 source("scripts/1_gjamTime/normalization_predictors.R")
 
 # Set working directory only if not already set
@@ -8,4 +9,4 @@ setwd(here::here())
 call_scrpt <- "scripts/project/1_gjamTime/call_gjamTime_test1.R"
 
 ## call normalize_predictor_parameters()
-normalize_predictor_parameters()
+normalize_predictor_parameters(call_scrpt)

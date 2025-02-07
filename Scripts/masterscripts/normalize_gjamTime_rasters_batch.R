@@ -15,5 +15,5 @@ if(!exists("call_scrpt")){
   stop("Missing Argument: calling script")
 }
 
-## call normalize_predictor_parameters()
-normalize_predictor_parameters(call_scrpt)
+## call normalize_predictor_rasters()
+normalize_predictor_rasters(call_scrpt)

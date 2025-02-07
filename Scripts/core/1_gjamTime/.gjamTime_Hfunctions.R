@@ -4,6 +4,7 @@ library(terra)
 library(devtools)
 library(gjam)
 
+source("config/config_local.R")
 source("scripts/__helper/.get_outfolder.R")
 source("scripts/1_gjamTime/.gjamTime_defaultSettings.R") 
 source("scripts/1_gjamTime/.gjamTime_officialFunctions.R")
@@ -131,7 +132,7 @@ source("scripts/1_gjamTime/.gjamTime_officialFunctions.R")
 #' copying calling script,
 #' sets hash_id so multiple subsamples go in same outfolder
 #' ..
-.prepare_outfolder <- function(call, call_script){
+.prepare_gjamTime_outfolder <- function(call, call_script){
   task_id <- call$task_id
   basename <- call$name
   outfolder <- NULL
@@ -362,22 +363,22 @@ source("scripts/1_gjamTime/.gjamTime_officialFunctions.R")
   ## validate modelRunntime
   call$modelRunntime <- .validate_iteratively_numeric(call$modelRunntime,
                                                       .default_call()$modelRunntime)
-  
-  ## validate name and outfolder
-  call <- .prepare_outfolder(call, call_scrpt)
-  
   ## return
   call
 }
 
-.initialize_and_validate_call <- function(call_scrpt, task_id){
+.initialize_and_validate_call <- function(call_scrpt, task_id = NULL){
   
+  ## init task_id
+  if(is.null(task_id)){
+    task_id <- .default_call()$task_id
+  }
   ## initialize call
   call <- .initialize_call(call_scrpt, task_id)
   
   ## validate call
   call <- .validate_call(call, call_scrpt)
-  
+
   ## return
   call
 }

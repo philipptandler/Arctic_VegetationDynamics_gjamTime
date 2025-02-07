@@ -27,6 +27,7 @@ path_gjamTime_validVariables <- "config/gjamTime_validVariables.R"
 ## analysis ####
 # paths
 path_analysis <- "analysis"
+path_analysis_norm_predictors <- "analysis/.norm_lib_predictors"
 
 # paths
 path_analysis <- "$SCRATCH/analysis"
