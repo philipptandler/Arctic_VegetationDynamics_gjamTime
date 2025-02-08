@@ -2,8 +2,7 @@
 #' incl. interactions and normalizes raster
 
 ## sourcing general scripts ####
-source("scripts/1_gjamTime/.normalization_Hfunctions.R")
-source("scripts/1_gjamTime/.gjamTime_Hfunctions.R")
+source("scripts/core/1_gjamTime/.gjamTime_Hfunctions.R")
 
 # revieves a callscript and writes 
 normalize_predictor_parameters <- function(call_scrpt){

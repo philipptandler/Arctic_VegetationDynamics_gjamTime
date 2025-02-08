@@ -1,5 +1,5 @@
 ## sourcing general scripts ####
-source("scripts/1_gjamTime/.gjamTime_Hfunctions.R")
+source("scripts/core/1_gjamTime/.gjamTime_Hfunctions.R")
 
 ## main function to fit gjamTime to geospatial data ####
 gjamTime_geospatial <- function(call_scrpt, task_id = NULL){
@@ -8,7 +8,9 @@ gjamTime_geospatial <- function(call_scrpt, task_id = NULL){
   call <- .initialize_and_validate_call(call_scrpt, task_id)
   
   ## prepare outfolder 
-  call <- .prepare_gjamTime_outfolder(call, call_scrpt) # TODO mayne move to end
+  call <- .prepare_gjamTime_outfolder(call, call_scrpt,
+                                      create.if.notFound = TRUE) 
+  # TODO add subfolder (if exists => stop) in case same model twice
   
   ## prepare geospatial rasters for model
   call <- .prepare_geodata(call)

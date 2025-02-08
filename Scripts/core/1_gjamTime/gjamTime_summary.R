@@ -1,6 +1,8 @@
 ## sourcing general scripts ####
 source("scripts/1_gjamTime/.gjamTime_Hfunctions.R")
 
-gjamTime_summary <- function(var){
-  outpath <- .get_gjamTime()
+gjamTime_summary <- function(argument){
+  outpath <- .get_gjamTime_outfolder(argument)
+  
+  
 }

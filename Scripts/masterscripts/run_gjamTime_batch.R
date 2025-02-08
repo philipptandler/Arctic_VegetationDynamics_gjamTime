@@ -5,13 +5,14 @@
 #' the variable 'call' holds the Script that specifies the input for gjamTime
 
 library(here)
-source("config/config_local.R")
-source("scripts/1_gjamTime/gjamTime_geospatial.R")
 
 # Set working directory only if not already set
 if (getwd() != here::here()) {
   setwd(here::here())
 }
+
+source("config/config_local.R")
+source("scripts/1_gjamTime/core/gjamTime_geospatial.R")
 
 ## read system Arguments and set call
 sysArgs <- commandArgs(trailingOnly = TRUE)

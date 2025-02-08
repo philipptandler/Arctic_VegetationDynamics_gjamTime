@@ -4,10 +4,10 @@ library(terra)
 library(devtools)
 library(gjam)
 
-source("config/config_local.R")
-source("scripts/__helper/.get_outfolder.R")
-source("scripts/1_gjamTime/.gjamTime_defaultSettings.R") 
-source("scripts/1_gjamTime/.gjamTime_officialFunctions.R")
+source("scripts/core/1_gjamTime/.gjamTime_defaultSettings.R") 
+source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
+source("scripts/core/1_gjamTime/.normalization_Hfunctions.R")
+
 
 
 ################################################################################
@@ -48,9 +48,13 @@ source("scripts/1_gjamTime/.gjamTime_officialFunctions.R")
       call_build[[entry]] <- call_default[[entry]]
     }
   }
+  if(is.null(task_id)){
+    task_id = .default_call()$task_id
+  }
   call_build$task_id <- task_id
   call_build
 }
+
 
 # returns a list of the valid variables in path_gjamTime_mastervariables
 .receive_validVariables <- function(){
@@ -64,11 +68,44 @@ source("scripts/1_gjamTime/.gjamTime_officialFunctions.R")
   valid_vars
 }
 
+##############################
+## outfolder organisation ####
+
+## get path for saving folder in increments if path exists
+.get_outfolder <- function(path, name, full = TRUE){
+  dir_path <- file.path(path, name)
+  
+  # Check if the directory already exists
+  if (dir.exists(dir_path)) {
+    # If it exists, find a new directory name
+    i <- 1
+    while (dir.exists(dir_path)) {
+      dir_path <- file.path(path, paste0(name, "-", i))
+      i <- i + 1
+    }
+  }
+  # return full path or foldername
+  if(full){return(dir_path)}
+  else{return(basename(dir_path))}
+}
+
+## returns dir
+.get_gjamTime_outfolder <- function(argument){
+  if(dir.exists(argument)){
+    return(argument)
+  } 
+  if(!file.exists(argument)){stop("Invalid Argument: ", argument)}
+  call <- .initialize_and_validate_call(argument, task_id=NULL)
+
+  call <- .prepare_gjamTime_outfolder(call, argument, create.if.notFound = F)
+  return(call$outfolderBase)
+}
+
 ## for initializing folder
 .get_hash_id <- function(script_path){
   script_content <- readLines(script_path, encoding = "UTF-8")
   script_content <- gsub("\r\n", "\n", script_content)  # Normalize line endings
-  script_hash <- substr(digest(paste(script_content, collapse = ""), algo = "sha1"), 1, 12)
+  script_hash <- substr(digest(paste(script_content, collapse = ""), algo = "sha1"), 1, 16)
   return(script_hash)
 }
 
@@ -83,12 +120,14 @@ source("scripts/1_gjamTime/.gjamTime_officialFunctions.R")
   writeLines(hash_id, file.path(outfolder, ".hash_id.txt"))
 }
 
-.find_continuing_outfolder <- function(base_path, base_name, hash_id){
+# returns directory if name (/name-1/ => name) and hash id matches
+# else FALSE
+.find_continuing_outfolder <- function(base_path, name, hash_id){
   # List all subdirectories
   subdirs <- list.dirs(base_path, recursive = FALSE, full.names = TRUE)
   
   # Regex pattern to match directories like "somename/" or "somename(n)/"
-  pattern <- paste0("^", base_path, "/", base_name, "(\\(\\d+\\))?$")
+  pattern <- paste0("^", base_path, "/", name, "(\\(\\d+\\))?$")
   
   # Filter directories that match the pattern
   matching_dirs <- grep(pattern, subdirs, value = TRUE)
@@ -109,15 +148,15 @@ source("scripts/1_gjamTime/.gjamTime_officialFunctions.R")
   return(FALSE)
 }
 
-.update_continuing_task_id <- function(outfolder){
-  
-  # List all immediate subdirectories (not files)
-  subdirs <- list.dirs(outfolder, recursive = FALSE, full.names = TRUE)
-  
-  # Count the number of subdirectories
-  num_subdirs <- length(subdirs)
-  return(num_subdirs+.default_call()$task_id)
-}
+# .update_continuing_task_id <- function(outfolder){
+#   
+#   # List all immediate subdirectories (not files)
+#   subdirs <- list.dirs(outfolder, recursive = FALSE, full.names = TRUE)
+#   
+#   # Count the number of subdirectories
+#   num_subdirs <- length(subdirs)
+#   return(num_subdirs+.default_call()$task_id)
+# }
 
 .initialize_new_outfolder <- function(path, name, scrpt){
   outfolder <- .get_outfolder(path, name)
@@ -132,41 +171,85 @@ source("scripts/1_gjamTime/.gjamTime_officialFunctions.R")
 #' copying calling script,
 #' sets hash_id so multiple subsamples go in same outfolder
 #' ..
-.prepare_gjamTime_outfolder <- function(call, call_script){
-  task_id <- call$task_id
+# .prepare_gjamTime_outfolder2 <- function(call, call_script){
+#   task_id <- call$task_id
+#   basename <- call$name
+#   outfolder <- NULL
+#   if(isFALSE(call$continue)){
+#     if(task_id == .default_call()$task_id){
+#       outfolder <- .initialize_new_outfolder(path_gjamTime_out, basename,
+#                                              call_script)
+#     } else {
+#       hash_id <- .get_hash_id(call_script) # unique string calling script
+#       outfolder <- .find_continuing_outfolder(path_gjamTime_out, 
+#                                               name = basename, 
+#                                               hash_id = hash_id)
+#       if(isFALSE(outfolder)){
+#         outfolder <- .initialize_new_outfolder(path_gjamTime_out, basename,
+#                                                call_script)
+#         call$task_id <- .default_call()$task_id
+#       }
+#     }
+#   } else {
+#     if(dir.exists(file.path(path_gjamTime_out, call$continue))){
+#       outfolder <- file.path(path_gjamTime_out, call$continue)
+#     } else {
+#       outfolder <- .find_continuing_outfolder(path_gjamTime_out, 
+#                                               name = basename, 
+#                                               hash_id = call$continue)
+#       if(isFALSE(outfolder)){
+#         stop("Continuation of model: continue = ", call$continue, " not found.")
+#       }
+#     }
+#     call$task_id <- .update_continuing_task_id(outfolder)
+#   }
+#   call$outfolder <- outfolder
+#   call
+# }
+
+.prepare_gjamTime_outfolder <- function(call, call_script,
+                                        create.if.notFound = FALSE){
   basename <- call$name
   outfolder <- NULL
   if(isFALSE(call$continue)){
-    if(task_id == .default_call()$task_id){
-      outfolder <- .initialize_new_outfolder(path_gjamTime_out, basename,
-                                             call_script)
-    } else {
-      hash_id <- .get_hash_id(call_script) # unique string calling script
-      outfolder <- .find_continuing_outfolder(path_gjamTime_out, 
-                                              name = basename, 
-                                              hash = hash_id)
-      if(isFALSE(outfolder)){
+    hash_id <- .get_hash_id(call_script) # unique string calling script
+    outfolder <- .find_continuing_outfolder(path_gjamTime_out, 
+                                            name = basename, 
+                                            hash_id = hash_id)
+    if(isFALSE(outfolder)){
+      if(create.if.notFound){
         outfolder <- .initialize_new_outfolder(path_gjamTime_out, basename,
                                                call_script)
-        call$task_id <- .default_call()$task_id
+      } else {
+        stop("output folder not found for script: ", call_script)
       }
     }
   } else {
-    if(dir.exists(file.path(path_gjamTime_out, call$continue))){
+    if(dir.exists(call$continue)){
+      outfolder <- call$continue
+    } else if(dir.exists(file.path(path_gjamTime_out, call$continue))){
       outfolder <- file.path(path_gjamTime_out, call$continue)
     } else {
       outfolder <- .find_continuing_outfolder(path_gjamTime_out, 
                                               name = basename, 
-                                              hash = call$continue)
+                                              hash_id = call$continue)
       if(isFALSE(outfolder)){
-        stop("Continuation of model: continue = ", call$continue, " not found.")
+        if(create.if.notFound){
+          outfolder <- .initialize_new_outfolder(path_gjamTime_out, basename,
+                                                 call_script)
+          warning("Continuation of model: continue = ", call$continue, " not found.\n
+                  Output in ", call$continue)
+        } else {
+          stop("Continuation of model: continue = ", call$continue, " not found.\n
+                  Output in ", call$continue)
+        }
       }
     }
-    call$task_id <- .update_continuing_task_id(outfolder)
   }
-  call$outfolder <- outfolder
+  call$outfolderBase <- outfolder
   call
 }
+
 
 .check_unique_variables <- function(interactionVec, uniqueVec) {
   # Extract base variables
@@ -255,14 +338,18 @@ source("scripts/1_gjamTime/.gjamTime_officialFunctions.R")
   # build subsampling
   if(call$subsample$mode == "regular"){
     max_samples <- call$subsample$size**2
+    # for all reps the same random array
     set.seed(call$subsample$seed)
     random_numbers <- sample(0:(max_samples-1))
-    new_seed <- call$task_id %% max_samples
-    call$subsample$seed <- random_numbers[new_seed + 1]
+    # select from same array dependent on 
+    select <- call$task_id %% max_samples
+    call$subsample$seed <- random_numbers[select + 1]
+    # random within regular grid
     set.seed(call$subsample$seed)
   }
   if(call$subsample$mode == "random"){
     call$subsample$seed <- call$subsample$seed + call$task_id
+    # incremental 
     set.seed(call$subsample$seed)
   }
   call
@@ -369,10 +456,6 @@ source("scripts/1_gjamTime/.gjamTime_officialFunctions.R")
 
 .initialize_and_validate_call <- function(call_scrpt, task_id = NULL){
   
-  ## init task_id
-  if(is.null(task_id)){
-    task_id <- .default_call()$task_id
-  }
   ## initialize call
   call <- .initialize_call(call_scrpt, task_id)
   

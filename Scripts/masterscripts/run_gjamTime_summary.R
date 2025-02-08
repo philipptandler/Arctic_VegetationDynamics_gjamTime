@@ -3,17 +3,17 @@ library(here)
 setwd(here::here())
 
 source("config/config_local.R")
-source("scripts/1_gjamTime/core/normalization_predictors.R")
+source("scripts/core/1_gjamTime/gjamTime_summary.R")
 
 ## read system Arguments and set call
 sysArgs <- commandArgs(trailingOnly = TRUE)
 
 if(length(sysArgs) > 0){
-  call_scrpt <- sysArgs[1]
+  arg <- sysArgs[1]
 }
-if(!exists("call_scrpt")){
+if(!exists("arg")){
   stop("Missing Argument: calling script")
 }
 
-## call normalize_predictor_parameters()
-normalize_predictor_parameters(call_scrpt)
+## call gjamTime_summary
+gjamTime_summary(arg)
