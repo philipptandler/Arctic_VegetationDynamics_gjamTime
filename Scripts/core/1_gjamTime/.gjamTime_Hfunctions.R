@@ -1,4 +1,5 @@
 library(dplyr)
+library(withr)
 library(digest)
 library(terra)
 library(devtools)
@@ -6,13 +7,22 @@ library(gjam)
 
 source("scripts/core/1_gjamTime/.gjamTime_defaultSettings.R") 
 source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
-source("scripts/core/1_gjamTime/.normalization_Hfunctions.R")
 
 
 
 ################################################################################
 ## initialize and validate call ####
 ################################################################################
+# existance of a specific entry in list
+.nested_entry_exists <- function(lst, keys) {
+  for (key in keys) {
+    if (!is.list(lst) || is.null(lst[[key]])) {
+      return(FALSE)
+    }
+    lst <- lst[[key]]
+  }
+  return(TRUE)
+}
 
 
 .is_equivalent_to_default <- function(entry){
@@ -430,10 +440,13 @@ source("scripts/core/1_gjamTime/.normalization_Hfunctions.R")
   
   ## validate subset
   if(!isFALSE(call$subset)){
-    if(!file.exists(file.path(path_masks,call$subset$mask))){
-      stop("Mask for subset not found: ", file.path(path_masks,call$subset$mask))
-    } else {
+    if(file.exists(file.path(path_masks,call$subset$mask))){
       call$subset$doSubset <- TRUE
+    } else if (file.exists(call$subset$mask)){
+      call$subset$doSubset <- TRUE
+      call$subset$mask <- basename(call$subset$mask)
+    } else {
+      stop("Mask for subset not found: ", file.path(path_masks,call$subset$mask))
     }
   }
   
@@ -497,10 +510,11 @@ source("scripts/core/1_gjamTime/.normalization_Hfunctions.R")
       ratio <- sum(init_sample_ind[,2] == 1)/sample_size
       if(sum(init_sample_ind[,2] == 1) == 0){ ratio <- 1/sample_size}
       # true sample corrected for NA
-      true_sample_ind <- spatSample(mastermask, size = as.integer(sample_size/ratio), 
+      true_sample_size <- min(as.integer(sample_size/ratio), ncell(mastermask))
+      true_sample_ind <- spatSample(mastermask, size = true_sample_size, 
                                     method = "random", cells = TRUE)
       samplemask[true_sample_ind] <- TRUE
-    }
+    } 
     if(call$subsample$mode == "regular"){
       seedI <- as.integer(floor(call$subsample$seed/sample_size))
       seedJ <- as.integer(call$subsample$seed %% sample_size)
@@ -754,25 +768,140 @@ source("scripts/core/1_gjamTime/.normalization_Hfunctions.R")
     for(interaction in var_list$interaction){
       if(method == "all"){
         varVec <- append(varVec, interaction)
-      } 
-      # TODO find constant interactions
+      }
+      else if (method == "const"){
+        extracted_vars <- unique(unlist(lapply(interaction, function(x) {
+          # Split by ":" or extract base of power notation
+          unique(gsub("\\d+$", "", unlist(strsplit(x, ":"))))  
+        })))
+        if(all(extracted_vars %in% varVec)){
+          varVec <- append(varVec, interaction)
+        }
+      }
     }
   }
   return(varVec)
 }
 
-# c(setup,
-# termB = FALSE,
-# termR = TRUE,
-# termA = TRUE,
-# normalize = TRUE,
-# # normalize = "ref" for normalizing to reference fulldata, 1984-2020
-# saveOutput = TRUE,
-# showPlot = TRUE)
+## normalization
+
+.sort_variable <- function(interaction_var) {
+  vars <- unlist(strsplit(interaction_var, ":", fixed = TRUE))
+  sorted_vars <- sort(vars)
+  return(paste(sorted_vars, collapse = ":"))
+}
+
+# finds the mu and sd
+.calc_normalization_var <- function(version, subset, varname){
+  
+  ## set seed env 
+  withr::with_seed(1234, {
+    
+    ## load raster generally (works for simple vars as well as var interactions)
+    vars <- .process_interaction(varname)
+    ref_times <- .receive_validVariables()$times
+    ref_times <- append(ref_times, .receive_validVariables()$time_const)
+    reftimePattern <- paste(ref_times, collapse = "|")
+    average_rasters <- list()
+    
+    for(var in vars){
+      pattern <- paste0(".*_(", reftimePattern, ")_", var, "_", version,"\\.tif$")
+      file_path <- list.files(path_gjamTime_in, pattern = pattern, full.names = TRUE)
+      r <- rast(file_path)
+      average_rasters[[var]] <- mean(r)
+    }
+    raster <- Reduce(`*`, average_rasters)
+    
+    
+    ## subset
+    if(!isFALSE(subset)){
+      mask_subset <- rast(file.path(path_masks,call$subset$mask))
+      if(ext(raster) != ext(mask_subset)){raster <- crop(raster, mask_subset)}
+      raster <- mask(raster, mask_subset, maskvalues=0, updatevalue=NA)
+    }
+    
+    ## random sample
+    ncells <- ncell(raster)
+    if(ncells < 1e5){
+      samplesize <- ncells
+    } else {
+      samplesize <- 1e5
+    }
+    # init sample
+    init_sample_ind <- spatSample(raster, size = samplesize, 
+                                  method = "random", cells = TRUE)
+    ratio <- sum(is.na(init_sample_ind[,2]))/samplesize
+    if(sum(is.na(init_sample_ind[,2])) == 0){ ratio <- 1/samplesize}
+    # true sample corrected for NA
+    true_sample_size <- min(as.integer(samplesize/ratio), ncells)
+    true_sample_ind <- spatSample(raster, size = true_sample_size, 
+                                  method = "random", cells = TRUE)
+
+    ## calc mu and sd
+    mu <- mean(true_sample_ind[,2], na.rm =T)
+    sd <- sd(true_sample_ind[,2],na.rm =T)
+    ## return
+    norm_vec <- c(mu, sd)
+    norm_vec
+  }) 
+}
+
+## TODO: "lat" and "lon"
+.check_and_write_norm_param <- function(call){
+  varVec <- .load_variables(call$xvars, "all")
+  version <- call$version
+  subset <- call$subset
+  subset_name <- "alldata"
+  if(!isFALSE(subset)){
+    subset_name <- tools::file_path_sans_ext(basename(subset$mask))
+  }
+  
+  if(file.exists("scripts/project/.normalization/.norm_param.rds")){
+    ref_list <- readRDS("scripts/project/.normalization/.norm_param.rds")
+  } else {
+    ref_list <- list()
+  }
+  for (var in varVec){
+    varname <- .sort_variable(var)
+    if(!.nested_entry_exists(ref_list, c(version, subset_name, varname))){
+      # write entry as vector c(Mu, Sd)
+      ref_list[[version]][[subset_name]][[varname]] <- .calc_normalization_var(version,
+                                                                               subset,
+                                                                               varname)
+    }
+  }
+  # save list
+  saveRDS(ref_list, "scripts/project/.normalization/.norm_param.rds")
+}
 
 
+.normalize_gjamTime_predictors <- function(call, allVars, xdata){
+  ## check if normalization parameter exist, calc if required
+  .check_and_write_norm_param(call)
+  ## normalize input with normalisation parameters
+  ref_list <- readRDS("scripts/project/.normalization/.norm_param.rds")
+  version <- call$version
+  subset <- call$subset
+  subset_name <- "alldata"
+  if(!isFALSE(subset)){
+    subset_name <- tools::file_path_sans_ext(basename(subset$mask))
+  }
+  for(col in allVars){
+    col_ref <- .sort_variable(col)
+    mu <- ref_list[[version]][[subset_name]][[col_ref]][1]
+    sd <- ref_list[[version]][[subset_name]][[col_ref]][2]
+    xdata[[col]] <- (xdata[[col]]-mu)/sd
+  }
+  return(xdata)
+}
+
+
+
+
+
+## main model fit
 .fit_gjamTime <- function(call,
-                          fixwarning = TRUE){
+                          fixWarning = TRUE){
   # general version to fix bug
   if(fixWarning){.redirect_gjam()}
   
@@ -783,9 +912,9 @@ source("scripts/core/1_gjamTime/.normalization_Hfunctions.R")
   edata <- matrix(1, nrow = nrow(ydata), ncol = ncol(ydata))
   colnames(edata) <- colnames(ydata)
   
-  xvars_list <- call$xvars
-  yvars_list <- call$yvars
-  name <- call$name
+  # xvars_list <- call$xvars
+  # yvars_list <- call$yvars
+  modelname <- call$name
   
   ## Missing values in time series data
   # prepare input
@@ -796,7 +925,8 @@ source("scripts/core/1_gjamTime/.normalization_Hfunctions.R")
   constVars <- .load_variables(call$xvars, "const")
   allVars < .load_variables(call$xvars, "all")
 
-  ## TODO continue here normalization
+  ## normalization
+  xdata <- .normalize_gjamTime_predictors(call, allVars, xdata)
   
   ## >>>>>>>>>>>>>> (old)
   # general Vesions

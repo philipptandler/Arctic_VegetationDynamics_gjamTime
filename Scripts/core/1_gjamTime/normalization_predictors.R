@@ -4,7 +4,7 @@
 ## sourcing general scripts ####
 source("scripts/core/1_gjamTime/.gjamTime_Hfunctions.R")
 
-# revieves a callscript and writes 
+# recieves a call script and writes in a list
 normalize_predictor_parameters <- function(call_scrpt){
   
   # get call
@@ -12,6 +12,7 @@ normalize_predictor_parameters <- function(call_scrpt){
   
   # normalize for given predictors
   # for each variable write mean and sd in list
+  .check_and_write_norm_param(call)
   
 }
 normalize_predictor_rasters <- function(call_scrpt){

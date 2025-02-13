@@ -3,7 +3,7 @@ library(here)
 setwd(here::here())
 
 source("config/config_local.R")
-source("scripts/1_gjamTime/core/normalization_predictors.R")
+source("scripts/core/1_gjamTime/normalization_predictors.R")
 
 ## read system Arguments and set call
 sysArgs <- commandArgs(trailingOnly = TRUE)
