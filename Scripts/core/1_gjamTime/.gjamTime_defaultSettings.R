@@ -2,7 +2,8 @@
   ## these are the default parameters
   def_name <- "gjamTime_model"
   def_continue <- FALSE
-  def_outfolder <- FALSE
+  def_outfolderBase <- FALSE
+  def_outfolderSub <- FALSE
   def_task_id <- 1
   
   def_yvars <- FALSE 
@@ -59,7 +60,8 @@
   default <- list(
     name = def_name,
     continue = def_continue,
-    outfolder = def_outfolder,
+    outfolderBase = def_outfolderBase,
+    outfolderSub = def_outfolderSub,
     task_id = def_task_id,
     yvars = def_yvars,
     xvars = def_xvars,
@@ -98,4 +100,12 @@
     seed = 1
   )
   subsample
+}
+
+.default_output_size <- function(){
+  list(
+    saveOutput = 1e4,
+    saveCallRDS = 1e4,
+    saveCalltxt = 1e2
+  )
 }

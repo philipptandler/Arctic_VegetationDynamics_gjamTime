@@ -13,7 +13,8 @@ valid_times <- c("1984-1990",
 valid_time_const <- "const"
 
 # var_list captures all variables
-# name is used to acess this variable group in path_gjam_in
+# groupname is used to access this variable group in path_gjam_in
+# groupname makes the files more organized in path_gjam_in
 # isDynamic tells if variable changes over time (TRUE) or is constant (FALSE)
 # safe the files as groupname_time_variable_version.tif. E.g.:
 # veg_1984-1990_sh_full.tif, or topo_const_elev_full.tif

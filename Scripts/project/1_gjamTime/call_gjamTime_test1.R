@@ -48,9 +48,9 @@ subset <- list(
 subsample <- list(
   doSubsample = TRUE, #recommended TRUE: FALSE might crash due to memory overflow
   mode = "regular", # or "random"
-  # if 'regular' distance between grid points, if 'ramdom' number of subsamples
+  # if 'regular' distance between grid points, if 'random' number of subsamples
   size = 2, 
-  seed = 1 # sets a first seed
+  seed = 1 # sets a seed for the first run, will change for further subsamples 
 )
 
 #' what model to choose, see gjamTime vignette
