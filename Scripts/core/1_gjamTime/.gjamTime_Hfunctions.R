@@ -779,9 +779,21 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
     
     nrast<-1
     for(var in vars){
-      pattern <- paste0(".*_(", reftimePattern, ")_", var, "_", version,"\\.tif$")
-      file_path <- list.files(path_gjamTime_in, pattern = pattern, full.names = TRUE)
-      r <- rast(file_path)
+      if(var == "lat" || var == "lon"){
+        mastermask <- rast(file.path(path_masks, name_master_mask))
+        r <- mastermask
+        if(var == "lat"){
+          values(r) <- yFromCell(mastermask, 1:ncell(mastermask))
+        } 
+        if(var == "lon"){
+          values(r) <- xFromCell(mastermask, 1:ncell(mastermask))
+        }
+        r <- mask(r, mastermask, maskvalues=0, updatevalue=NA)
+      }else{
+        pattern <- paste0(".*_(", reftimePattern, ")_", var, "_", version,"\\.tif$")
+        file_path <- list.files(path_gjamTime_in, pattern = pattern, full.names = TRUE)
+        r <- rast(file_path)
+      }
       
       ## subset
       if(!isFALSE(subset)){

@@ -2,7 +2,7 @@
 #' folders in path_gjam_out and in path_analysis
 #' The only strictly required entry is yvars (the response variable)
 
-name <- "test1"
+name <- "test3"
 
 # continue <- "e4ca783bd375"
 
@@ -21,15 +21,19 @@ yvars <- list(
 
 xvars <- list(
   topography = c("elev", "slope", "cosasp", "tpi"),
-  y = FALSE, # to get latitude
-  x = FALSE, # to get longitude
-  climate = c("prs", "tass"),
-  interaction = c("elev:slope", "tass:prs", "tass2") 
+  y = F, # to get latitude
+  x = F, # to get longitude
+  climate = c("prs", "prw", "tass", "tasw"),
+  interaction = c("elev:slope", "tass:prs", "tass2", "tass3") 
 )
 
 #' what time periods are considered for this model fit 
 times <- c("1984-1990",
-           "1991-1996")
+           "1991-1996",
+           "1997-2002",
+           "2003-2008",
+           "2009-2014",
+           "2015-2020")
 
 # what version of the data is used
 version <- "full"
@@ -70,7 +74,7 @@ model <- list(
 priorSettings <- list(
   rho=list(
     variables=list(
-      lo=-1234,
+      lo=-100,
       hi=100)),
   alpha=-1)
 
