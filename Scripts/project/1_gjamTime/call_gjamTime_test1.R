@@ -21,10 +21,10 @@ yvars <- list(
 
 xvars <- list(
   topography = c("elev", "slope", "cosasp", "tpi"),
-  y = F, # to get latitude
-  x = F, # to get longitude
+  y = FALSE, # to get latitude
+  x = FALSE, # to get longitude
   climate = c("prs", "prw", "tass", "tasw"),
-  interaction = c("elev:slope", "tass:prs", "tass2", "tass3") 
+  interaction = c("elev:slope", "tass:prs", "tass2", "tass3", "tass4") 
 )
 
 #' what time periods are considered for this model fit 

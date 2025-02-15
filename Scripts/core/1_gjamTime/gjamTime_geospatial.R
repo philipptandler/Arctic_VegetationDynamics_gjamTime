@@ -8,11 +8,13 @@ gjamTime_geospatial <- function(call_scrpt,
                                 savePlots=TRUE,
                                 showPlots=FALSE){
   if(FALSE){
+    # for debugging
     task_id=NULL
     saveOutput=TRUE
     savePlots=TRUE
     showPlots=FALSE
     fixWarning=T
+  
   }
   
   ## initialize and validate call

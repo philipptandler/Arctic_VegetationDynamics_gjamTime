@@ -222,7 +222,7 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   subfolder_name <- append(subfolder_name, call$version)
   subfolder_name <- paste(subfolder_name, collapse = "_")
   if(dir.exists(file.path(call$outfolderBase, subfolder_name))){
-    stop("Check if model already exists in: \n",
+    warning("Check if model already exists in: \n",
          file.path(call$outfolderBase, subfolder_name))
   }
   call$outfolderSub <- subfolder_name
@@ -486,7 +486,7 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
       true_sample_size <- min(as.integer(sample_size/ratio), ncell(mastermask))
       true_sample_ind <- spatSample(mastermask, size = true_sample_size, 
                                     method = "random", cells = TRUE)
-      samplemask[true_sample_ind] <- TRUE
+      samplemask[true_sample_ind[,1]] <- TRUE
     } 
     if(call$subsample$mode == "regular"){
       seedI <- as.integer(floor(call$subsample$seed/sample_size))
@@ -757,6 +757,11 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
 }
 
 ## normalization
+.binTimeCode <- function(time_vec){
+  ref_vec <-.receive_validVariables()$times
+  bin_vec <- ref_vec %in% time_vec
+  return(paste0(as.integer(bin_vec), collapse = ""))
+}
 
 .sort_variable <- function(interaction_var) {
   vars <- unlist(strsplit(interaction_var, ":", fixed = TRUE))
@@ -765,14 +770,14 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
 }
 
 # finds the mu and sd
-.calc_normalization_var <- function(version, subset, varname){
+.calc_normalization_var <- function(version, subset, times, varname){
   
   ## set seed env 
   withr::with_seed(1234, {
     
     ## load raster generally (works for simple vars as well as var interactions)
     vars <- .process_interaction(varname)
-    ref_times <- .receive_validVariables()$times
+    ref_times <- times
     ref_times <- append(ref_times, .receive_validVariables()$time_const)
     reftimePattern <- paste(ref_times, collapse = "|")
     rstack <- list()
@@ -797,7 +802,7 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
       
       ## subset
       if(!isFALSE(subset)){
-        mask_subset <- rast(file.path(path_masks,call$subset$mask))
+        mask_subset <- rast(file.path(path_masks,subset$mask))
         if(ext(r) != ext(mask_subset)){r <- crop(r, mask_subset)}
         r <- mask(r, mask_subset, maskvalues=0, updatevalue=NA)
       }
@@ -806,18 +811,10 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
       nrast <- nrast+1
     }
     raster <- Reduce(`*`, rstack)
-    raster <- mean(raster)
-    
-    ## subset
-    if(!isFALSE(subset)){
-      mask_subset <- rast(file.path(path_masks,call$subset$mask))
-      if(ext(raster) != ext(mask_subset)){raster <- crop(raster, mask_subset)}
-      raster <- mask(raster, mask_subset, maskvalues=0, updatevalue=NA)
-    }
-    
+    # raster <- mean(raster) wrong
     ## random sample
     ncells <- ncell(raster)
-    if(ncells < 1e5){
+    if(ncells <= 1e5){
       samplesize <- ncells
     } else {
       samplesize <- 1e5
@@ -831,17 +828,20 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
     true_sample_size <- min(as.integer(samplesize/ratio), ncells)
     true_sample_ind <- spatSample(raster, size = true_sample_size, 
                                   method = "random", cells = TRUE)
+    vals <- c()
+    for(index in 2:ncol(true_sample_ind)){
+     vals <- append(vals, true_sample_ind[,index])
+    }
 
     ## calc mu and sd
-    mu <- mean(true_sample_ind[,2], na.rm =T)
-    sd <- sd(true_sample_ind[,2],na.rm =T)
+    mu <- mean(vals, na.rm =T)
+    sd <- sd(vals, na.rm =T)
     ## return
     norm_vec <- c(mu, sd)
     norm_vec
   }) 
 }
 
-## TODO: "lat" and "lon"
 .check_and_write_norm_param <- function(call, new = F){
   varVec <- .load_variables(call$xvars, "all")
   version <- call$version
@@ -850,6 +850,7 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   if(!isFALSE(subset)){
     subset_name <- tools::file_path_sans_ext(basename(subset$mask))
   }
+  time_code <- .binTimeCode(call$times)
   
   if(!new && file.exists("scripts/project/.normalization/.norm_param.rds")){
     ref_list <- readRDS("scripts/project/.normalization/.norm_param.rds")
@@ -858,11 +859,15 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   }
   for (var in varVec){
     varname <- .sort_variable(var)
-    if(!.nested_entry_exists(ref_list, c(version, subset_name, varname))){
+    if(!.nested_entry_exists(ref_list,
+                             c(version, subset_name, varname, time_code))
+       ){
       # write entry as vector c(Mu, Sd)
-      ref_list[[version]][[subset_name]][[varname]] <- .calc_normalization_var(version,
-                                                                               subset,
-                                                                               varname)
+      ref_list[[version]][[subset_name]][[time_code]][[varname]] <- 
+        .calc_normalization_var(version,
+                                subset,
+                                call$times,
+                                varname)
     }
   }
   # save list
@@ -881,10 +886,11 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   if(!isFALSE(subset)){
     subset_name <- tools::file_path_sans_ext(basename(subset$mask))
   }
+  time_code <- .binTimeCode(call$times)
   for(col in allVars){
     col_ref <- .sort_variable(col)
-    mu <- ref_list[[version]][[subset_name]][[col_ref]][1]
-    sd <- ref_list[[version]][[subset_name]][[col_ref]][2]
+    mu <- ref_list[[version]][[subset_name]][[time_code]][[col_ref]][1]
+    sd <- ref_list[[version]][[subset_name]][[time_code]][[col_ref]][2]
     xdata[[col]] <- (xdata[[col]]-mu)/sd
   }
   return(xdata)
@@ -967,7 +973,7 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
                           saveOutput,
                           savePlots,
                           showPlots,
-                          fixWarning){
+                          fixWarning=T){
   # general version to fix bug
   if(fixWarning){.redirect_gjam()}
   
@@ -1058,7 +1064,7 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   output <- gjam(formula, xdata=xdata, ydata=ydata, modelList=modelList)
   
   ## save or show outputs
-  if(saveOutput || savePlots || showPlots){
+  if(saveOutput || savePlots){
     outFolder <- file.path(call$outfolderBase, call$outfolderSub)
     if(dir.exists(outFolder)){
       newname <- .get_outfolder(call$outfolderBase, call$outfolderSub, full = F)
@@ -1075,12 +1081,6 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
                         SAVEPLOTS = savePlots, outFolder = outFolder)
       gjamPlot(output, plotPars)
     }
-    if(showPlots){
-      plotPars  <- list(PLOTALLY=T,
-                        SAVEPLOTS = F, outFolder = outFolder)
-      gjamPlot(output, plotPars)
-    }
-    
     # output
     if(saveOutput){
       # call
@@ -1088,12 +1088,17 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
       saveRDS(call_saverds, file = file.path(outFolder, "call.rds"))
       call_savetxt <- .remove_large_entries(call, .default_output_size()$saveCalltxt)
       sink(file.path(outFolder, "call.txt"))
-      print(call_save)
+      print(call_savetxt)
       sink()
       # output
       output_save <- .remove_large_entries(.default_output_size()$saveOutputRData)
       save(output_save, file = file.path(outFolder, "output.rdata"))
     }
+  }
+  if(showPlots){
+    plotPars  <- list(PLOTALLY=T,
+                      SAVEPLOTS = F)
+    gjamPlot(output, plotPars)
   }
   
   if(fixWarning){.stop_redirect_gjam()}
