@@ -243,6 +243,87 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   }
 }
 
+.extract_base_power <- function(var) {
+  # If the var ends with a number, we extract the base and the power
+  if (grepl("\\d+$", var)) {
+    base <- sub("\\d+$", "", var)  # Extract the base variable (e.g., "A" from "A2")
+    power <- as.numeric(sub("^\\D+", "", var))  # Extract the exponent (e.g., 2 from "A2")
+    return(c(base, power))
+  }
+  return(c(var, 1))  # If no number, assume power 1
+}
+
+.expand_powers <- function(name, order, base=T){
+  if(order < 1){return()}
+  if(order == 1 && !base){return()}
+  order_nr <- c(1:order)
+  order_nr <- as.character(order_nr)
+  if(base){order_nr[1] <- ""}
+  else {order_nr <- order_nr[-1]}
+  expanded <- paste0(name, order_nr)
+  return(expanded)
+}
+
+
+.simplify_interactions <- function(interactionVec){
+  parsed_terms <- strsplit(interactionVec, ":")
+  # each var and the highest power
+  power_list <- list()
+  # highest order interaction
+  interaction_list <- list()
+  for(term in parsed_terms){
+    # vars_powers is list that holds var and power for each term
+    vars_powers <- list()
+    for(entry in term){
+      vp <- .extract_base_power(entry)
+      var <- vp[1]
+      power <- as.integer(vp[2])
+      if(is.null(vars_powers[[var]])){
+        vars_powers[[var]] <- power
+      } else {
+        vars_powers[[var]] <- vars_powers[[var]] + power
+      }
+    }
+    
+    # write power
+    for(var in names(vars_powers)){
+      if(is.null(power_list[[var]])){
+        power_list[[var]] <- vars_powers[[var]]
+      } else {
+        power_list[[var]] <- max(power_list[[var]], vars_powers[[var]])
+      }
+    }
+    
+    # write interaction
+    if(length(vars_powers) > 1){
+      min_val <- max(min(unlist(vars_powers)), 1) # Find the lowest value in the list
+      var_int_base <- .sort_variable(paste0(names(vars_powers), collapse = ":"))
+      if(is.null(interaction_list[[var_int_base]])){
+        interaction_list[[var_int_base]] <- min_val
+      } else {
+        interaction_list[[var_int_base]] <- max(interaction_list[[var_int_base]], min_val)
+      }
+    }
+  }
+  # power_list holds vars and highest power
+  # interaction_list holds base interaction (A:C) and highest order e.g. 1
+  powers_vec <- c()
+  for(var in names(power_list)){
+    all_powers_var <- .expand_powers(var, power_list[[var]], base=F)
+    powers_vec <- append(powers_vec, all_powers_var)
+  }
+  interactions_vec <- c()
+  for(interaction in names(interaction_list)){
+    order <- interaction_list[[interaction]]
+    expanded_interactions <- c()
+    vars <- strsplit(interaction, ":")
+    for(var in vars){
+      other_vars <- setdiff(vars, var)
+      other_vars <- paste0(other_vars, collapse)
+    }
+  }
+}
+
 ## validates variables in yvars, xvars
 
 .validate_variables <- function(provided_vars, valid_vars, which){
@@ -283,6 +364,7 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   ## assert all interaction variables are in varvec unique
   if(!isFALSE(provided_vars$interaction)){
     .check_unique_variables(provided_vars$interaction, varVecUnique)
+    provided_vars$interaction <- .simplify_interactions(provided_vars$interaction)
   }
   ## assert no interactions for response variable
   if(which == "yvars"){
@@ -401,16 +483,21 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
     }
   }
   
-  ## validate yvars
-  call$yvars <- .validate_variables(call$yvars, valid_vars$variables, "yvars")
-  call$yvars$times = call$times
-  call$yvars$version = call$version
+  ## TODO Check if isFALSE yvars, xvars !
+  if(!isFALSE(call$yvars)){
+    ## validate yvars
+    call$yvars <- .validate_variables(call$yvars, valid_vars$variables, "yvars")
+    call$yvars$times = call$times
+    call$yvars$version = call$version
+  } else {stop("No yvars (response) specified")}
   
-  ## validate xvars
-  call$xvars <- .validate_variables(call$xvars, valid_vars$variables, "xvars")
-  call$xvars$times = call$times
-  call$xvars$version = call$version
-  
+  if(!isFALSE(call$xvars)){
+    ## validate xvars
+    call$xvars <- .validate_variables(call$xvars, valid_vars$variables, "xvars")
+    call$xvars$times = call$times
+    call$xvars$version = call$version
+  } # xvars can be FALSE
+
   ## validate subset
   if(!isFALSE(call$subset)){
     if(file.exists(file.path(path_masks,call$subset$mask))){
@@ -646,6 +733,8 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
       if(!var_list$x){df <- df %>% dplyr::select(-lon)}
       if(!var_list$y){df <- df %>% dplyr::select(-lat)}
     }
+    # normalize
+    
     # add interactions
     if(!isFALSE(var_list$interaction)){
       for(entry in var_list$interaction){
@@ -687,6 +776,9 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   df <- .load_geodata_as_dataframe(call$xvars,
                                    call$gjamTime_data_in, which = "xdata",
                                    dropgroup = FALSE, droptime = FALSE)
+  # normalization
+  allVars <- .load_variables(call$xvars, "all")
+  df <- .normalize_gjamTime_predictors(call, allVars, df)
   df
 }
 
