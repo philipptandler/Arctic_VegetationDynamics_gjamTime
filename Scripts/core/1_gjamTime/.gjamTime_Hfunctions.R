@@ -2,6 +2,7 @@ library(dplyr)
 library(withr)
 library(digest)
 library(terra)
+library(orthopolynom)
 library(devtools)
 library(gjam)
 
@@ -312,16 +313,46 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
     all_powers_var <- .expand_powers(var, power_list[[var]], base=F)
     powers_vec <- append(powers_vec, all_powers_var)
   }
+  
   interactions_vec <- c()
   for(interaction in names(interaction_list)){
     order <- interaction_list[[interaction]]
     expanded_interactions <- c()
-    vars <- strsplit(interaction, ":")
+    vars <- strsplit(interaction, ":")[[1]]
     for(var in vars){
       other_vars <- setdiff(vars, var)
-      other_vars <- paste0(other_vars, collapse)
+      other_vars <- paste0(other_vars, collapse = ":")
+      expanded_othervars <- c()
+      for(ovar in other_vars){
+        tmp <- .expand_powers(ovar, order, base=T)
+        if(length(expanded_othervars) == 0){
+          expanded_othervars <- tmp
+        } else {
+          expanded_othervars <- as.vector(outer(expanded_othervars,
+                                                tmp,
+                                                function(x,y) paste(x, y, sep = ":")))
+        }
+      }
+      expanded_var <- .expand_powers(var, power_list[[var]], base=T)
+      tmp <- as.vector(outer(expanded_othervars,
+                             expanded_var,
+                             function(x,y) paste(x, y, sep = ":")))
+      expanded_interactions <- append(expanded_interactions, tmp)
     }
+    for(i in 1:length(expanded_interactions)){
+      expanded_interactions[i] <- .sort_variable(expanded_interactions[i])
+    }
+    expanded_interactions <- unique(expanded_interactions)
+    interactions_vec <- append(interactions_vec, expanded_interactions)
   }
+  int_list <- list(
+    powers = powers_vec,
+    interactions = interactions_vec
+  )
+  for(entry in names(int_list)){
+    if(is.null(int_list[[entry]])){int_list[[entry]] <- FALSE}
+  }
+  int_list
 }
 
 ## validates variables in yvars, xvars
@@ -364,11 +395,14 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   ## assert all interaction variables are in varvec unique
   if(!isFALSE(provided_vars$interaction)){
     .check_unique_variables(provided_vars$interaction, varVecUnique)
-    provided_vars$interaction <- .simplify_interactions(provided_vars$interaction)
+    int_list <- .simplify_interactions(provided_vars$interaction)
+    provided_vars$interaction <- int_list$interactions
+    provided_vars$powers <- int_list$powers
   }
   ## assert no interactions for response variable
   if(which == "yvars"){
     provided_vars$interaction <- FALSE
+    provided_vars$powers <- FALSE
     provided_vars$x <- FALSE
     provided_vars$y <- FALSE
   }
@@ -483,7 +517,6 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
     }
   }
   
-  ## TODO Check if isFALSE yvars, xvars !
   if(!isFALSE(call$yvars)){
     ## validate yvars
     call$yvars <- .validate_variables(call$yvars, valid_vars$variables, "yvars")
@@ -676,7 +709,9 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   
   # subset and subsample
   # writes subsetted and subsampled data in path_gjamTime_tmp
-  .sample_geodata(var_list = call$xvars, which = "xdata", samplemask = samplemask)
+  if(!isFALSE(call$xvars)){
+    .sample_geodata(var_list = call$xvars, which = "xdata", samplemask = samplemask)
+  }
   .sample_geodata(var_list = call$yvars, which = "ydata", samplemask = samplemask)
   
   # adjust path for subsetted, subsampled vairables and return
@@ -690,9 +725,8 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
 ## load geospatial rasters as dataframes ####
 ################################################################################
 
-
 # Function to return the elements of each interaction. 
-.process_interaction <- function(x) {
+.split_interaction <- function(x) {
   if (grepl("^[A-Za-z]+\\d+$", x)) {
     # Handles cases like "A2", "A3"
     var <- gsub("\\d+", "", x)                # Extract "A"
@@ -706,9 +740,9 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
 
 .load_geodata_as_dataframe <- function(var_list,
                                        path_files,
-                                       which,
                                        dropgroup = TRUE,
                                        droptime = TRUE){
+  
   # list for dataframes
   data_list <- list()
   n_timesteps <- length(var_list$times)
@@ -732,15 +766,6 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
     if(getxy){
       if(!var_list$x){df <- df %>% dplyr::select(-lon)}
       if(!var_list$y){df <- df %>% dplyr::select(-lat)}
-    }
-    # normalize
-    
-    # add interactions
-    if(!isFALSE(var_list$interaction)){
-      for(entry in var_list$interaction){
-        vars <- .process_interaction(entry)
-        df[[entry]] <- Reduce(`*`, lapply(vars, function(v) df[[v]]))
-      }
     }
     # add time
     df$time <- tm
@@ -771,45 +796,53 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   ordered_df
 }
 
+.uncorr_predictors <- function(df, call){
+  var_list <- call$xvars
+  # normalize
+  baseVars <- .load_variables(var_list, "base")
+  df <- .normalize_gjamTime_predictors(call, baseVars, df)
+  # add interactions
+  if(!isFALSE(var_list$powers)){
+    for(entry in var_list$powers){
+      vp <- .extract_base_power(entry)
+      var <- vp[1]
+      power <- as.integer(vp[2])
+      df[[entry]] <- .lengedre_poly(df[[var]], power)
+    }
+  }
+  if(!isFALSE(var_list$interaction)){
+    for(entry in var_list$interaction){
+      vars <- .split_interaction(entry)
+      df[[entry]] <- Reduce(`*`, lapply(vars, function(v) df[[v]]))
+    } 
+  }
+  df
+}
 
 .load_predictors <- function(call){
-  df <- .load_geodata_as_dataframe(call$xvars,
-                                   call$gjamTime_data_in, which = "xdata",
+  if(isFALSE(call$xvars))return(NULL)
+  df <- .load_geodata_as_dataframe(call$xvars, call$gjamTime_data_in,
                                    dropgroup = FALSE, droptime = FALSE)
-  # normalization
-  allVars <- .load_variables(call$xvars, "all")
-  df <- .normalize_gjamTime_predictors(call, allVars, df)
+  df <- .uncorr_predictors(df, call)
   df
 }
 
 .load_response <- function(call){
-  df <- .load_geodata_as_dataframe(call$yvars, 
-                                   call$gjamTime_data_in, which = "ydata",
+  df <- .load_geodata_as_dataframe(call$yvars, call$gjamTime_data_in,
                                    dropgroup = TRUE, droptime = TRUE)
   df
 }
 
 
 ################################################################################
-## fit gjamTime ####
+## data normalisation ####
 ################################################################################
 
-.redirect_gjam <- function(){
-  source("scripts/core/1_gjamTime/.gjamTime_adjustments.R")
-  environment(.rhoPriorMod) <- asNamespace('gjam')
-  assignInNamespace(".rhoPrior", .rhoPriorMod, ns = "gjam")
-}
-.stop_redirect_gjam <- function(){
-  # reload package
-  detach("package:gjam", unload=TRUE)
-  library(gjam)
-}
-
-
-
-.is_const_interaction <- function(interaction){
-  vars <- .process_interaction(interaction)
-  const <- c()
+# Lengendre polynomial, x is vector, raster, ..., n is order of highest power
+.lengedre_poly <- function(x, n) {
+  leg_poly_func <- as.function(legendre.polynomials(n, normalized=F)[[n+1]])
+  xn <- leg_poly_func(x) 
+  return(xn)
 }
 
 # returns specified variables in call as vector
@@ -820,7 +853,7 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   varVec <- c()
   for(entry in names(valid_vars)){
     if(!isFALSE(var_list[[entry]])){
-      if(method == "all"){
+      if(method == "all" || method == "base"){
         varVec <- append(varVec, var_list[[entry]])
       } else if (method == "const" && !valid_vars[[entry]]$isDynamic){
         varVec <- append(varVec, var_list[[entry]])
@@ -829,8 +862,13 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   }
   if(var_list$x){varVec <- append(varVec, "lon")}
   if(var_list$y){varVec <- append(varVec, "lat")}
-  if(!isFALSE(var_list$interaction)){
-    for(interaction in var_list$interaction){
+  if(method == "base"){return(varVec)}
+  # interactions and powers
+  if(!isFALSE(var_list$interaction) || !isFALSE(var_list$powers)){
+    interactions <- c()
+    if(!isFALSE(var_list$powers)){interactions <- append(interactions, var_list$powers)}
+    if(!isFALSE(var_list$interaction)){interactions <- append(interactions, var_list$interaction)}
+    for(interaction in interactions){
       if(method == "all"){
         varVec <- append(varVec, interaction)
       }
@@ -861,70 +899,166 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   return(paste(sorted_vars, collapse = ":"))
 }
 
+
+# # finds the mu and sd
+# .calc_normalization_var <- function(version, subset, times, varname){
+#   
+#   ## set seed env 
+#   withr::with_seed(1234, {
+#     
+#     ## load raster generally (works for simple vars as well as var interactions)
+#     vars <- .split_interaction(varname)
+#     ref_times <- times
+#     ref_times <- append(ref_times, .receive_validVariables()$time_const)
+#     reftimePattern <- paste(ref_times, collapse = "|")
+#     rstack <- list()
+#     
+#     nrast<-1
+#     for(var in vars){
+#       if(var == "lat" || var == "lon"){
+#         mastermask <- rast(file.path(path_masks, name_master_mask))
+#         r <- mastermask
+#         if(var == "lat"){
+#           values(r) <- yFromCell(mastermask, 1:ncell(mastermask))
+#         } 
+#         if(var == "lon"){
+#           values(r) <- xFromCell(mastermask, 1:ncell(mastermask))
+#         }
+#         r <- mask(r, mastermask, maskvalues=0, updatevalue=NA)
+#       }else{
+#         pattern <- paste0(".*_(", reftimePattern, ")_", var, "_", version,"\\.tif$")
+#         file_path <- list.files(path_gjamTime_in, pattern = pattern, full.names = TRUE)
+#         r <- rast(file_path)
+#       }
+#       
+#       ## subset
+#       if(!isFALSE(subset)){
+#         mask_subset <- rast(file.path(path_masks,subset$mask))
+#         if(ext(r) != ext(mask_subset)){r <- crop(r, mask_subset)}
+#         r <- mask(r, mask_subset, maskvalues=0, updatevalue=NA)
+#       }
+#       
+#       rstack[[nrast]] <- r
+#       nrast <- nrast+1
+#     }
+#     raster <- Reduce(`*`, rstack)
+#     # raster <- mean(raster) wrong
+#     ## random sample
+#     ncells <- ncell(raster)
+#     if(ncells <= 1e5){
+#       samplesize <- ncells
+#     } else {
+#       samplesize <- 1e5
+#     }
+#     # init sample
+#     init_sample_ind <- spatSample(raster, size = samplesize, 
+#                                   method = "random", cells = TRUE)
+#     ratio <- sum(is.na(init_sample_ind[,2]))/samplesize
+#     if(sum(is.na(init_sample_ind[,2])) == 0){ ratio <- 1/samplesize}
+#     # true sample corrected for NA
+#     true_sample_size <- min(as.integer(samplesize/ratio), ncells)
+#     true_sample_ind <- spatSample(raster, size = true_sample_size, 
+#                                   method = "random", cells = TRUE)
+#     vals <- c()
+#     for(index in 2:ncol(true_sample_ind)){
+#       vals <- append(vals, true_sample_ind[,index])
+#     }
+#     
+#     ## calc mu and sd
+#     mu <- mean(vals, na.rm =T)
+#     sd <- sd(vals, na.rm =T)
+#     ## return
+#     norm_vec <- c(mu, sd)
+#     norm_vec
+#   }) 
+# }
+# 
+# .check_and_write_norm_param <- function(call, reset = F){
+#   varVec <- .load_variables(call$xvars, "all")
+#   version <- call$version
+#   subset <- call$subset
+#   subset_name <- "alldata"
+#   if(!isFALSE(subset)){
+#     subset_name <- tools::file_path_sans_ext(basename(subset$mask))
+#   }
+#   time_code <- .binTimeCode(call$times)
+#   
+#   if(!reset && file.exists("scripts/project/.normalization/.norm_param.rds")){
+#     ref_list <- readRDS("scripts/project/.normalization/.norm_param.rds")
+#   } else {
+#     ref_list <- list()
+#   }
+#   for (var in varVec){
+#     varname <- .sort_variable(var)
+#     if(!.nested_entry_exists(ref_list,
+#                              c(version, subset_name, varname, time_code))
+#     ){
+#       # write entry as vector c(Mu, Sd)
+#       ref_list[[version]][[subset_name]][[time_code]][[varname]] <- 
+#         .calc_normalization_var(version,
+#                                 subset,
+#                                 call$times,
+#                                 varname)
+#     }
+#   }
+#   # save list
+#   saveRDS(ref_list, "scripts/project/.normalization/.norm_param.rds")
+# }
+
 # finds the mu and sd
-.calc_normalization_var <- function(version, subset, times, varname){
+.calc_normalization_var <- function(version, subset, times, var){
   
   ## set seed env 
   withr::with_seed(1234, {
     
     ## load raster generally (works for simple vars as well as var interactions)
-    vars <- .process_interaction(varname)
     ref_times <- times
     ref_times <- append(ref_times, .receive_validVariables()$time_const)
     reftimePattern <- paste(ref_times, collapse = "|")
     rstack <- list()
     
-    nrast<-1
-    for(var in vars){
-      if(var == "lat" || var == "lon"){
-        mastermask <- rast(file.path(path_masks, name_master_mask))
-        r <- mastermask
-        if(var == "lat"){
-          values(r) <- yFromCell(mastermask, 1:ncell(mastermask))
-        } 
-        if(var == "lon"){
-          values(r) <- xFromCell(mastermask, 1:ncell(mastermask))
-        }
-        r <- mask(r, mastermask, maskvalues=0, updatevalue=NA)
-      }else{
-        pattern <- paste0(".*_(", reftimePattern, ")_", var, "_", version,"\\.tif$")
-        file_path <- list.files(path_gjamTime_in, pattern = pattern, full.names = TRUE)
-        r <- rast(file_path)
+    if(var == "lat" || var == "lon"){
+      mastermask <- rast(file.path(path_masks, name_master_mask))
+      r <- mastermask
+      if(var == "lat"){
+        values(r) <- yFromCell(mastermask, 1:ncell(mastermask))
+      } 
+      if(var == "lon"){
+        values(r) <- xFromCell(mastermask, 1:ncell(mastermask))
       }
-      
-      ## subset
-      if(!isFALSE(subset)){
-        mask_subset <- rast(file.path(path_masks,subset$mask))
-        if(ext(r) != ext(mask_subset)){r <- crop(r, mask_subset)}
-        r <- mask(r, mask_subset, maskvalues=0, updatevalue=NA)
-      }
-      
-      rstack[[nrast]] <- r
-      nrast <- nrast+1
+      r <- mask(r, mastermask, maskvalues=0, updatevalue=NA)
+    }else{
+      pattern <- paste0(".*_(", reftimePattern, ")_", var, "_", version,"\\.tif$")
+      file_path <- list.files(path_gjamTime_in, pattern = pattern, full.names = TRUE)
+      r <- rast(file_path)
     }
-    raster <- Reduce(`*`, rstack)
-    # raster <- mean(raster) wrong
+    ## subset
+    if(!isFALSE(subset)){
+      mask_subset <- rast(file.path(path_masks,subset$mask))
+      if(ext(r) != ext(mask_subset)){r <- crop(r, mask_subset)}
+      r <- mask(r, mask_subset, maskvalues=0, updatevalue=NA)
+    }
     ## random sample
-    ncells <- ncell(raster)
+    ncells <- ncell(r)
     if(ncells <= 1e5){
       samplesize <- ncells
     } else {
       samplesize <- 1e5
     }
     # init sample
-    init_sample_ind <- spatSample(raster, size = samplesize, 
+    init_sample_ind <- spatSample(r, size = samplesize, 
                                   method = "random", cells = TRUE)
     ratio <- sum(is.na(init_sample_ind[,2]))/samplesize
     if(sum(is.na(init_sample_ind[,2])) == 0){ ratio <- 1/samplesize}
     # true sample corrected for NA
     true_sample_size <- min(as.integer(samplesize/ratio), ncells)
-    true_sample_ind <- spatSample(raster, size = true_sample_size, 
+    true_sample_ind <- spatSample(r, size = true_sample_size, 
                                   method = "random", cells = TRUE)
     vals <- c()
     for(index in 2:ncol(true_sample_ind)){
-     vals <- append(vals, true_sample_ind[,index])
+      vals <- append(vals, true_sample_ind[,index])
     }
-
+    
     ## calc mu and sd
     mu <- mean(vals, na.rm =T)
     sd <- sd(vals, na.rm =T)
@@ -934,8 +1068,8 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   }) 
 }
 
-.check_and_write_norm_param <- function(call, new = F){
-  varVec <- .load_variables(call$xvars, "all")
+.check_and_write_norm_param <- function(call, reset = F, overwrite=F){
+  varVec <- .load_variables(call$xvars, "base")
   version <- call$version
   subset <- call$subset
   subset_name <- "alldata"
@@ -944,16 +1078,16 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   }
   time_code <- .binTimeCode(call$times)
   
-  if(!new && file.exists("scripts/project/.normalization/.norm_param.rds")){
+  if(!reset && file.exists("scripts/project/.normalization/.norm_param.rds")){
     ref_list <- readRDS("scripts/project/.normalization/.norm_param.rds")
   } else {
     ref_list <- list()
   }
   for (var in varVec){
     varname <- .sort_variable(var)
-    if(!.nested_entry_exists(ref_list,
-                             c(version, subset_name, varname, time_code))
-       ){
+    if(overwrite ||
+       !.nested_entry_exists(ref_list, c(version, subset_name, varname, time_code))
+    ){
       # write entry as vector c(Mu, Sd)
       ref_list[[version]][[subset_name]][[time_code]][[varname]] <- 
         .calc_normalization_var(version,
@@ -966,10 +1100,12 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   saveRDS(ref_list, "scripts/project/.normalization/.norm_param.rds")
 }
 
+
+
 # returns normalized predictors
-.normalize_gjamTime_predictors <- function(call, allVars, xdata){
+.normalize_gjamTime_predictors <- function(call, varVec, df){
   ## check if normalization parameter exist, calc if required
-  .check_and_write_norm_param(call, new=F)
+  .check_and_write_norm_param(call, reset=F)
   ## normalize input with normalisation parameters
   ref_list <- readRDS("scripts/project/.normalization/.norm_param.rds")
   version <- call$version
@@ -979,13 +1115,29 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
     subset_name <- tools::file_path_sans_ext(basename(subset$mask))
   }
   time_code <- .binTimeCode(call$times)
-  for(col in allVars){
+  for(col in varVec){
     col_ref <- .sort_variable(col)
     mu <- ref_list[[version]][[subset_name]][[time_code]][[col_ref]][1]
     sd <- ref_list[[version]][[subset_name]][[time_code]][[col_ref]][2]
-    xdata[[col]] <- (xdata[[col]]-mu)/sd
+    df[[col]] <- (df[[col]]-mu)/(2*sd)
   }
-  return(xdata)
+  return(df)
+}
+
+
+################################################################################
+## fit gjamTime ####
+################################################################################
+
+.redirect_gjam <- function(){
+  source("scripts/core/1_gjamTime/.gjamTime_adjustments.R")
+  environment(.rhoPriorMod) <- asNamespace('gjam')
+  assignInNamespace(".rhoPrior", .rhoPriorMod, ns = "gjam")
+}
+.stop_redirect_gjam <- function(){
+  # reload package
+  detach("package:gjam", unload=TRUE)
+  library(gjam)
 }
 
 ## fill means in fields with NA
@@ -1084,9 +1236,6 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   # constVars are time invariant
   constVars <- .load_variables(call$xvars, "const")
   allVars <- .load_variables(call$xvars, "all")
-
-  # normalization
-  xdata <- .normalize_gjamTime_predictors(call, allVars, xdata)
   
   # fit missing values
   missingEffort <- 0.1

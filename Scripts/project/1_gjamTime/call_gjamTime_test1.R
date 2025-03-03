@@ -24,7 +24,7 @@ xvars <- list(
   y = FALSE, # to get latitude
   x = FALSE, # to get longitude
   climate = c("prs", "prw", "tass", "tasw"),
-  interaction = c("elev:slope", "tass:prs", "elev:tass", "tass2") 
+  interaction = c("elev:slope", "tass:prs", "elev:tass", "tass2", "tass4") 
 )
 
 #' what time periods are considered for this model fit 
@@ -49,13 +49,13 @@ subset <- list(
 #' Either sub sample the points on a regular grid or random
 #' if mode = "regular", 'parameter' sets distance of grid
 #' if mode = "random", parameter sets sample size
-# subsample <- list(
-#   doSubsample = TRUE, #recommended TRUE: FALSE might crash due to memory overflow
-#   mode = "regular", # or "random"
-#   # if 'regular' distance between grid points, if 'random' number of subsamples
-#   size = 2, 
-#   seed = 1 # sets a seed for the first run, will change for further subsamples 
-# )
+subsample <- list(
+  doSubsample = TRUE, #recommended TRUE: FALSE might crash due to memory overflow
+  mode = "regular",
+  # if 'regular' distance between grid points, if 'random' number of subsamples
+  size = 2,
+  seed = 1 # sets a seed for the first run, will change for further subsamples
+)
 
 #' what model to choose, see gjamTime vignette
 #' termB = movement

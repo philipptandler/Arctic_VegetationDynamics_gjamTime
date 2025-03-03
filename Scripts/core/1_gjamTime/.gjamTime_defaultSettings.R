@@ -87,6 +87,7 @@
   default_vars$x <- FALSE
   default_vars$y <- FALSE
   default_vars$interaction <- FALSE
+  default_vars$powers <- FALSE
   default_vars$times <- FALSE
   default_vars$version <- FALSE
   default_vars
