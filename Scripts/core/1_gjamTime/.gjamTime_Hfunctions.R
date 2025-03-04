@@ -1119,7 +1119,7 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
     col_ref <- .sort_variable(col)
     mu <- ref_list[[version]][[subset_name]][[time_code]][[col_ref]][1]
     sd <- ref_list[[version]][[subset_name]][[time_code]][[col_ref]][2]
-    df[[col]] <- (df[[col]]-mu)/(2*sd)
+    df[[col]] <- (df[[col]]-mu)/(3*sd)
   }
   return(df)
 }
@@ -1196,12 +1196,39 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   return(priorlist)
 }
 
+
+.rm_large_entries <- function(x, max_size){
+  if (is.matrix(x) || is.data.frame(x)) {  
+    if (prod(dim(x)) > max_size) return(NA)  # Replace large ones
+    else return(x)
+  } else if (is.atomic(x)) {
+    if (length(x) > max_size) return(NA)  # Replace large atomic vectors
+    else return(x)
+  }
+  return(x)  # Return everything else unchanged (like functions, environments, etc.)
+}
+
+
+.rm_large_entries <- function(x, max_size){
+  print(typeof(x))
+  if (is.null(x) || length(x) == 0) return(NA)
+  if (typeof(x) == "language") return(x)  # Skip language objects
+  if(!is.null(dim(x))){
+    if(prod(dim(x)) > max_size) return(NA)
+    else return(x)
+  } else {
+    if(length(x)>max_size) return(NA)
+    else return(x)
+  }
+}
+
 .remove_large_entries <- function(lst, max_size = 1e4) {
   if (is.list(lst)) {
     # Recursively process each element of the list
     lst <- lapply(lst, .remove_large_entries, max_size = max_size)
     return(lst)
   } else {
+    print("reached else()")
     # Check if the element is too large
     if (is.matrix(lst) || is.data.frame(lst)) {
       if (prod(dim(lst)) > max_size) return(NA)
@@ -1332,7 +1359,9 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
       print(call_savetxt)
       sink()
       # output
-      output_save <- .remove_large_entries(.default_output_size()$saveOutputRData)
+      mx <- .default_output_size()$saveOutputRData
+      output_save <- rapply(output, .rm_large_entries, how = "replace", max_size = mx)
+      # output_save <- .remove_large_entries(output, .default_output_size()$saveOutputRData)
       save(output_save, file = file.path(outFolder, "output.rdata"))
     }
   }

@@ -11,7 +11,7 @@ gjamTime_geospatial <- function(call_scrpt,
     # for debugging
     task_id=NULL
     saveOutput=TRUE
-    savePlots=TRUE
+    savePlots=F
     showPlots=FALSE
     fixWarning=T
   

@@ -53,7 +53,7 @@ subsample <- list(
   doSubsample = TRUE, #recommended TRUE: FALSE might crash due to memory overflow
   mode = "regular",
   # if 'regular' distance between grid points, if 'random' number of subsamples
-  size = 2,
+  size = 4,
   seed = 1 # sets a seed for the first run, will change for further subsamples
 )
 

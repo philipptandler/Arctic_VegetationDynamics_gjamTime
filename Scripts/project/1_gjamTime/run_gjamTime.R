@@ -9,7 +9,7 @@ source("scripts/core/1_gjamTime/gjamTime_geospatial.R")
 call_scrpt <- "scripts/project/1_gjamTime/call_gjamTime_test1.R"
 
 ## call gjamTime_goespatial()
-output <- gjamTime_geospatial(call_scrpt,saveOutput=F,
+output <- gjamTime_geospatial(call_scrpt,saveOutput=T,
                               savePlots=F,
                               showPlots=F)
 
