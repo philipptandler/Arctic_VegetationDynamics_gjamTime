@@ -138,7 +138,7 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   subdirs <- list.dirs(base_path, recursive = FALSE, full.names = TRUE)
   
   # Regex pattern to match directories like "somename/" or "somename(n)/"
-  pattern <- paste0("^", base_path, "/", name, "(\\(\\d+\\))?$")
+  pattern <- paste0("^", base_path, "/", name, "(-\\d+)?$")
   
   # Filter directories that match the pattern
   matching_dirs <- grep(pattern, subdirs, value = TRUE)
