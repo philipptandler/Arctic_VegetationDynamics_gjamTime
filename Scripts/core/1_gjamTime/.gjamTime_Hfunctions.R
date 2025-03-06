@@ -101,8 +101,10 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
 }
 
 ## returns dir
-.get_gjamTime_outfolder <- function(argument){
+.get_gjamTime_call <- function(argument){
   if(dir.exists(argument)){
+    call_scrpt <- list.files(outfolder, pattern = "^copy_.*\\.R$", full.names = TRUE, recursive = FALSE)
+    # return call
     return(argument)
   } 
   if(!file.exists(argument)){stop("Invalid Argument: ", argument)}
@@ -222,7 +224,8 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   }
   subfolder_name <- append(subfolder_name, call$version)
   subfolder_name <- paste(subfolder_name, collapse = "_")
-  if(dir.exists(file.path(call$outfolderBase, subfolder_name))){
+  if(dir.exists(file.path(call$outfolderBase, subfolder_name)) &&
+     create.if.notFound){
     warning("Check if model already exists in: \n",
          file.path(call$outfolderBase, subfolder_name))
   }
@@ -1197,46 +1200,78 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
 }
 
 
-.rm_large_entries <- function(x, max_size){
-  if (is.matrix(x) || is.data.frame(x)) {  
-    if (prod(dim(x)) > max_size) return(NA)  # Replace large ones
-    else return(x)
-  } else if (is.atomic(x)) {
-    if (length(x) > max_size) return(NA)  # Replace large atomic vectors
-    else return(x)
-  }
-  return(x)  # Return everything else unchanged (like functions, environments, etc.)
-}
+# .rm_large_entries <- function(x, max_size){
+#   if (is.null(x) || length(x) == 0) return(x)
+#   if (typeof(x) == "language") return(x)  # Skip language objects
+#   if(!is.null(dim(x)) || length(x) == 0){
+#     if(is.null(prod(dim(x)))) return(x)
+#     if(prod(dim(x)) > max_size) return(NA)
+#     else return(x)
+#   } else {
+#     if(is.null(length(x))) return(x)
+#     if(length(x)>max_size) return(NA)
+#     else return(x)
+#   }
+# }
 
+# .remove_large_entries <- function(lst, max_size = 1e4) {
+#   if (is.list(lst)) {
+#     # Recursively process each element of the list
+#     lst <- lapply(lst, .remove_large_entries, max_size = max_size)
+#     return(lst)
+#   } else {
+#     # Check if the element is too large
+#     if (is.matrix(lst) || is.data.frame(lst)) {
+#       if (prod(dim(lst)) > max_size) return(NA)
+#     } else if (length(lst) > max_size) {
+#       return(NA)
+#     }
+#   }
+#   return(lst)
+# }
 
-.rm_large_entries <- function(x, max_size){
-  print(typeof(x))
-  if (is.null(x) || length(x) == 0) return(NA)
-  if (typeof(x) == "language") return(x)  # Skip language objects
-  if(!is.null(dim(x))){
-    if(prod(dim(x)) > max_size) return(NA)
-    else return(x)
-  } else {
-    if(length(x)>max_size) return(NA)
-    else return(x)
-  }
-}
-
-.remove_large_entries <- function(lst, max_size = 1e4) {
-  if (is.list(lst)) {
-    # Recursively process each element of the list
-    lst <- lapply(lst, .remove_large_entries, max_size = max_size)
-    return(lst)
-  } else {
-    print("reached else()")
-    # Check if the element is too large
-    if (is.matrix(lst) || is.data.frame(lst)) {
-      if (prod(dim(lst)) > max_size) return(NA)
-    } else if (length(lst) > max_size) {
-      return(NA)
-    }
-  }
-  return(lst)
+.select_gjamOutput<- function(output){
+  
+  DIC <- output$fit$DIC
+  rmspeAll <- output$fit$rmspeAll
+  rmspeBySpec <- output$fit$rmspeBySpec
+  xscore <- output$fit$xscore
+  yscore <- output$fit$yscore
+  
+  alphaMu <- output$parameters$alphaMu
+  alphaSe <- output$parameters$alphaSe
+  
+  corMu <- output$parameters$corMu
+  corSe <- output$parameters$corSe
+  
+  rhoMu <- output$parameters$rhoMu
+  rhoSe <- output$parameters$rhoSe
+  
+  rhoStandXmu <- output$parameters$rhoStandXmu
+  rhoStandXse <- output$parameters$rhoStandXse
+  
+  sensAlpha <- output$parameters$sensAlpha
+  sensRho <- output$parameters$sensRho
+  
+  
+  outlist <- list(
+    DIC = DIC,
+    rmspeAll = rmspeAll,
+    rmspeBySpec = rmspeBySpec,
+    xscore = xscore,
+    yscore = yscore,
+    alphaMu = alphaMu,
+    alphaSe = alphaSe,
+    corMu = corMu,
+    corSe = corSe,
+    rhoMu = rhoMu,
+    rhoSe = rhoSe,
+    rhoStandXmu = rhoStandXmu,
+    rhoStandXse = rhoStandXse,
+    sensAlpha = sensAlpha,
+    sensRho = sensRho
+  )
+  return(outlist)
 }
 
 ## main model fit
@@ -1360,7 +1395,9 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
       sink()
       # output
       mx <- .default_output_size()$saveOutputRData
-      output_save <- rapply(output, .rm_large_entries, how = "replace", max_size = mx)
+      #output_save <- rapply(output, .rm_large_entries, how = "replace", max_size = mx)
+      output_save <- .select_gjamOutput(output)
+
       # output_save <- .remove_large_entries(output, .default_output_size()$saveOutputRData)
       save(output_save, file = file.path(outFolder, "output.rdata"))
     }
@@ -1373,4 +1410,57 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   
   if(fixWarning){.stop_redirect_gjam()}
   return(output)
+}
+
+# gjamTime geospatial main
+.gjamTime_geospatial <- function(call_scrpt,
+                                 task_id,
+                                 saveOutput,
+                                 savePlots,
+                                 showPlots){
+  # delete this block
+  if(FALSE){
+    # for debugging
+    task_id=NULL
+    saveOutput=TRUE
+    savePlots=F
+    showPlots=FALSE
+    fixWarning=T
+    
+  }
+  
+  ## initialize and validate call
+  call <- .initialize_and_validate_call(call_scrpt, task_id)
+  
+  ## prepare outfolder 
+  if(saveOutput || savePlots){
+    call <- .prepare_gjamTime_outfolder(call, call_scrpt,
+                                        create.if.notFound = TRUE) 
+  }
+  
+  ## prepare geospatial rasters for model
+  call <- .prepare_geodata(call)
+  
+  ## load predictors (xdata) as dataframe
+  call$xdata <- .load_predictors(call)
+  
+  ## load response (ydata) as dataframe
+  call$ydata <- .load_response(call)
+  
+  ## fit gjamTime
+  output <- .fit_gjamTime(call, saveOutput, savePlots, showPlots, fixWarning = T)
+  
+  ## done
+  return(output)
+}
+
+
+.gjamTime_summary <- function(argument){
+  
+  outfolder <- .get_gjamTime_call(argument)
+  
+  subdirs <- list.dirs(outfolder, full.names = FALSE, recursive = FALSE)
+  nreps <- length(subdirs)
+  
+  
 }
