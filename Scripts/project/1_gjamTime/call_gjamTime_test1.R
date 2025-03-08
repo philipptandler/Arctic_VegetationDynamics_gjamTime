@@ -2,7 +2,7 @@
 #' folders in path_gjam_out and in path_analysis
 #' The only strictly required entry is yvars (the response variable)
 
-name <- "test3"
+name <- "test_run"
 
 # continue <- "e4ca783bd375"
 

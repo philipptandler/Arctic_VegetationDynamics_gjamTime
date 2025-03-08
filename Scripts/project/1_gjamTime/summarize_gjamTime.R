@@ -3,14 +3,10 @@ library(here)
 setwd(here::here())
 
 source("config/config_local.R")
-source("scripts/core/1_gjamTime/gjamTime_geospatial.R")
+source("scripts/core/1_gjamTime/gjamTime_summary.R")
 
 # set calling script here
 call_scrpt <- "scripts/project/1_gjamTime/call_gjamTime_test1.R"
 
 ## call gjamTime_goespatial()
-output <- gjamTime_geospatial(call_scrpt,saveOutput=T,
-                              task_id = 3,
-                              savePlots=F,
-                              showPlots=F)
-
+gjamTime_summary(call_scrpt)

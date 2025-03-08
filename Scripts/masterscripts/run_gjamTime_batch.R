@@ -12,7 +12,7 @@ if (getwd() != here::here()) {
 }
 
 source("config/config_local.R")
-source("scripts/1_gjamTime/core/gjamTime_geospatial.R")
+source("scripts/core/1_gjamTime/gjamTime_geospatial.R")
 
 ## read system Arguments and set call
 sysArgs <- commandArgs(trailingOnly = TRUE)

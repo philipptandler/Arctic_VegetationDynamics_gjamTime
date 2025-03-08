@@ -69,7 +69,7 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
 
 # returns a list of the valid variables in path_gjamTime_mastervariables
 .receive_validVariables <- function(){
-  source(path_gjamTime_validVariables)
+  source(path_gjamTime_validVariables, local = TRUE)
   valid_vars <- list(
     times = valid_times,
     time_const = valid_time_const,
@@ -100,18 +100,35 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   else{return(basename(dir_path))}
 }
 
+.out_pattern <- function(b_name){
+  paste0("^", b_name, "[^/]*$")
+}
+
 ## returns dir
-.get_gjamTime_call <- function(argument){
+.get_gjamTime_list <- function(argument, b_name){
   if(dir.exists(argument)){
-    call_scrpt <- list.files(outfolder, pattern = "^copy_.*\\.R$", full.names = TRUE, recursive = FALSE)
-    # return call
-    return(argument)
+    if(is.null(b_name)){stop("if dir.exists(argument), basename must not be NULL")}
+    ptrn <- .out_pattern(b_name) #TODO
+    l <- list(outfolder = argument, pattern = ptrn)
+    return(l)
   } 
   if(!file.exists(argument)){stop("Invalid Argument: ", argument)}
   call <- .initialize_and_validate_call(argument, task_id=NULL)
-
   call <- .prepare_gjamTime_outfolder(call, argument, create.if.notFound = F)
-  return(call$outfolderBase)
+  
+  namestring <-c()
+  if(isFALSE(call$subset)){
+    subfolder_name <- append(namestring,"allData")
+  } else {
+    namestring <- append(namestring, tools::file_path_sans_ext(basename(call$subset$mask)))
+  }
+  namestring <- append(namestring, call$version)
+  namestring <- paste(namestring, collapse = "[^/]*")
+  
+  
+  ptrn <- .out_pattern(namestring)#TODO
+  l <- list(outfolder = call$outfolderBase, pattern = ptrn)
+  return(l)
 }
 
 ## for initializing folder
@@ -1214,21 +1231,21 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
 #   }
 # }
 
-# .remove_large_entries <- function(lst, max_size = 1e4) {
-#   if (is.list(lst)) {
-#     # Recursively process each element of the list
-#     lst <- lapply(lst, .remove_large_entries, max_size = max_size)
-#     return(lst)
-#   } else {
-#     # Check if the element is too large
-#     if (is.matrix(lst) || is.data.frame(lst)) {
-#       if (prod(dim(lst)) > max_size) return(NA)
-#     } else if (length(lst) > max_size) {
-#       return(NA)
-#     }
-#   }
-#   return(lst)
-# }
+.remove_large_entries <- function(lst, max_size = 1e4) {
+  if (is.list(lst)) {
+    # Recursively process each element of the list
+    lst <- lapply(lst, .remove_large_entries, max_size = max_size)
+    return(lst)
+  } else {
+    # Check if the element is too large
+    if (is.matrix(lst) || is.data.frame(lst)) {
+      if (prod(dim(lst)) > max_size) return(NA)
+    } else if (length(lst) > max_size) {
+      return(NA)
+    }
+  }
+  return(lst)
+}
 
 .select_gjamOutput<- function(output){
   
@@ -1253,7 +1270,7 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   sensAlpha <- output$parameters$sensAlpha
   sensRho <- output$parameters$sensRho
   
-  
+  # if Mu and Se, the ending of entry must be "entryMu", "entrySe"
   outlist <- list(
     DIC = DIC,
     rmspeAll = rmspeAll,
@@ -1266,8 +1283,8 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
     corSe = corSe,
     rhoMu = rhoMu,
     rhoSe = rhoSe,
-    rhoStandXmu = rhoStandXmu,
-    rhoStandXse = rhoStandXse,
+    rhoStandXMu = rhoStandXmu,
+    rhoStandXSe = rhoStandXse,
     sensAlpha = sensAlpha,
     sensRho = sensRho
   )
@@ -1455,12 +1472,117 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
 }
 
 
-.gjamTime_summary <- function(argument){
+.separate_gjamTime_MuSe <- function(vec) {
+  # Initialize empty vectors for Mu and MuSe
+  Mu <- character(0)
+  MuSe <- character(0)
   
-  outfolder <- .get_gjamTime_call(argument)
+  # Loop through each element of vec
+  for (v in vec) {
+    # If it contains 'mu' or 'se', process it for MuSe
+    if (grepl("mu$|se$", v, ignore.case = TRUE)) {
+      # Extract the base name (before "mu" or "se")
+      base_name <- sub("(mu|se)$", "", v, ignore.case = TRUE)
+      if (!base_name %in% Mu) {
+        MuSe <- c(MuSe, base_name)
+      }
+    } else {
+      # Otherwise, add to Mu
+      Mu <- c(Mu, v)
+    }
+  }
   
-  subdirs <- list.dirs(outfolder, full.names = FALSE, recursive = FALSE)
-  nreps <- length(subdirs)
+  # Return the list of Mu and MuSe vectors
+  return(list(simple = Mu, MuSe = unique(MuSe)))
+}
+
+.average_entry <- function(lst){
+  nreps <- length(lst)
+  if(nreps == 0) return(NULL)
+  if(is.vector(lst[[1]])){
+    vec <- rep(0, times = length(lst[[1]]))
+    for(i in 1:nreps){
+      vec <- vec + lst[[i]]
+    }
+    return(vec/nreps)
+  }
+  if(is.matrix(lst[[1]])){
+    mat <- matrix(0, nrow = nrow(lst[[1]]), ncol = ncol(lst[[1]]))
+    for(i in 1:nreps){
+      mat <- mat + lst[[i]]
+    }
+    return(mat/nreps)
+  } 
+  return(FALSE)
+}
+
+.average_muse <- function(mu_list, sd_list){
+  if(length(mu_list) == 0 || length(sd_list)) return(NULL)
+  print(lst)
+  n_row <- nrow(mu_list[[1]])
+  n_col <- ncol(mu_list[[1]])
   
+  # Initialize matrices to store the numerator and denominator
+  weighted_mean <- matrix(0, nrow=n_row, ncol=n_col)
+  inverse_variance <- matrix(0, nrow=n_row, ncol=n_col)
+  cat("weighted mean begin:", weighted_mean)
+  # Calculate the numerator and denominator for each element in the matrices
+  for (i in 1:length(mu_list)) {
+    weighted_mean <- weighted_mean + mu_list[[i]] / (sd_list[[i]]^2)
+    inverse_variance <- inverse_variance + 1 / (sd_list[[i]]^2)
+  }
   
+  # Calculate the weighted mean matrix
+  mu_matrix <- weighted_mean / inverse_variance
+  
+  # Calculate the standard error matrix
+  sd_matrix <- sqrt(1 / inverse_variance)
+  
+  paramater_list <- list(
+    mean = mu_matrix,
+    sd = sd_matrix
+  )
+  return(paramater_list)
+}
+
+.gjamTime_summary <- function(argument, base_name=NULL){
+  #find subdirs
+  outlist <- .get_gjamTime_list(argument, base_name)
+  dirs <- list.dirs(outlist$outfolder,
+                    full.names = T, recursive = F)
+  subdirs <- dirs[grepl(outlist$pattern, basename(dirs))]
+  
+  output_collection <- list()
+  # write all outputs in output_collection[[entry]][[i]]=value
+  for(subdir in subdirs){
+    rdata_path <- file.path(subdir, "output.Rdata")
+    if (file.exists(rdata_path)) {
+      # Load the Rdata file
+      load(rdata_path) #loads output_save as list
+      for(entry in names(output_save)){
+        output_collection[[entry]][[length(output_collection[[entry]])+1]] <- output_save[[entry]]
+      }
+    }
+  }
+  # treat simple vs. Mu/Se entries different
+  sep_list <- .separate_gjamTime_MuSe(names(output_collection))
+  entry_simple <- sep_list$simple
+  entry_muse <- sep_list$MuSe
+  output_summary <- list()
+  for(entry in entry_simple){
+    output_summary[[entry]] <- .average_entry(output_collection[[entry]])
+    if(isFALSE(output_summary[[entry]])){
+      warning("couldnt summarize", entry)
+    }
+  }
+  for(entry in entry_muse){
+    entryMu <- paste0(entry, "Mu")
+    entrySe <- paste0(entry, "Se")
+    avg_mu_se <- .average_muse(output_collection[[entryMu]],
+                               output_collection[[entrySe]])
+    output_summary[[entryMu]] <- avg_mu_se$mean
+    output_summary[[entrySe]] <- avg_mu_se$sd
+  }
+  # write summarized output
+  save(output_summary, file = file.path(outlist$outfolder, "output.rdata"))
 }
