@@ -16,5 +16,5 @@ if(!exists("arg")){
 }
 
 ## call gjamTime_summary
-gjamTime_summary(arg)
+output_summary <- gjamTime_summary(arg, cp_to_repo=T)
 

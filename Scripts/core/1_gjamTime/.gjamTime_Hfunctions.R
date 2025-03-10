@@ -108,7 +108,7 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
 .get_gjamTime_list <- function(argument, b_name){
   if(dir.exists(argument)){
     if(is.null(b_name)){stop("if dir.exists(argument), basename must not be NULL")}
-    ptrn <- .out_pattern(b_name) #TODO
+    ptrn <- .out_pattern(b_name)
     l <- list(outfolder = argument, pattern = ptrn)
     return(l)
   } 
@@ -161,7 +161,7 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   
   # Filter directories that match the pattern
   matching_dirs <- grep(pattern, subdirs, value = TRUE)
-  for (subdir in rev(matching_dirs)) {
+  for (subdir in rev(matching_dirs)) { #rev() so it chooses the latest in case multiple directories exist
     # Path to .hash_id.txt in each subdirectory
     hash_file <- file.path(subdir, ".hash_id.txt")
 
@@ -1443,7 +1443,6 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
     savePlots=F
     showPlots=FALSE
     fixWarning=T
-    
   }
   
   ## initialize and validate call
@@ -1517,15 +1516,13 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
 }
 
 .average_muse <- function(mu_list, sd_list){
-  if(length(mu_list) == 0 || length(sd_list)) return(NULL)
-  print(lst)
+  if(length(mu_list) == 0 || length(sd_list) == 0) return(NULL)
   n_row <- nrow(mu_list[[1]])
   n_col <- ncol(mu_list[[1]])
   
   # Initialize matrices to store the numerator and denominator
   weighted_mean <- matrix(0, nrow=n_row, ncol=n_col)
   inverse_variance <- matrix(0, nrow=n_row, ncol=n_col)
-  cat("weighted mean begin:", weighted_mean)
   # Calculate the numerator and denominator for each element in the matrices
   for (i in 1:length(mu_list)) {
     weighted_mean <- weighted_mean + mu_list[[i]] / (sd_list[[i]]^2)
@@ -1545,7 +1542,9 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   return(paramater_list)
 }
 
-.gjamTime_summary <- function(argument, base_name=NULL){
+#argument is either calling script or folder. If folder, base_name is an identifier of the sub directories.
+# cp_to_repo copies output in scripts/project/1_gjamTime/.parameters with outname_output.Rdata
+.gjamTime_summary <- function(argument, base_name=NULL, cp_to_repo=F, outname=NULL){
   #find subdirs
   outlist <- .get_gjamTime_list(argument, base_name)
   dirs <- list.dirs(outlist$outfolder,
@@ -1585,4 +1584,11 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   }
   # write summarized output
   save(output_summary, file = file.path(outlist$outfolder, "output.rdata"))
+  if(cp_to_repo){
+    if(is.null(outname)){outname <- basename(outlist$outfolder)}
+    save(output_summary, file = file.path("scripts/project/.parameters",
+                                          paste0(outname, "_output.rdata")))
+    
+  }
+  output_summary
 }

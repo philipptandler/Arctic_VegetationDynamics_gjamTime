@@ -9,4 +9,4 @@ source("scripts/core/1_gjamTime/gjamTime_summary.R")
 call_scrpt <- "scripts/project/1_gjamTime/call_gjamTime_test1.R"
 
 ## call gjamTime_goespatial()
-gjamTime_summary(call_scrpt)
+output_summary <- gjamTime_summary(call_scrpt, cp_to_repo=T)
