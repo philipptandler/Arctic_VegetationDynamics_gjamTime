@@ -2,7 +2,7 @@
 #' folders in path_gjam_out and in path_analysis
 #' The only strictly required entry is yvars (the response variable)
 
-name <- "test_run"
+name <- "test_run_random_highorder2"
 
 # continue <- "e4ca783bd375"
 
@@ -23,8 +23,10 @@ xvars <- list(
   topography = c("elev", "slope", "cosasp", "tpi"),
   y = FALSE, # to get latitude
   x = FALSE, # to get longitude
+  soil = c("scwd"),
   climate = c("prs", "prw", "tass", "tasw"),
-  interaction = c("elev:slope", "tass:prs", "elev:tass", "tass2", "tass4") 
+  interaction = c("elev:slope", "elev:cosasp", "elev:tpi", "slope:cosasp", "slope:tpi", "cosasp:tpi",
+                  "tass2:prs2", "tass2:prw2", "tass2:tasw2", "tasw2:prw2",  "elev3", "tass3", "tasw3", "prs3", "prw3") 
 )
 
 #' what time periods are considered for this model fit 
@@ -51,9 +53,9 @@ subset <- list(
 #' if mode = "random", parameter sets sample size
 subsample <- list(
   doSubsample = TRUE, #recommended TRUE: FALSE might crash due to memory overflow
-  mode = "regular",
+  mode = "random",
   # if 'regular' distance between grid points, if 'random' number of subsamples
-  size = 4,
+  size = 2000,
   seed = 1 # sets a seed for the first run, will change for further subsamples
 )
 
@@ -71,17 +73,11 @@ model <- list(
 #' For beta and rho, set intercept=list(lo=..., hi=...),
 #' For alpha set either a value (for all interactions)
 #' or a matrix of S x S, where S = the number of variables in yvars above
-priorSettings <- list(
-  rho=list(
-    variables=list(
-      lo=-100,
-      hi=100)),
-  alpha=-1)
 
 # set how many iterations MCMC runs, and how many are burned
 modelRunntime <- list(
-  ng = 100,
-  burnin = 50
+  ng = 40,
+  burnin = 20
 )
 
 

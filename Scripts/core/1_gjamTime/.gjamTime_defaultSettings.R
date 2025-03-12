@@ -42,9 +42,7 @@
       hi = 100
     )
   )
-  def_alphaPrior <- list(
-    alphaSign = -1
-  )
+  def_alphaPrior <- -1
 
   def_priorSettings <- list(
     beta = def_betaPrior,

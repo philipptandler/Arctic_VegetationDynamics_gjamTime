@@ -2,7 +2,7 @@
 #' folders in path_gjam_out and in path_analysis
 #' The only strictly required entry is yvars (the response variable)
 
-name <- "probe1_base"
+name <- "probe1_highorder2"
 
 # continue <- "e4ca783bd375"
 
@@ -25,9 +25,10 @@ xvars <- list(
   x = FALSE, # to get longitude
   climate = c("prs", "prw", "tass", "tasw"),
   soil = c("scwd"),
-  interaction =  c("elev:slope", "elev:cosasp", "elev:tpi", "slope:tpi", 
-                   "elev:tass", "tass:prs", "tass:prw",
-                   "scwd:elev", "scwd:prs", "scwd:prw") 
+  interaction =  c("elev2:slope2", "elev2:cosasp2", "elev2:tpi2", "slope2:tpi2", 
+                   "elev2:tass2", "tass2:prs2", "tass2:prw2",
+                   "scwd:elev", "scwd:prs", "scwd:prw",
+                   "elev3", "slope2","cosasp2","tpi2", "tass3", "prs3", "tasw3", "prw3")
 )
 
 #' what time periods are considered for this model fit 
@@ -76,7 +77,6 @@ modelRunntime <- list(
   ng = 1200,
   burnin = 600
 )
-
 
 
 
