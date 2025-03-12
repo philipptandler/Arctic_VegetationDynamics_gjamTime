@@ -999,6 +999,7 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   } else {
     ref_list <- list()
   }
+  changed_rds <- FALSE
   for (var in varVec){
     varname <- .sort_variable(var)
     if(overwrite ||
@@ -1010,10 +1011,13 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
                                 subset,
                                 call$times,
                                 varname)
+      changed_rds <- TRUE
     }
   }
   # save list
-  saveRDS(ref_list, "scripts/project/.normalization/.norm_param.rds")
+  if(changed_rds){
+    saveRDS(ref_list, "scripts/project/.normalization/.norm_param.rds")
+  }
 }
 
 
