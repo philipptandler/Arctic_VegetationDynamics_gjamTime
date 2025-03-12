@@ -1291,6 +1291,8 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
     if(saveOutput){
       # call
       call_saverds <- .remove_large_entries(call, .default_output_size()$saveCallRDS)
+      call_saverds$xdata <- NULL
+      call_saverds$ydata <- NULL
       saveRDS(call_saverds, file = file.path(outFolder, "call.rds"))
       call_savetxt <- .remove_large_entries(call, .default_output_size()$saveCalltxt)
       sink(file.path(outFolder, "call.txt"))

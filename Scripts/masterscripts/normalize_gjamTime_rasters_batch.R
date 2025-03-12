@@ -3,7 +3,7 @@ library(here)
 setwd(here::here())
 
 source("config/config_local.R")
-source("scripts/1_gjamTime/normalization_predictors.R")
+source("scripts/core/1_gjamTime/gjamTime_normalization_predictors.R")
 
 
 
