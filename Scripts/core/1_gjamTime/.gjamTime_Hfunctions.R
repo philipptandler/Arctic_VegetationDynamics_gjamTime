@@ -1471,11 +1471,15 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   }
   # write summarized output
   save(output_summary, file = file.path(outlist$outfolder, "output.rdata"))
+  # copy call.rds
+  call_save <- readRDS(file.path(subdirs[1], "call.rds"))
+  saveRDS(call_save, file = file.path(outlist$outfolder, "call.rds"))
   if(cp_to_repo){
     if(is.null(outname)){outname <- basename(outlist$outfolder)}
     save(output_summary, file = file.path("scripts/project/.parameters",
                                           paste0(outname, "_output.rdata")))
-    
+    saveRDS(call_save, file = file.path("scripts/project/.parameters",
+                                        paste0(outname, "_call.rds")))
   }
   output_summary
 }
