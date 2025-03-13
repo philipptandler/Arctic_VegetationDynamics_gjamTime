@@ -1354,6 +1354,7 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   output <- .fit_gjamTime(call, saveOutput, savePlots, showPlots, fixWarning = T)
   
   ## done
+  cat("done\n\n\n")
   return(output)
 }
 
