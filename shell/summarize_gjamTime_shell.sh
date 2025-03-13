@@ -1,11 +1,10 @@
 #!/bin/bash
 #SBATCH -n 1
-#SBATCH --time 06:00:00
+#SBATCH --time 00:05:00
 #SBATCH --mem-per-cpu=124G
-#SBATCH --array=[1-40]%1
-#SBATCH --job-name=gjam_probe1_gjam
-#SBATCH --output=gjam_probe1_gjam.out
-#SBATCH --error=gjam_probe1_gjam.err
+#SBATCH --job-name=gjam_probe1_summary
+#SBATCH --output=gjam_probe1_summary.out
+#SBATCH --error=gjam_probe1_summary.err
 #SBATCH --open-mode=append
 #SBATCH --mail-type=END,FAIL
 
@@ -17,4 +16,4 @@ scrpt="$1"
 # scrpt="scripts/project/1_gjamTime/call_probe1_base.R"
 
 # run as array by selecting random number
-Rscript scripts/masterscripts/run_gjamTime_batch.R "$scrpt" "$SLURM_ARRAY_TASK_ID"
+Rscript scripts/masterscripts/summarize_gjamTime_batch.R "$scrpt" 
