@@ -17,4 +17,4 @@ scrpt="$1"
 # scrpt="scripts/project/1_gjamTime/call_probe1_base.R"
 
 # run as array by selecting random number
-Rscript scripts/masterscripts/run_gjamTime_batch.R "$1" "$SLURM_ARRAY_TASK_ID"
+Rscript scripts/masterscripts/run_gjamTime_batch.R "$scrpt" "$SLURM_ARRAY_TASK_ID"
