@@ -1323,34 +1323,34 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
                                  saveOutput,
                                  savePlots,
                                  showPlots){
-  # delete this block
-  if(FALSE){
-    # for debugging
-    saveOutput=T
-    task_id = 3
-    savePlots=F
-    showPlots=F
-  }
   
+  cat("run .gjamTime_geospatial()\n")
+
   ## initialize and validate call
+  cat("initialize and validate call\n")
   call <- .initialize_and_validate_call(call_scrpt, task_id)
   
   ## prepare outfolder 
   if(saveOutput || savePlots){
+    cat("prepare outfolder\n")
     call <- .prepare_gjamTime_outfolder(call, call_scrpt,
                                         create.if.notFound = TRUE) 
   }
   
   ## prepare geospatial rasters for model
+  cat("prepare geodata\n")
   call <- .prepare_geodata(call)
   
   ## load predictors (xdata) as dataframe
+  cat("load xdata\n")
   call$xdata <- .load_predictors(call)
   
   ## load response (ydata) as dataframe
+  cat("load ydata\n")
   call$ydata <- .load_response(call)
   
   ## fit gjamTime
+  cat("fit gjamTime\n")
   output <- .fit_gjamTime(call, saveOutput, savePlots, showPlots, fixWarning = T)
   
   ## done
