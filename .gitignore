@@ -17,4 +17,5 @@ Writing/
 *.Rhistory
 *.err
 *.out
+config/config_local.R
 Scripts/Processing/ExploreRasterData.R
