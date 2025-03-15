@@ -8,8 +8,6 @@ path_gjamTime_in <- "data/gjamTime/in"
 path_gjamTime_tmp <- "data/gjamTime/tmp"
 path_gjamTime_out <- "data/gjamTime/out"
 
-name_gjamTime_output <- "output.Rdata"
-
 # masks
 #' the master mask serves as template for the target CRS, extent, resolution etc.
 #' it serves as template for the study region. 
@@ -25,10 +23,6 @@ name_master_mask <- "master_mask.tif"
 path_gjamTime_validVariables <- "config/gjamTime_validVariables.R"
 
 ## analysis ####
-# paths
 path_analysis <- "analysis"
 path_analysis_norm_predictors <- "analysis/.library_normalized_predictors"
-
-# paths
-path_analysis <- "$SCRATCH/analysis"
 
