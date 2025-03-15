@@ -41,7 +41,34 @@
   }
 }
 
-.fixpt_geospatial <- function(arg, out_folder, output_mask){
+.fixpt_geospatial <- function(alpha = NULL,
+                              beta = NULL,
+                              rho = NULL,
+                              x_pred = NULL,
+                              input_path = NULL,
+                              call = NULL,
+                              argument = NULL, #script, path, foldername
+                              out_mask = NULL,
+                              out_path = NULL){
+  
+  # currently only for beta = FALSE, rho = TRUE, alpha = TRUE implemented
+  cat(".fixpt_geospatial(): implemented only for alpha, rho, x_predictor")
+  
+  # process input
+  if(is.null(alpha)){
+    alpha <- ""
+  }
+  
+  
+  
+  # find fixed point
+  
+  
+  
+  
+  
+  
+  
   call_path <- .load_gjamTime_out(arg, "call.rds")
   call <- readRDS(call_path)
   output_path <- .load_gjamTime_out(arg, "output.Rdata")

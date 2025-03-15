@@ -2,7 +2,7 @@
 #' folders in path_gjam_out and in path_analysis
 #' The only strictly required entry is yvars (the response variable)
 
-name <- "test_run_base_alphamatrix"
+name <- "probe1_base"
 
 # continue <- "e4ca783bd375"
 
@@ -23,8 +23,8 @@ xvars <- list(
   topography = c("elev", "slope", "cosasp", "tpi"),
   y = FALSE, # to get latitude
   x = FALSE, # to get longitude
-  soil = c("scwd"),
   climate = c("prs", "prw", "tass", "tasw"),
+  soil = c("scwd"),
   interaction =  c("elev:slope", "elev:cosasp", "elev:tpi", "slope:tpi", 
                    "elev:tass", "tass:prs", "tass:prw",
                    "scwd:elev", "scwd:prs", "scwd:prw") 
@@ -43,10 +43,6 @@ version <- "full"
 
 # if a specific area within the study area is selected,
 # if TRUE, specify what mask should be used to subset in path_masks
-subset <- list(
-  doSubset = TRUE, #if TRUE, set mask for subset
-  mask = "mask_test1.tif"
-)
 
 #' Use a subsample within the study area to fit the model, highly recommended! 
 #' Either sub sample the points on a regular grid or random
@@ -56,7 +52,7 @@ subsample <- list(
   doSubsample = TRUE, #recommended TRUE: FALSE might crash due to memory overflow
   mode = "random",
   # if 'regular' distance between grid points, if 'random' number of subsamples
-  size = 2000,
+  size = 10e3,
   seed = 1 # sets a seed for the first run, will change for further subsamples
 )
 
@@ -74,19 +70,11 @@ model <- list(
 #' For beta and rho, set intercept=list(lo=..., hi=...),
 #' For alpha set either a value (for all interactions)
 #' or a matrix of S x S, where S = the number of variables in yvars above
-# priorSettings <- list(
-#   rho=list(
-#     variables=list(
-#       lo=-100,
-#       hi=100)),
-#   alpha=-1)
-
-priorSettings <- list(alpha=matrix(-1, ncol = 4, nrow = 4))
 
 # set how many iterations MCMC runs, and how many are burned
 modelRunntime <- list(
-  ng = 200,
-  burnin = 100
+  ng = 1200,
+  burnin = 600
 )
 
 

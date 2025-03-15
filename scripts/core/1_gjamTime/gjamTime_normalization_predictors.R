@@ -16,12 +16,8 @@ normalize_predictor_parameters <- function(call_scrpt, reset = F, overwrite = F)
   
 }
 
-normalize_predictor_rasters <- function(call_scrpt){
+normalize_predictor_rasters <- function(argument){
   
-  # get call
-  call <- .initialize_and_validate_call(call_scrpt)
-  
-  # normalize for given predictors
-  # for each variable calculate normalized raster thorough mean and sd
+  .normalize_predictor_rasters(argument)
   
 }
