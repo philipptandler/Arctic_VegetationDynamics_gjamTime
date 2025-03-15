@@ -50,7 +50,7 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   if(is.null(task_id)){
     task_id = call_default$task_id
   }
-  set.seed(task_id)
+  # set.seed(task_id) for 
   call_build <- list()
   # for each entry in default list
   for(entry in names(call_default)){
@@ -1377,7 +1377,7 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   output <- .fit_gjamTime(call, saveOutput, savePlots, showPlots, fixWarning = T)
   
   ## done
-  cat("done\n\n\n")
+  cat("\ndone\n\n\n")
   return(output)
 }
 
