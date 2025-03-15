@@ -2,9 +2,9 @@
 
 # Define setup scripts
 SETUP_SCRIPTS=(
-	"scripts/project/1_gjamTime/call_probe1_base.R"
-#       	"scripts/project/1_gjamTime/call_probe1_highorder1.R"
-#       	"scripts/project/1_gjamTime/call_probe1_highorder2.R"
+#	"scripts/project/1_gjamTime/call_probe1_base.R"
+       	"scripts/project/1_gjamTime/call_probe1_highorder1.R"
+       	"scripts/project/1_gjamTime/call_probe1_highorder2.R"
 	)
 
 for scrpt in "${SETUP_SCRIPTS[@]}"; do

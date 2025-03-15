@@ -23,6 +23,6 @@ name_master_mask <- "master_mask.tif"
 path_gjamTime_validVariables <- "config/gjamTime_validVariables.R"
 
 ## analysis ####
-path_analysis <- "analysis"
-path_analysis_norm_predictors <- "analysis/.library_normalized_predictors"
+path_analysis <- "$SCRATCH/analysis"
+path_analysis_norm_predictors <- "$SCRATCH/analysis/.library_normalized_predictors"
 
