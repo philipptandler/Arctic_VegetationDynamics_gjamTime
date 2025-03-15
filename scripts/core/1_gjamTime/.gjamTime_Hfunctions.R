@@ -47,6 +47,10 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
 .initialize_call <- function(call_scrpt, task_id){
   call_received <- .receive_call(call_scrpt)
   call_default <- .default_call()
+  if(is.null(task_id)){
+    task_id = call_default$task_id
+  }
+  set.seed(task_id)
   call_build <- list()
   # for each entry in default list
   for(entry in names(call_default)){
@@ -58,9 +62,6 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
     } else {
       call_build[[entry]] <- call_default[[entry]]
     }
-  }
-  if(is.null(task_id)){
-    task_id = .default_call()$task_id
   }
   call_build$task_id <- task_id
   call_build
@@ -120,13 +121,16 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   if(isFALSE(call$subset)){
     subfolder_name <- append(namestring,"allData")
   } else {
-    namestring <- append(namestring, tools::file_path_sans_ext(basename(call$subset$mask)))
+    namestring <- append(namestring,
+                         tools::file_path_sans_ext(basename(
+                           .toLowerCamelCase(call$subset$mask)))
+                         )
   }
   namestring <- append(namestring, call$version)
   namestring <- paste(namestring, collapse = "[^/]*")
   
   
-  ptrn <- .out_pattern(namestring)#TODO
+  ptrn <- .out_pattern(namestring)
   l <- list(outfolder = call$outfolderBase, pattern = ptrn)
   return(l)
 }
@@ -186,6 +190,14 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   return(outfolder)
 }
 
+# lowerCamelCase:
+.toLowerCamelCase <- function(str) {
+  str <- tolower(str) # Convert the whole string to lowercase
+  str <- gsub("(_|\\.|-)(\\w)", "\\U\\2", str, perl = TRUE) # Capitalize letter/digit after "_", ".", or "-"
+  return(str)
+}
+
+
 ## Prepare outfolder:
 .prepare_gjamTime_outfolder <- function(call, call_script,
                                         create.if.notFound = FALSE){
@@ -234,7 +246,9 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
     subfolder_name <- append(subfolder_name,"allData")
   } else {
     subfolder_name <- append(subfolder_name, 
-                             tools::file_path_sans_ext(basename(call$subset$mask)))
+                             tools::file_path_sans_ext(basename(
+                               .toLowerCamelCase(call$subset$mask)))
+                             )
   }
   if(!isFALSE(call$subsample)){
     subfolder_name <- append(subfolder_name, paste0("seed",call$subsample$seed))
@@ -1042,6 +1056,15 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
     df[[col]] <- (df[[col]]-mu)/(3*sd)
   }
   return(df)
+}
+
+
+
+.normalize_predictor_rasters <- function(argument){
+  
+  # path path_gjamTime_out
+  
+  
 }
 
 
