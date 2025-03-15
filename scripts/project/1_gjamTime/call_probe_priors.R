@@ -70,6 +70,7 @@ model <- list(
 #' For beta and rho, set intercept=list(lo=..., hi=...),
 #' For alpha set either a value (for all interactions)
 #' or a matrix of S x S, where S = the number of variables in yvars above
+priorSettings <- list(alpha=matrix(runif(16, -1, 1), ncol = 4, nrow = 4))
 
 # set how many iterations MCMC runs, and how many are burned
 modelRunntime <- list(

@@ -2,7 +2,7 @@
 #' folders in path_gjam_out and in path_analysis
 #' The only strictly required entry is yvars (the response variable)
 
-name <- "test_run_base_alphamatrix"
+name <- "test_higherorder1_alphaNeg1"
 
 # continue <- "e4ca783bd375"
 
@@ -27,7 +27,8 @@ xvars <- list(
   climate = c("prs", "prw", "tass", "tasw"),
   interaction =  c("elev:slope", "elev:cosasp", "elev:tpi", "slope:tpi", 
                    "elev:tass", "tass:prs", "tass:prw",
-                   "scwd:elev", "scwd:prs", "scwd:prw") 
+                   "scwd:elev", "scwd:prs", "scwd:prw",
+                   "elev3", "tass3", "tasw3", "prs3", "prw3") 
 )
 
 #' what time periods are considered for this model fit 
@@ -85,8 +86,8 @@ priorSettings <- list(alpha=matrix(-1, ncol = 4, nrow = 4))
 
 # set how many iterations MCMC runs, and how many are burned
 modelRunntime <- list(
-  ng = 200,
-  burnin = 100
+  ng = 50,
+  burnin = 30
 )
 
 
