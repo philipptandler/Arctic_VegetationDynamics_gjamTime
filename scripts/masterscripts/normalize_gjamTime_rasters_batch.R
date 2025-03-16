@@ -3,8 +3,7 @@ library(here)
 setwd(here::here())
 
 source("config/config_local.R")
-source("scripts/core/1_gjamTime/gjamTime_normalization_predictors.R")
-
+source("scripts/core/2_analysis/analysis_normalization_raster.R")
 
 
 ## read system Arguments and set call

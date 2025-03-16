@@ -3,7 +3,7 @@ library(here)
 setwd(here::here())
 
 source("config/config_local.R")
-source("scripts/core/1_gjamTime/gjamTime_normalization_predictors.R")
+source("scripts/core/2_analysis/analysis_normalization_raster.R")
 
 # set calling script here
 call_scrpt <- "scripts/project/1_gjamTime/call_gjamTime_test1.R"

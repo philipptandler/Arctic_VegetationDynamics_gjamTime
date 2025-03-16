@@ -108,7 +108,6 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
 ## returns dir
 .get_gjamTime_list <- function(argument, b_name){
   if(dir.exists(argument)){
-    if(is.null(b_name)){stop("if dir.exists(argument), basename must not be NULL")}
     ptrn <- .out_pattern(b_name)
     l <- list(outfolder = argument, pattern = ptrn)
     return(l)
@@ -1453,7 +1452,7 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   return(paramater_list)
 }
 
-#argument is either calling script or folder. If folder, base_name is an identifier of the sub directories.
+# argument is either calling script or folder. If folder, base_name is an identifier of the sub directories. Can be NULL.
 # cp_to_repo copies output in scripts/project/1_gjamTime/.parameters with outname_output.Rdata
 .gjamTime_summary <- function(argument, base_name=NULL, cp_to_repo=F, outname=NULL){
   #find subdirs
