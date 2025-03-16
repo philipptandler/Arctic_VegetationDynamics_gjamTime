@@ -25,3 +25,6 @@ for(run in 1:n_replicates){
 # summarize output
 arg <- call_this_script
 source("scripts/masterscripts/summarize_gjamTime_batch.R")
+
+# and calculate fixed point
+source("scripts/masterscripts/find_fixpt_batch.R")
