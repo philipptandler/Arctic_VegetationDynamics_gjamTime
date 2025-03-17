@@ -1,17 +1,16 @@
 # directories
+.Rproj.user/
 Admin/
+analysis/
+# include config/
 data/
-QGIS/
-Scripts/QGIS/
 Fieldwork/
 Presentations/
+QGIS/
+# include scripts/
+# include shell/
 StudyMaterialAndLiterature/
 Writing/
-.Rproj.user/
-
-# specific output directory
-# data/*
-# !data/gjamTime_outputs/
 
 # files
 *.Rhistory
