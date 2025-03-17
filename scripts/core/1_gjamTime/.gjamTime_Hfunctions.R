@@ -1469,7 +1469,7 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   output_collection <- list()
   # write all outputs in output_collection[[entry]][[i]]=value
   for(subdir in subdirs){
-    rdata_path <- file.path(subdir, "output.Rdata")
+    rdata_path <- file.path(subdir, "output.rdata")
     if (file.exists(rdata_path)) {
       # Load the Rdata file
       load(rdata_path) #loads output_save as list
