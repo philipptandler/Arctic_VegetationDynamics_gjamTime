@@ -6,8 +6,8 @@ library(orthopolynom)
 library(devtools)
 library(gjam)
 
-source("scripts/core/1_gjamTime/.gjamTime_defaultSettings.R") 
-source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
+source("scripts/core/1_gjamTime/.gjamTime_defaultSettings.R", local = environment()) 
+source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R", local = environment())
 
 
 
@@ -654,8 +654,8 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
         file_vec <- append(file_vec, filename)
         var_vec <- append(var_vec, var)
       }
-    } #end if
-  }
+    } # end if
+  } # end for
   f_list <- list(
     files = file_vec,
     variables = var_vec
