@@ -105,35 +105,6 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   paste0("^", b_name, "[^/]*$")
 }
 
-## returns dir
-.get_gjamTime_list <- function(argument, b_name){
-  if(dir.exists(argument)){
-    ptrn <- .out_pattern(b_name)
-    l <- list(outfolder = argument, pattern = ptrn)
-    return(l)
-  } 
-  if(!file.exists(argument)){stop("Invalid Argument: ", argument)}
-  call <- .initialize_and_validate_call(argument, task_id=NULL)
-  call <- .prepare_gjamTime_outfolder(call, argument, create.if.notFound = F)
-  
-  namestring <-c()
-  if(isFALSE(call$subset)){
-    subfolder_name <- append(namestring,"allData")
-  } else {
-    namestring <- append(namestring,
-                         tools::file_path_sans_ext(basename(
-                           .toLowerCamelCase(call$subset$mask)))
-                         )
-  }
-  namestring <- append(namestring, call$version)
-  namestring <- paste(namestring, collapse = "[^/]*")
-  
-  
-  ptrn <- .out_pattern(namestring)
-  l <- list(outfolder = call$outfolderBase, pattern = ptrn)
-  return(l)
-}
-
 ## for initializing folder
 .get_hash_id <- function(script_path){
   script_content <- readLines(script_path, encoding = "UTF-8")
@@ -1380,6 +1351,40 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R")
   return(output)
 }
 
+################################################################################
+## summarize gjamTime ####
+################################################################################
+
+
+
+## returns dir
+.get_gjamTime_list <- function(argument, b_name){
+  if(dir.exists(argument)){
+    ptrn <- .out_pattern(b_name)
+    l <- list(outfolder = argument, pattern = ptrn)
+    return(l)
+  } 
+  if(!file.exists(argument)){stop("Invalid Argument: ", argument)}
+  call <- .initialize_and_validate_call(argument, task_id=NULL)
+  call <- .prepare_gjamTime_outfolder(call, argument, create.if.notFound = F)
+  
+  namestring <-c()
+  if(isFALSE(call$subset)){
+    namestring <- append(namestring,"allData")
+  } else {
+    namestring <- append(namestring,
+                         tools::file_path_sans_ext(basename(
+                           .toLowerCamelCase(call$subset$mask)))
+    )
+  }
+  namestring <- append(namestring, call$version)
+  namestring <- paste(namestring, collapse = "[^/]*")
+  
+  
+  ptrn <- .out_pattern(namestring)
+  l <- list(outfolder = call$outfolderBase, pattern = ptrn)
+  return(l)
+}
 
 .separate_gjamTime_MuSe <- function(vec) {
   # Initialize empty vectors for Mu and MuSe
