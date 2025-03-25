@@ -26,3 +26,18 @@ path_gjamTime_validVariables <- "config/gjamTime_validVariables.R"
 path_analysis <- "analysis"
 path_analysis_norm_predictors <- "analysis/.library_normalized_predictors"
 
+## make dir if not exist ####
+dirs <- c(
+  path_data,
+  path_gjamTime_in,
+  path_gjamTime_tmp,
+  path_gjamTime_out,
+  path_masks,
+  path_analysis,
+  path_analysis_norm_predictors
+)
+for(dir in dirs){
+  if (!dir.exists(dir)) {
+    dir.create(dir, recursive = TRUE, showWarnings = FALSE)
+  }
+}
