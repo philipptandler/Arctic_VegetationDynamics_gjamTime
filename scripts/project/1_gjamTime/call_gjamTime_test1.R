@@ -2,7 +2,7 @@
 #' folders in path_gjam_out and in path_analysis
 #' The only strictly required entry is yvars (the response variable)
 
-name <- "test_higherorder1_alphaNeg1"
+name <- "test_variables"
 
 # continue <- "e4ca783bd375"
 
@@ -20,24 +20,18 @@ yvars <- list(
 #' ! Important, all interaction variables must exist as single variables too
 
 xvars <- list(
-  topography = c("elev", "slope", "cosasp", "tpi"),
-  y = FALSE, # to get latitude
-  x = FALSE, # to get longitude
+  topography = c("elev", "slope", "cosasp"),
+  y = T, # to get latitude
+  x = T, # to get longitude
   soil = c("scwd"),
   climate = c("prs", "prw", "tass", "tasw"),
-  interaction =  c("elev:slope", "elev:cosasp", "elev:tpi", "slope:tpi", 
-                   "elev:tass", "tass:prs", "tass:prw",
-                   "scwd:elev", "scwd:prs", "scwd:prw",
-                   "elev3", "tass3", "tasw3", "prs3", "prw3") 
+  interaction =  c("slope:elev", "elev:tass", "elev3", "tass3", "tasw3", "lat:lon", "lat2") 
 )
 
 #' what time periods are considered for this model fit 
 times <- c("1984-1990",
            "1991-1996",
-           "1997-2002",
-           "2003-2008",
-           "2009-2014",
-           "2015-2020")
+           "1997-2002")
 
 # what version of the data is used
 version <- "full"
@@ -86,8 +80,8 @@ priorSettings <- list(alpha=matrix(-1, ncol = 4, nrow = 4))
 
 # set how many iterations MCMC runs, and how many are burned
 modelRunntime <- list(
-  ng = 50,
-  burnin = 30
+  ng = 40,
+  burnin = 20
 )
 
 

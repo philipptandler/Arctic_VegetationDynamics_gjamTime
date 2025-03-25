@@ -1,3 +1,7 @@
+################################################################################
+## libraries ####
+################################################################################
+
 library(dplyr)
 library(withr)
 library(digest)
@@ -8,7 +12,6 @@ library(gjam)
 
 source("scripts/core/1_gjamTime/.gjamTime_defaultSettings.R", local = environment()) 
 source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R", local = environment())
-
 
 
 ################################################################################
@@ -213,11 +216,10 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R", local = environm
   # find subfolder
   subfolder_name <-c()
   if(isFALSE(call$subset)){
-    subfolder_name <- append(subfolder_name,"allData")
+    subfolder_name <- append(subfolder_name,"alldata")
   } else {
     subfolder_name <- append(subfolder_name, 
-                             tools::file_path_sans_ext(basename(
-                               .toLowerCamelCase(call$subset$mask)))
+                             .toLowerCamelCase(tools::file_path_sans_ext(basename(call$subset$mask)))
                              )
   }
   if(!isFALSE(call$subsample)){
@@ -383,7 +385,11 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R", local = environm
       # if x,y
       } else {
         if(entry == "x" || entry == "y"){
-          if(isTRUE(provided_vars[[entry]])){provided_vars[[entry]] <- TRUE}
+          if(isTRUE(provided_vars[[entry]])){
+            provided_vars[[entry]] <- TRUE
+            if(entry == "x") varVecUnique <- append(varVecUnique, "lon")
+            if(entry == "y") varVecUnique <- append(varVecUnique, "lat")
+            }
           else {provided_vars[[entry]] <- FALSE}
         }
       }
@@ -448,7 +454,8 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R", local = environm
     set.seed(call$subsample$seed)
   }
   if(call$subsample$mode == "random"){
-    call$subsample$seed <- call$subsample$seed + call$task_id
+    # s.th. default seed of 1, task_id of 1 results in seed=1
+    call$subsample$seed <- call$subsample$seed + call$task_id - 1 
     # incremental 
     set.seed(call$subsample$seed)
   }
@@ -1030,14 +1037,6 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R", local = environm
 
 
 
-.normalize_predictor_rasters <- function(argument){
-  
-  # path path_gjamTime_out
-  
-  
-}
-
-
 ################################################################################
 ## fit gjamTime ####
 ################################################################################
@@ -1370,7 +1369,7 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R", local = environm
   
   namestring <-c()
   if(isFALSE(call$subset)){
-    namestring <- append(namestring,"allData")
+    namestring <- append(namestring,"alldata")
   } else {
     namestring <- append(namestring,
                          tools::file_path_sans_ext(basename(
