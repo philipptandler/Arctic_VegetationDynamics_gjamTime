@@ -3,6 +3,7 @@
 ################################################################################
 
 library(terra)
+library(matlib)
 
 source("scripts/core/2_analysis/.chunk_process.R")
 
@@ -288,14 +289,200 @@ source("scripts/core/2_analysis/.chunk_process.R")
   x_list
 }
 
+################################################################################
+## raster operations ####
+################################################################################
+
+
+# Matrix M and raster w, each pixel treated as vector by its layers
+.matrixProd <- function(M, w){
+  if (is.null(M) ||
+      (is.matrix(M) && nrow(M) == 0) ||
+      (is.vector(M) && length(M) == 0)
+  ) {
+    return(NULL)  # Return NULL if M is of dimension 0
+  }
+  layers <- list()
+  if(is.vector(M)){
+    M <- matrix(M, nrow = 1)
+  }
+  if(!is.matrix(M)){
+    cat("typeof(M):\n")
+    cat(typeof(M),"\n")
+    stop("Unknown object M encountered in .matrixProd")
+  }
+  for(row in 1:nrow(M)){
+    layer <- .vectorProd(M[row,], w)
+    layers[[row]] <- layer
+  }
+  raster <- rast(layers)
+  return(raster)
+}
+# vector v and raster w, where each pixel treated as vector
+.vectorProd <- function(v,w){
+  n_layers <- nlyr(w) # ==length of vector!
+  if(n_layers != length(v)){stop("number of vector elements doesnt match number of layers")}
+  result <- v[1] * w[[1]]
+  if(n_layers == 1){
+    return(result)
+  }else{
+    for(i in 2:n_layers){
+      result <- result + v[i]*w[[i]]
+    }
+    return(result)
+  }
+}
+
 
 ################################################################################
 ## calculate fixed point ####
 ################################################################################
 
+# all possible combinations to try for solving LCP
+# (except all layer TRUE, since this is the nontrivial solution)
+.get_combinations <- function(dim, startWith=NULL){
+  combin <- expand.grid(rep(list(c(TRUE, FALSE)), dim))
+  combin <- combin[!apply(combin, 1, all), ]
+  combin <- as.data.frame(combin)
+  rownames(combin) <- NULL
+  combin <- as.matrix(combin)
+  combin
+}
+
+# propos a a solution to LCP
+# rho[subs,]*x + alpha[subs, subs]*w = 0, solve for w and add w = 0 for !subs
+# combination TRUE means nontrivial fixpt
+# combination FALSE means trivial fixpt
+.propose_LCP <- function(combination, rho, alpha, x_invalid){
+  dim <- length(combination)
+  # get indices
+  subs <- c(1:dim)[combination] # nontrivial solution for subset where combination is TRUE
+  subs_zero <- c(1:dim)[!combination]
+  
+  w_prop_triv <- rast(x_invalid[[1]])
+  values(w_prop_triv) <- 0
+
+  if(length(subs) > 0){
+    rho_red <- matrix(rho[subs,], nrow = length(subs))
+    alpha_red <- matrix(alpha[subs, subs], nrow = length(subs), ncol = length(subs))
+    if(length(subs) == 1){
+      alpha_inv <- 1/alpha_red
+    } else {
+      alpha_inv <- inv(alpha_red)
+    }
+    w_prop_nontriv <- .matrixProd(-alpha_inv %*% rho_red, x_invalid)
+  }
+  
+  layer_list <- list()
+  for(i in 1:dim){
+    if(combination[i]){ # if nontrivial solution for this layer
+      layer_list[[i]] <- w_prop_nontriv[[(which(subs == i))]]
+    }else{ # if trivial solution for this layer
+      layer_list[[i]] <- w_prop_triv
+    }
+  }
+  w_prop <- rast(layer_list)
+  
+  w_prop
+}
+
+## for all values in x that are not NA check if LCP is solved
+#' returns a raster upd where w >= 0 and rho x + alpha w <= 0
+.check_LCP <- function(combination, rho, alpha, x_invalid, w){
+  dim <- length(combination)
+  subs <- c(1:dim)[combination]
+  n_nontriv <- length(subs)
+  subs_zero <- c(1:dim)[!combination]
+  n_triv <- length(subs_zero)
+  
+  # if some w are nontrivial, check if w proposed are >= 0
+  if(n_nontriv > 0){
+    w_nontriv <- w[[which(combination)]]
+    # mask that holds TRUE if all layers >= 0
+    mask_wpositive <- if (nlyr(w_nontriv) > 1) {
+      app(w_nontriv, function(x) all(x >= 0))
+    } else {
+      w_nontriv >= 0
+    }
+  }
+  
+  # if some w are trivial, check stability for trivial components
+  if(n_triv > 0){
+    # raster that holds the derivative of each component
+    rho_red <- matrix(rho[subs_zero,], nrow = n_triv)
+    q_delta <- .matrixProd(rho_red, x_invalid)
+    if(n_nontriv > 0){
+      alpha_red <- matrix(alpha[subs_zero, subs], nrow = n_triv, ncol = n_nontriv)
+      alphaw <- .matrixProd(alpha_red, w_nontriv)
+      q_delta <- q_delta + alphaw
+    }
+    # mask that holds TRUE if rho[subs_zero,]*x+alpha[subs_zero, subs]*w <= 0
+    mask_stability <- if (nlyr(q_delta) > 1) {
+      app(q_delta, function(x) all(x <= 0))
+    } else {
+      q_delta <= 0
+    }
+  }
+  
+  # check if Linear Complimentary Problem conditions are satisfied
+  if(n_nontriv > 0 & n_triv > 0){
+    result <- mask_wpositive & mask_stability
+  }
+  if(n_triv == 0){
+    result <- mask_wpositive
+  }
+  if(n_nontriv == 0){
+    result <- mask_stability
+  }
+  result
+}
+
+# finds a solution to LCP(A,d) where A is alpha, d is rho*x, s.th.
+# rho*x + Ay <= 0, y >= 0
+.solve_LCP <- function(rho, alpha, x, wstar, mask_valid, print=FALSE){
+  if(!print){sink(tempfile())}
+  dim <- nlyr(wstar)
+  
+  # x_invalid holds predictors for solutions yet to be found
+  x_invalid <- mask(x, mask_valid, maskvalues=1, updatevalue=NA)
+
+  # w_valid holds wstar which is valid (and unique! see Takeuchi & Adachi, 1980)
+  w_valid <- mask(wstar, mask_valid, maskvalues=0, updatevalue=NA)
+  
+  # introduce all possible combinations of x or (b-Ax) = 0 in d/dt(x)
+  combinations <- .get_combinations(dim)
+  
+  # for all combinations
+  cat("probing LCP solutions (out of", nrow(combinations), "):")
+  for(i in 1:nrow(combinations)){
+    cat(".")
+    # get combination
+    combination <- combinations[i,]
+    # propose solution
+    w_propose <- .propose_LCP(combination, rho, alpha, x_invalid)
+
+    # check solution, mask that contains TRUE where we have the solution
+    valid_proposed <- .check_LCP(combination, rho, alpha, x_invalid, w = w_propose)
+
+    # keep valid solutions
+    w_true <- mask(w_propose, valid_proposed, maskvalues=0, updatevalue=NA)
+    w_valid <- cover(w_valid, w_true)
+
+    # reduce invalid solutions, where valid_proposed is TRUE, we can make 
+    # the raster x to NA, since we have found a solution
+    x_invalid <- mask(x_invalid, valid_proposed, maskvalues=1, updatevalue=NA)
+  }
+  
+  if(!print){sink()}
+  
+  w_valid
+}
+
+
+
+## finds the fixed point for equation beta*x + rho*x*w + diag(w)alpha*w = 0
 .fixpt <- function(beta, rho, alpha, x, chunk_process = FALSE,
                    n_chunks = NULL, chunk_size = NULL){
-  
   if(chunk_process){
     w_star <- .chunk_process(rasters = list(x = x),
                              FUN = .fixpt,
@@ -308,9 +495,31 @@ source("scripts/core/2_analysis/.chunk_process.R")
                              ))
     return(w_star)
   }
+  # .fixpt() is actually running
+  cat("run .fixpt() ")
   
-  # TODO actual computation
+  # raster with solution w*= -Inv(alpha)*rho*x
+  wstar_nontriv <- .matrixProd(-inv(alpha) %*% rho, x) 
+  names(wstar_nontriv) <- rownames(rho)
   
+  # raster with TRUE where nontriv solution is valid
+  mask_wstar_nonneg <- if (nlyr(wstar_nontriv) > 1) {
+    app(wstar_nontriv, function(x) all(x >= 0))
+  } else {
+    wstar_nontriv >= 0
+  }
+  
+  # solve linear complimentary problem with auxilary vector d
+  # w* * d = 0 (fixed point)
+  # w* >= 0 (only positive solutions)
+  # d = rho*x + alpha*w <= 0 (stability)
+  
+  wstar_lcpsolved <- .solve_LCP(rho, alpha, x,
+                                wstar = wstar_nontriv, 
+                                mask_valid = mask_wstar_nonneg,
+                                print = TRUE)
+  cat("done.\n")
+  return(wstar_lcpsolved)
 }
 
 
@@ -320,17 +529,17 @@ source("scripts/core/2_analysis/.chunk_process.R")
                               output_mask = NULL,
                               times_out = NULL,
                               chunk_process = TRUE,
-                              n_chunks = NULL,
+                              n_chunks = 100,
                               chunk_size = NULL,
                               save = TRUE){
   
-  if(FALSE){
+  if(FALSE){ # delte after development
     argument = arg
     out_folder = NULL
     output_mask = NULL
     times_out = NULL
     chunk_process = TRUE
-    n_chunks = NULL
+    n_chunks = 100
     chunk_size = NULL
     save = TRUE
   }
@@ -343,7 +552,15 @@ source("scripts/core/2_analysis/.chunk_process.R")
   output <- .get_argument(argument, "output.rdata", where = path_gjamTime_out)
   
   # outfolder
-  if(is.null(out_folder)) out_folder <- basename(call$outfolderBase)
+  if(is.null(out_folder)){
+    out_folder <- file.path(path_analysis,basename(call$outfolderBase))
+  } else {
+    if(dir.exists(out_folder) || dir.exists(dirname(out_folder))){
+      out_folder = out_folder
+    }
+    out_folder <- file.path(path_analysis, basename(out_folder))
+  }
+  if(!dir.exists(out_folder)) dir.create(out_folder, recursive = TRUE,showWarnings = FALSE)
   
   # assign parameters
   beta = output$betaMu
