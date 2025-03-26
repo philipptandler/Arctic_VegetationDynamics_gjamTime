@@ -35,7 +35,8 @@ dirs <- c(
   path_gjamTime_out,
   path_masks,
   path_analysis,
-  path_analysis_norm_predictors
+  path_analysis_norm_predictors,
+  path_analysis_tmp
 )
 for(dir in dirs){
   if (!dir.exists(dir)) {

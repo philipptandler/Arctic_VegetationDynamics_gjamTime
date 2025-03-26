@@ -318,6 +318,9 @@ library(terra)
   call <- .get_argument(argument, "call.rds", where = path_gjamTime_out)
   output <- .get_argument(argument, "output.rdata", where = path_gjamTime_out)
   
+  # outfolder
+  if(is.null(out_folder)) out_folder <- basename(call$outfolderBase)
+  
   # assign parameters
   beta = output$betaMu
   rho = output$rhoMu
