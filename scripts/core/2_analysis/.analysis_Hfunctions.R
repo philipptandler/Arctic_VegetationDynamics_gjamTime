@@ -538,17 +538,6 @@ source("scripts/core/2_analysis/.chunk_process.R")
                               chunk_size = NULL,
                               save = TRUE){
   
-  if(FALSE){ # delte after development
-    argument = arg
-    out_folder = NULL
-    output_mask = NULL
-    times_out = NULL
-    chunk_process = TRUE
-    n_chunks = 5
-    chunk_size = NULL
-    save = TRUE
-  }
-  
   # currently only for beta = FALSE, rho = TRUE, alpha = TRUE implemented
   cat("calling .fixpt_geospatial():
       Currently only implemented for beta=FALSE, rho=TRUE, alpha=TRUE, x_raster (predictors)")
