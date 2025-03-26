@@ -3,7 +3,12 @@
 # chunk_size in cells
 .chunk_process <- function(rasters = list(), FUN, n_chunks=NULL, chunk_size=NULL, extra_args = list()){
   cat("chunk processing\n")
+
+  # clean path_analysis_tmp directory
+  filesRM <- list.files(path_analysis_tmp, full.names = TRUE)
+  file.remove(filesRM)
   
+  # horizontal or vertical chunks
   horizontal <- TRUE
   x_dim <- dim(rasters[[1]])[2]
   y_dim <- dim(rasters[[1]])[1]
@@ -35,7 +40,7 @@
   
   # loop over all chunks
   for(pos in 1:n_chunks){
-    cat(pos, "out of", n_chunks, "\n")
+    cat(pos, "out of", n_chunks, " chunks...\n")
     # define chunk bounds
     xmin <- (pos-1)*chunk_size_h+1
     xmax <- min(pos*chunk_size_h, x_dim)
@@ -52,6 +57,7 @@
     
     # do call
     processed_chunk <- do.call(FUN, c(chunk_rasters, extra_args))
+    
     # save
     processed_chunk_name <- paste0("chunk_process_id-", pos, ".tif")
     writeRaster(processed_chunk, file.path(path_analysis_tmp, processed_chunk_name))
