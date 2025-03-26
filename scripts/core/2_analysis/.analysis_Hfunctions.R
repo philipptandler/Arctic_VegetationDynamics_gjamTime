@@ -4,6 +4,8 @@
 
 library(terra)
 
+source("scripts/core/2_analysis/.chunk_process.R")
+
 
 ################################################################################
 ## retrieve parameters ####
@@ -286,30 +288,52 @@ library(terra)
   x_list
 }
 
-################################################################################
-## chunk process ####
-################################################################################
-
 
 ################################################################################
 ## calculate fixed point ####
 ################################################################################
-.fixpt_geospatial <- function(beta, rho, alpha, x, chunk_process = FALSE){
+
+.fixpt <- function(beta, rho, alpha, x, chunk_process = FALSE,
+                   n_chunks = NULL, chunk_size = NULL){
+  
   if(chunk_process){
-    w_star <- .chunk_process(.fixpt_geospatial, beta, alpha, x, chunk_process = F) #TODO
+    w_star <- .chunk_process(rasters = list(x = x),
+                             FUN = .fixpt,
+                             n_chunks = n_chunks,
+                             chunk_size = chunk_size,
+                             extra_args=list(
+                               beta=beta,
+                               rho=rho,
+                               alpha=alpha
+                             ))
     return(w_star)
   }
-  #TODO
+  
+  # TODO actual computation
+  
 }
 
 
 # argument can be calling_scrpt, outfolder or name (in scripts/project/.parameters/(name)_call.rds, (name)_output.rds)
 .fixpt_geospatial <- function(argument,
-                              out_folder, # could be NULL
-                              output_mask, # could be NULL
+                              out_folder = NULL,
+                              output_mask = NULL,
                               times_out = NULL,
                               chunk_process = TRUE,
+                              n_chunks = NULL,
+                              chunk_size = NULL,
                               save = TRUE){
+  
+  if(FALSE){
+    argument = arg
+    out_folder = NULL
+    output_mask = NULL
+    times_out = NULL
+    chunk_process = TRUE
+    n_chunks = NULL
+    chunk_size = NULL
+    save = TRUE
+  }
   
   # currently only for beta = FALSE, rho = TRUE, alpha = TRUE implemented
   cat("calling .fixpt_geospatial():
@@ -337,7 +361,10 @@ library(terra)
   w_star_list <- list()
   for (entry in names(x_list)){
     cat("calculate fixed point raster for time", entry, "\n")
-    w_star <- .fixpt_geospatial(beta, rho, alpha, x_list[[entry]], chunk_process = chunk_process)
+    w_star <- .fixpt(beta, rho, alpha, x_list[[entry]],
+                     chunk_process = chunk_process,
+                     n_chunks = n_chunks,
+                     chunk_size = chunk_size)
     if(save){
       writeRaster(w_star, file.path(out_folder, paste0("w_star_", entry, ".tif")))
     }
