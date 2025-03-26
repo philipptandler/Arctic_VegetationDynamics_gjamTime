@@ -8,4 +8,4 @@ source("scripts/core/2_analysis/fixpt_geospatial.R")
 arg <- "test_higherorder1_alphaNeg1"
 
 ## call fixpt_geospatial()
-wstar <- fixpt_geospatial(arg, chunk_process = TRUE, n_chunks = 160)
+wstar <- fixpt_geospatial(arg, chunk_process = TRUE, n_chunks = 2)

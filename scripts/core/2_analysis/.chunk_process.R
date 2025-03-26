@@ -62,7 +62,7 @@
     processed_chunk_name <- paste0("chunk_process_id-", pos, ".tif")
     writeRaster(processed_chunk, file.path(path_analysis_tmp, processed_chunk_name))
   }
-  cat("done.\n returning processed raster.\n")
+  cat("done.\nreturning processed raster.\n")
   # merge and return
   processed_chunk_list <- list.files(path = path_analysis_tmp,
                                      pattern = "^chunk_process_id-*",

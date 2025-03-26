@@ -482,7 +482,7 @@ source("scripts/core/2_analysis/.chunk_process.R")
 
 ## finds the fixed point for equation beta*x + rho*x*w + diag(w)alpha*w = 0
 .fixpt <- function(beta, rho, alpha, x, chunk_process = FALSE,
-                   n_chunks = NULL, chunk_size = NULL){
+                   n_chunks = NULL, chunk_size = NULL, nontriv = FALSE){
   if(chunk_process){
     w_star <- .chunk_process(rasters = list(x = x),
                              FUN = .fixpt,
@@ -501,6 +501,11 @@ source("scripts/core/2_analysis/.chunk_process.R")
   # raster with solution w*= -Inv(alpha)*rho*x
   wstar_nontriv <- .matrixProd(-inv(alpha) %*% rho, x) 
   names(wstar_nontriv) <- rownames(rho)
+  
+  if(nontriv){
+    cat("done.\n")
+    return(wstar_nontriv)
+  }
   
   # raster with TRUE where nontriv solution is valid
   mask_wstar_nonneg <- if (nlyr(wstar_nontriv) > 1) {
@@ -539,7 +544,7 @@ source("scripts/core/2_analysis/.chunk_process.R")
     output_mask = NULL
     times_out = NULL
     chunk_process = TRUE
-    n_chunks = 100
+    n_chunks = 5
     chunk_size = NULL
     save = TRUE
   }
@@ -586,6 +591,7 @@ source("scripts/core/2_analysis/.chunk_process.R")
       writeRaster(w_star, file.path(out_folder, paste0("w_star_", entry, ".tif")))
     }
     w_star_list[[entry]] <- w_star
+    cat("\n")
   }
   
   # return
