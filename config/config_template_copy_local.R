@@ -25,7 +25,7 @@ path_gjamTime_validVariables <- "config/gjamTime_validVariables.R"
 ## analysis ####
 path_analysis <- "analysis"
 path_analysis_norm_predictors <- "analysis/.library_normalized_predictors"
-path_analysis_tmp <- "analysis/tmp"
+path_analysis_tmp <- "analysis/.tmp"
 
 ## make dir if not exist ####
 dirs <- c(
