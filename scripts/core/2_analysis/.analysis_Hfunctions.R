@@ -567,7 +567,8 @@ source("scripts/core/2_analysis/.chunk_process.R")
                               chunk_process = TRUE,
                               n_chunks = 100,
                               chunk_size = NULL,
-                              save = TRUE){
+                              save = TRUE,
+                              data_type = NULL){
   
   # currently only for beta = FALSE, rho = TRUE, alpha = TRUE implemented
   cat("calling .fixpt_geospatial():
@@ -608,7 +609,12 @@ source("scripts/core/2_analysis/.chunk_process.R")
                      n_chunks = n_chunks,
                      chunk_size = chunk_size)
     if(save){
-      writeRaster(w_star, file.path(out_folder, paste0("w_star_", entry, ".tif")))
+      valid_datatypes <- c("INT1U", "INT2U", "INT2S", "INT4U", "INT4S", "FLT4S", "FLT8S")
+      if(is.null(data_type) || !(data_type %in% valid_datatypes)){
+        data_type <- datatype(w_star[[1]])
+      } 
+      writeRaster(w_star, file.path(out_folder, paste0("w_star_", entry, ".tif")),
+                  datatype = data_type)
     }
     w_star_list[[entry]] <- w_star
     cat("\n")

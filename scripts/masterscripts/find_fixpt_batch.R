@@ -20,4 +20,4 @@ if(!exists("arg")){
 
 ## call fixpt_geospatial()
 # first argument is arg, second times_out
-wstar <- fixpt_geospatial(arg, times_out = times_out)
+wstar <- fixpt_geospatial(arg, times_out = times_out, data_type = "INT2S")
