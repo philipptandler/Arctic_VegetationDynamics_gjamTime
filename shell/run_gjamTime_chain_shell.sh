@@ -3,8 +3,8 @@
 # Define arguments
 SETUP_ARGUMENTS=(
         "probe1_base"
-       	"probe1_highorder1"
-       	"probe1_highorder2"
+       	# "probe1_highorder1"
+       	# "probe1_highorder2"
 	)
 
 for arg in "${SETUP_ARGUMENTS[@]}"; do
