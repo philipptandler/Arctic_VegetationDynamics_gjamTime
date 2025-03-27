@@ -30,7 +30,9 @@ source("scripts/core/2_analysis/.chunk_process.R")
                                                     type)))
     if(type == "output.rdata")return(.load_output_Rdata(arg))
     if(type == "dir") return(arg)
-  } else if (dir.exists(file.path(where, arg))){
+  } else if (dir.exists(file.path(where, arg)) &&
+             (type == "dir" || (type != "dir" && file.exists(file.path(where, arg, type)))))
+             {
     if(type == "call.rds") return(readRDS(file.path(where, arg, type)))
     if(type == "output.rdata") return(.load_output_Rdata(file.path(where, arg)))
     if(type == "dir") return(file.path(where, arg))
