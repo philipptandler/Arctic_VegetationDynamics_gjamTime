@@ -41,7 +41,7 @@ source("scripts/core/2_analysis/.chunk_process.R")
                                    ))){
     if(type == "call.rds") return(readRDS(file.path("scripts/project/.parameters/",
                                                     paste(arg, type, sep="_"))))
-    if(type == "output.rdata") return(.load_output_Rdata("scripts/project/.parameters/"), prename=paste0(arg, "_"))
+    if(type == "output.rdata") return(.load_output_Rdata("scripts/project/.parameters/", prename=paste0(arg, "_")))
     if(type == "dir") stop("argument", arg, "requires type=='call.rds' or 'output.rdata'")
     } else {
     stop("Not found:", arg)
@@ -148,27 +148,33 @@ source("scripts/core/2_analysis/.chunk_process.R")
     fileVec[which(var == allVars)] = raster_name
   }
   # create powerVars file names
-  for(var in call$xvars$powers){
-    basePower <- henv$.extract_base_power(var)
-    base <- basePower[1]
-    power <- as.integer(basePower[2])
-    base_name <- fileVec[which(base == allVars)] 
-    pattern <- paste0("(?<=_)", base, "(?=_)")
-    raster_name <- gsub(pattern, var, base_name, perl = TRUE)
-    fileVec[which(var == allVars)] = raster_name
+  if(!isFALSE(call$xvars$powers)){
+    for(var in call$xvars$powers){
+      basePower <- henv$.extract_base_power(var)
+      base <- basePower[1]
+      power <- as.integer(basePower[2])
+      base_name <- fileVec[which(base == allVars)] 
+      pattern <- paste0("(?<=_)", base, "(?=_)")
+      raster_name <- gsub(pattern, var, base_name, perl = TRUE)
+      fileVec[which(var == allVars)] = raster_name
+    }
   }
+
   # create interactionVars file names
-  constVars <- henv$.load_variables(call$xvars, "const")
-  for(var in call$xvars$interaction){
-    vars_sep <- unlist(strsplit(var, ":"))
-    v_name <- paste(vars_sep, collapse = "-")
-    t_name <- tm
-    if(var %in% constVars) t_name = constName
-    raster_name <- paste("inter", t_name, v_name, call$version,
-                         dataIn, timeCode, maskOut, sep = "_")
-    raster_name <- paste0(raster_name, ".tif")
-    fileVec[which(var == allVars)] = raster_name
+  if(!isFALSE(call$xvars$interaction)){
+    constVars <- henv$.load_variables(call$xvars, "const")
+    for(var in call$xvars$interaction){
+      vars_sep <- unlist(strsplit(var, ":"))
+      v_name <- paste(vars_sep, collapse = "-")
+      t_name <- tm
+      if(var %in% constVars) t_name = constName
+      raster_name <- paste("inter", t_name, v_name, call$version,
+                           dataIn, timeCode, maskOut, sep = "_")
+      raster_name <- paste0(raster_name, ".tif")
+      fileVec[which(var == allVars)] = raster_name
+    }
   }
+
   # return
   if(full_path){
     fileVec <- file.path(path_analysis_norm_predictors, fileVec)
@@ -210,10 +216,6 @@ source("scripts/core/2_analysis/.chunk_process.R")
   time_code <- henv$.binTimeCode(call$times)
   
   for(var in baseVars){
-    cat("var:", var, "\n")
-    cat("var == allVars:", var == allVars, "\n")
-    cat("which(var == allVars):", which(var == allVars), "\n")
-    cat("allFiles[which(var == allVars)]:", allFiles[which(var == allVars)], "\n")
     if(!file.exists(allFiles[which(var == allVars)])){
       if(!(var == "lat" || var == "lon")){
         fname <- baseFiles$files[which(var == baseFiles$variables)]
@@ -252,23 +254,27 @@ source("scripts/core/2_analysis/.chunk_process.R")
   ## check and write power and interaction vars based on basevars
   # power vars first
   powerVars <- call$xvars$powers
-  for(var in powerVars){
-    if(!file.exists(allFiles[which(var == allVars)])){
-      basePower <- henv$.extract_base_power(var)
-      base <- basePower[1]
-      power <- as.integer(basePower[2])
-      r_base <- rast(allFiles[which(base == allVars)])
-      r_power <- henv$.lengedre_poly(r_base, power)
-      writeRaster(r_power, allFiles[which(var == allVars)])
+  if(!isFALSE(powerVars)){
+    for(var in powerVars){
+      if(!file.exists(allFiles[which(var == allVars)])){
+        basePower <- henv$.extract_base_power(var)
+        base <- basePower[1]
+        power <- as.integer(basePower[2])
+        r_base <- rast(allFiles[which(base == allVars)])
+        r_power <- henv$.lengedre_poly(r_base, power)
+        writeRaster(r_power, allFiles[which(var == allVars)])
+      }
     }
   }
   # interaction vars
   interactVars <- call$xvars$interaction
-  for(var in interactVars){
-    if(!file.exists(allFiles[which(var == allVars)])){
-      vars <- henv$.split_interaction(var)
-      r_int <- Reduce(`*`, lapply(vars, function(v) rast(allFiles[which(v == allVars)])))
-      writeRaster(r_int, allFiles[which(var == allVars)])
+  if(!isFALSE(interactVars)){
+    for(var in interactVars){
+      if(!file.exists(allFiles[which(var == allVars)])){
+        vars <- henv$.split_interaction(var)
+        r_int <- Reduce(`*`, lapply(vars, function(v) rast(allFiles[which(v == allVars)])))
+        writeRaster(r_int, allFiles[which(var == allVars)])
+      }
     }
   }
 }
