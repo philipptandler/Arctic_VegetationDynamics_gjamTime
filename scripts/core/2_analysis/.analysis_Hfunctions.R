@@ -208,6 +208,10 @@ source("scripts/core/2_analysis/.chunk_process.R")
   time_code <- henv$.binTimeCode(call$times)
   
   for(var in baseVars){
+    cat("var:", var, "\n")
+    cat("var == allVars:", var == allVars, "\n")
+    cat("which(var == allVars):", which(var == allVars), "\n")
+    cat("allFiles[which(var == allVars)]:", allFiles[which(var == allVars)], "\n")
     if(!file.exists(allFiles[which(var == allVars)])){
       if(!(var == "lat" || var == "lon")){
         fname <- baseFiles$files[which(var == baseFiles$variables)]
