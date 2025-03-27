@@ -63,8 +63,27 @@ source("scripts/core/2_analysis/.chunk_process.R")
 ################################################################################
 ## create and retrieve predictor rasters ####
 ################################################################################
+# Function to check if a string can be converted to a logical vector
+.is_valid_logical_string <- function(input_str) {
+  if(!is.character(input_str) || length(input_str) != 1) return(FALSE)
+  elements <- strsplit(input_str, ",")[[1]]
+  elements <- trimws(toupper(elements))  # Remove spaces and convert to uppercase
+  
+  all(elements %in% c("T", "F"))
+}
+
+# Function to convert a valid string to a logical vector
+.convert_to_logical_vector <- function(input_str) {
+  elements <- strsplit(input_str, ",")[[1]]
+  elements <- trimws(toupper(elements))  # Remove spaces and convert to uppercase
+  as.logical(elements == "T")
+}
+
 
 .validate_times <- function(call, times_out){
+  if(.is_valid_logical_string(times_out)){
+    times_out <- .convert_to_logical_vector(times_out)
+  }
   if(is.logical(times_out)){
     if(length(times_out) != length(call$times)){
       warning("length times_out does not match length of call$times.
