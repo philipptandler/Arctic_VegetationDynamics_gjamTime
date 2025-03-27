@@ -994,7 +994,7 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R", local = environm
   for (var in varVec){
     varname <- .sort_variable(var)
     if(overwrite ||
-       !.nested_entry_exists(ref_list, c(version, subset_name, varname, time_code))
+       !.nested_entry_exists(ref_list, c(version, subset_name, time_code, varname))
     ){
       # write entry as vector c(Mu, Sd)
       ref_list[[version]][[subset_name]][[time_code]][[varname]] <- 
