@@ -31,8 +31,8 @@ source("scripts/core/2_analysis/.chunk_process.R")
     if(type == "output.rdata")return(.load_output_Rdata(arg))
     if(type == "dir") return(arg)
   } else if (dir.exists(file.path(where, arg)) &&
-             (type == "dir" || (type != "dir" && file.exists(file.path(where, arg, type)))))
-             {
+             (type == "dir" || (type != "dir" && file.exists(file.path(where, arg, type))))
+             ){
     if(type == "call.rds") return(readRDS(file.path(where, arg, type)))
     if(type == "output.rdata") return(.load_output_Rdata(file.path(where, arg)))
     if(type == "dir") return(file.path(where, arg))
@@ -41,7 +41,7 @@ source("scripts/core/2_analysis/.chunk_process.R")
                                    ))){
     if(type == "call.rds") return(readRDS(file.path("scripts/project/.parameters/",
                                                     paste(arg, type, sep="_"))))
-    if(type == "output.rdata") return(.load_output_Rdata("scripts/project/.parameters/"))
+    if(type == "output.rdata") return(.load_output_Rdata("scripts/project/.parameters/"), prename=paste0(arg, "_"))
     if(type == "dir") stop("argument", arg, "requires type=='call.rds' or 'output.rdata'")
     } else {
     stop("Not found:", arg)
@@ -49,8 +49,8 @@ source("scripts/core/2_analysis/.chunk_process.R")
 }
 
 # loads function in local env
-.load_output_Rdata <- function(output_path){
-  output_name <- file.path(output_path, "output.rdata")
+.load_output_Rdata <- function(output_path, prename=NULL){
+  output_name <- file.path(output_path, paste0(prename, "output.rdata"))
   load(output_name)
   if(exists("output_save")){
     return(output_save)
