@@ -5,7 +5,8 @@ setwd(here::here())
 source("config/config_local.R")
 source("scripts/core/2_analysis/fixpt_geospatial.R")
 
-arg <- "test_higherorder1_alphaNeg1"
+arg <- "probe1_base"
+times_out = c(T,F,F,T,F,T)
 
 ## call fixpt_geospatial()
-wstar <- fixpt_geospatial(arg, chunk_process = TRUE, n_chunks = 2)
+wstar <- fixpt_geospatial(arg, times_out = times_out)
