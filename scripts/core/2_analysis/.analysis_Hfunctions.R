@@ -641,24 +641,16 @@ source("scripts/core/2_analysis/.chunk_process.R")
   call <- .get_argument(argument, "call.rds", where = path_gjamTime_out)
 
   # outfolder
-  if(is.null(out_folder)){
-    out_folder <- file.path(path_analysis,basename(call$outfolderBase))
-  } else {
-    if(dir.exists(out_folder) || dir.exists(dirname(out_folder))){
-      out_folder = out_folder
-    }
-    out_folder <- file.path(path_analysis, basename(out_folder))
-  }
-  if(!dir.exists(out_folder)) dir.create(out_folder, recursive = TRUE,showWarnings = FALSE)
+  outfolder <- .parse_outfolder(call, output_mask)
   
   cat("loading all observed rasters\n")
   times_out <- .validate_times(call, times_out)
   w_obs_list <- c()
   for(tm in times_out){
-    
+    # local env
     henv <- new.env()
     source("scripts/core/1_gjamTime/.gjamTime_Hfunctions.R", local = henv)
-    
+    # load files
     files_list <- henv$.get_filenames(tm, call$yvars)
     files <- files_list$files
     vars <- files_list$variables
@@ -680,7 +672,7 @@ source("scripts/core/2_analysis/.chunk_process.R")
       if(ext(r_raw) != ext(mask_subset)){r_raw <- crop(r_raw, mask_subset)}
       r_raw <- mask(r_raw, mask_subset, maskvalues=0, updatevalue=NA)
     }
-    writeRaster(r_raw, )
+    writeRaster(r_raw, file.path(outfolder, paste0("w_obs_", tm, ".tif")))
     # write entry
     w_obs_list[[tm]] <- r_raw
     
