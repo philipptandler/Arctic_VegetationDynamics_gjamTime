@@ -621,5 +621,5 @@ source("scripts/core/2_analysis/.chunk_process.R")
   }
   
   # return
-  wstar_list
+  w_star_list
 }
