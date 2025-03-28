@@ -60,7 +60,22 @@ source("scripts/core/2_analysis/.chunk_process.R")
   }
 }
 
-
+#' returns name of the outfolder in data/gjamtime/out/somename, or provided
+#' outfolder (in path_analysis) or as specified
+.parse_outfolder <- function(call, out_folder){
+  
+  if(is.null(out_folder)){
+    out_folder <- file.path(path_analysis,basename(call$outfolderBase))
+  } else {
+    if(!(dir.exists(out_folder) || dir.exists(dirname(out_folder)) ||
+       dir.exists(dirname(dirname(out_folder))))){
+      out_folder <- file.path(path_analysis, basename(out_folder))
+    }
+  }
+  if(!dir.exists(out_folder)) dir.create(out_folder, recursive = TRUE,showWarnings = FALSE)
+  
+  out_folder
+}
 
 ################################################################################
 ## create and retrieve predictor rasters ####
@@ -578,16 +593,8 @@ source("scripts/core/2_analysis/.chunk_process.R")
   output <- .get_argument(argument, "output.rdata", where = path_gjamTime_out)
   
   # outfolder
-  if(is.null(out_folder)){
-    out_folder <- file.path(path_analysis,basename(call$outfolderBase))
-  } else {
-    if(dir.exists(out_folder) || dir.exists(dirname(out_folder))){
-      out_folder = out_folder
-    }
-    out_folder <- file.path(path_analysis, basename(out_folder))
-  }
-  if(!dir.exists(out_folder)) dir.create(out_folder, recursive = TRUE,showWarnings = FALSE)
-  
+  outfolder <- .parse_outfolder(call, out_folder)
+
   # assign parameters
   beta = output$betaMu
   rho = output$rhoMu
@@ -623,3 +630,61 @@ source("scripts/core/2_analysis/.chunk_process.R")
   # return
   w_star_list
 }
+
+# returns list of observed rasters, writes them as w_obs
+.observed_rasters <- function(argument,
+                              out_folder = NULL,
+                              output_mask = NULL,
+                              times_out = NULL,
+                              save = TRUE){
+  
+  call <- .get_argument(argument, "call.rds", where = path_gjamTime_out)
+
+  # outfolder
+  if(is.null(out_folder)){
+    out_folder <- file.path(path_analysis,basename(call$outfolderBase))
+  } else {
+    if(dir.exists(out_folder) || dir.exists(dirname(out_folder))){
+      out_folder = out_folder
+    }
+    out_folder <- file.path(path_analysis, basename(out_folder))
+  }
+  if(!dir.exists(out_folder)) dir.create(out_folder, recursive = TRUE,showWarnings = FALSE)
+  
+  cat("loading all observed rasters\n")
+  times_out <- .validate_times(call, times_out)
+  w_obs_list <- c()
+  for(tm in times_out){
+    
+    henv <- new.env()
+    source("scripts/core/1_gjamTime/.gjamTime_Hfunctions.R", local = henv)
+    
+    files_list <- henv$.get_filenames(tm, call$yvars)
+    files <- files_list$files
+    vars <- files_list$variables
+    
+    # load raster
+    r_raw <- rast(files)
+    
+    # crop with out_mask or subset of call
+    if(!is.null(output_mask)){
+      if(file.exists(file.path(path_masks,output_mask))){
+        mask_out <- rast(file.path(path_masks,output_mask))
+      } else if (file.exists(output_mask)){
+        mask_out <- rast(output_mask)
+      } else {stop("invalid output_mask provided")}
+      if(ext(r_raw) != ext(mask_out)){r_raw <- crop(r_raw, mask_out)}
+      r_raw <- mask(r_raw, mask_out, maskvalues=0, updatevalue=NA)
+    } else if(!isFALSE(call$subset)){
+      mask_subset <- rast(file.path(path_masks,call$subset$mask))
+      if(ext(r_raw) != ext(mask_subset)){r_raw <- crop(r_raw, mask_subset)}
+      r_raw <- mask(r_raw, mask_subset, maskvalues=0, updatevalue=NA)
+    }
+    writeRaster(r_raw, )
+    # write entry
+    w_obs_list[[tm]] <- r_raw
+    
+  }
+  
+}
+
