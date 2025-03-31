@@ -1458,7 +1458,7 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R", local = environm
 
 # argument is either calling script or folder. If folder, base_name is an identifier of the sub directories. Can be NULL.
 # cp_to_repo copies output in scripts/project/1_gjamTime/.parameters with outname_output.Rdata
-.gjamTime_summary <- function(argument, base_name=NULL, cp_to_repo=F, outname=NULL){
+.gjamTime_summary <- function(argument, base_name=NULL, cp_to_repo=F, outname=NULL, summarize_call = TRUE){
   #find subdirs
   outlist <- .get_gjamTime_list(argument, base_name)
   dirs <- list.dirs(outlist$outfolder,
@@ -1472,8 +1472,17 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R", local = environm
     if (file.exists(rdata_path)) {
       # Load the Rdata file
       load(rdata_path) #loads output_save as list
-      for(entry in names(output_save)){
-        output_collection[[entry]][[length(output_collection[[entry]])+1]] <- output_save[[entry]]
+      if(exists("output_save")){
+        output_list <- output_save
+      } else if (exists("output_summary")){
+        output_list <- output_summary
+      } else if (exists("output_short")){
+        output_list <- output_short
+      } else {
+        stop("Unknown name of output file given in ", rdata_path, "\n")
+      }
+      for(entry in names(output_list)){
+        output_collection[[entry]][[length(output_collection[[entry]])+1]] <- output_list[[entry]]
       }
     }
   }
@@ -1499,14 +1508,24 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R", local = environm
   # write summarized output
   save(output_summary, file = file.path(outlist$outfolder, "output.rdata"))
   # copy call.rds
-  call_save <- readRDS(file.path(subdirs[1], "call.rds"))
-  saveRDS(call_save, file = file.path(outlist$outfolder, "call.rds"))
+  if(summarize_call){
+    call_save <- readRDS(file.path(subdirs[1], "call.rds"))
+    saveRDS(call_save, file = file.path(outlist$outfolder, "call.rds"))
+  }
   if(cp_to_repo){
-    if(is.null(outname)){outname <- basename(outlist$outfolder)}
+    if(is.null(outname)){
+      if(!is.null(base_name)) {outname <- base_name}
+      else { outname <- basename(outlist$outfolder)}
+    }
     save(output_summary, file = file.path("scripts/project/.parameters",
                                           paste0(outname, "_output.rdata")))
-    saveRDS(call_save, file = file.path("scripts/project/.parameters",
-                                        paste0(outname, "_call.rds")))
+    cat("Wrote summarized output to scripts/project/.parameters \n with name", paste0(outname, "_output.rdata"), "\n")
+    if(summarize_call){
+      saveRDS(call_save, file = file.path("scripts/project/.parameters",
+                                          paste0(outname, "_call.rds")))
+      cat("Wrote call to scripts/project/.parameters \n with name", paste0(outname, "_call.rds"), "\n")
+      
+    }
   }
   output_summary
 }

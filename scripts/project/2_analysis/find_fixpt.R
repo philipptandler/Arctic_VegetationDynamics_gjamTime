@@ -9,4 +9,4 @@ arg <- "probe1_base"
 times_out = c(T,F,F,T,F,T)
 
 ## call fixpt_geospatial()
-wstar <- fixpt_geospatial(arg, times_out = times_out, data_type = "INT2S")
+wstar <- fixpt_geospatial(argument = arg, times_out = times_out, data_type = "INT2S")

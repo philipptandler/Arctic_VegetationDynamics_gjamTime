@@ -246,21 +246,11 @@ source("scripts/core/2_analysis/.chunk_process.R")
         }
         r_raw <- mask(r_raw, mastermask, maskvalues=0, updatevalue=NA)
       }
-      if(!is.null(output_mask)){
-        if(file.exists(file.path(path_masks,output_mask))){
-          mask_out <- rast(file.path(path_masks,output_mask))
-        } else if (file.exists(output_mask)){
-          mask_out <- rast(output_mask)
-        } else {stop("invalid output_mask provided")}
-        if(ext(r_raw) != ext(mask_out)){r_raw <- crop(r_raw, mask_out)}
-        r_raw <- mask(r_raw, mask_out, maskvalues=0, updatevalue=NA)
-      } else if(!isFALSE(call$subset)){
-        mask_subset <- rast(file.path(path_masks,call$subset$mask))
-        if(ext(r_raw) != ext(mask_subset)){r_raw <- crop(r_raw, mask_subset)}
-        r_raw <- mask(r_raw, mask_subset, maskvalues=0, updatevalue=NA)
-      }
+      # crop extent
+      r_raw <- .crop_output_ext(r_raw, call, output_mask)
       mu <- ref_list[[version]][[subset_name]][[time_code]][[var]][1]
       sd <- ref_list[[version]][[subset_name]][[time_code]][[var]][2]
+      # noramlize
       r_norm <- (r_raw-mu)/(3*sd)
       writeRaster(r_norm, allFiles[which(var == allVars)])
     }
@@ -338,6 +328,26 @@ source("scripts/core/2_analysis/.chunk_process.R")
 ################################################################################
 ## raster operations ####
 ################################################################################
+
+# crops raster to output_mask or call$subset
+.crop_output_ext <- function(raster, call, output_mask){
+  if(!is.null(output_mask)){
+    if(file.exists(file.path(path_masks,output_mask))){
+      mask_out <- rast(file.path(path_masks,output_mask))
+    } else if (file.exists(output_mask)){
+      mask_out <- rast(output_mask)
+    } else {stop("invalid output_mask provided")}
+    if(ext(raster) != ext(mask_out)){raster <- crop(raster, mask_out)}
+    raster <- mask(raster, mask_out, maskvalues=0, updatevalue=NA)
+  } else if(!isFALSE(call$subset)){
+    mask_subset <- rast(file.path(path_masks,call$subset$mask))
+    if(ext(raster) != ext(mask_subset)){raster <- crop(raster, mask_subset)}
+    raster <- mask(raster, mask_subset, maskvalues=0, updatevalue=NA)
+  }
+  raster
+}
+
+
 
 
 # Matrix M and raster w, each pixel treated as vector by its layers
@@ -645,7 +655,7 @@ source("scripts/core/2_analysis/.chunk_process.R")
   
   cat("loading all observed rasters\n")
   times_out <- .validate_times(call, times_out)
-  w_obs_list <- c()
+  w_obs_list <- list()
   for(tm in times_out){
     # local env
     henv <- new.env()
@@ -655,23 +665,15 @@ source("scripts/core/2_analysis/.chunk_process.R")
     files <- files_list$files
     vars <- files_list$variables
     
+    file_paths_in <- file.path(path_gjamTime_in, files)
+    
     # load raster
-    r_raw <- rast(files)
+    r_raw <- rast(file_paths_in)
+    names(r_raw) <- vars
     
     # crop with out_mask or subset of call
-    if(!is.null(output_mask)){
-      if(file.exists(file.path(path_masks,output_mask))){
-        mask_out <- rast(file.path(path_masks,output_mask))
-      } else if (file.exists(output_mask)){
-        mask_out <- rast(output_mask)
-      } else {stop("invalid output_mask provided")}
-      if(ext(r_raw) != ext(mask_out)){r_raw <- crop(r_raw, mask_out)}
-      r_raw <- mask(r_raw, mask_out, maskvalues=0, updatevalue=NA)
-    } else if(!isFALSE(call$subset)){
-      mask_subset <- rast(file.path(path_masks,call$subset$mask))
-      if(ext(r_raw) != ext(mask_subset)){r_raw <- crop(r_raw, mask_subset)}
-      r_raw <- mask(r_raw, mask_subset, maskvalues=0, updatevalue=NA)
-    }
+    r_raw <- .crop_output_ext(r_raw, call, output_mask)
+    # write
     writeRaster(r_raw, file.path(outfolder, paste0("w_obs_", tm, ".tif")))
     # write entry
     w_obs_list[[tm]] <- r_raw

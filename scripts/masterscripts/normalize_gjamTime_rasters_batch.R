@@ -3,7 +3,7 @@ library(here)
 setwd(here::here())
 
 source("config/config_local.R")
-source("scripts/core/2_analysis/analysis_normalization_raster.R")
+source("scripts/core/2_analysis/normalization_raster.R")
 
 
 ## read system Arguments and set call
