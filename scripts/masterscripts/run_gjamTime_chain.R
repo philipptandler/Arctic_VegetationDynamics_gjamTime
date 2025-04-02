@@ -9,7 +9,7 @@ setwd(here::here())
 
 #' the variable 'call' holds the Script that specifies the input for gjamTime
 # set call script here
-call_this_script <- "scripts/project/1_gjamTime/call_gjamTime_test1.R"
+arg <- "scripts/project/1_gjamTime/call_probe1_base_regular.R"
 
 # set replicates for multiple simulations here
 n_replicates <- 10
@@ -18,12 +18,11 @@ n_replicates <- 10
 for(run in 1:n_replicates){
   cat("run_gjamTime_batch run", run, "out of", n_replicates, "\n")
   task_id <- run
-  call_scrpt <- call_this_script
+  call_scrpt <- arg
   source("scripts/masterscripts/run_gjamTime_batch.R")
 }
 
 # summarize output
-arg <- call_this_script
 source("scripts/masterscripts/summarize_gjamTime_batch.R")
 
 # and calculate fixed point
