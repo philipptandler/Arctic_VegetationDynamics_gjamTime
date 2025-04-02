@@ -594,7 +594,7 @@ source("scripts/core/2_analysis/.chunk_process.R")
                               chunk_size = NULL,
                               save = TRUE,
                               data_type = NULL){
-  
+
   # currently only for beta = FALSE, rho = TRUE, alpha = TRUE implemented
   cat("calling .fixpt_geospatial():
       Currently only implemented for beta=FALSE, rho=TRUE, alpha=TRUE, x_raster (predictors)")
@@ -603,7 +603,7 @@ source("scripts/core/2_analysis/.chunk_process.R")
   output <- .get_argument(argument, "output.rdata", where = path_gjamTime_out)
   
   # outfolder
-  outfolder <- .parse_outfolder(call, out_folder)
+  out_folder <- .parse_outfolder(call, out_folder)
 
   # assign parameters
   beta = output$betaMu
@@ -650,8 +650,8 @@ source("scripts/core/2_analysis/.chunk_process.R")
   
   call <- .get_argument(argument, "call.rds", where = path_gjamTime_out)
 
-  # outfolder
-  outfolder <- .parse_outfolder(call, output_mask)
+  # out_folder
+  out_folder <- .parse_outfolder(call, out_folder)
   
   cat("loading all observed rasters\n")
   times_out <- .validate_times(call, times_out)
@@ -674,7 +674,7 @@ source("scripts/core/2_analysis/.chunk_process.R")
     # crop with out_mask or subset of call
     r_raw <- .crop_output_ext(r_raw, call, output_mask)
     # write
-    writeRaster(r_raw, file.path(outfolder, paste0("w_obs_", tm, ".tif")))
+    writeRaster(r_raw, file.path(out_folder, paste0("w_obs_", tm, ".tif")))
     # write entry
     w_obs_list[[tm]] <- r_raw
     
