@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -n 1
-#SBATCH --time 06:00:00
+#SBATCH --time 02:00:00
 #SBATCH --mem-per-cpu=124G
 #SBATCH --array=[1-40]%1
 #SBATCH --job-name=gjam_probe1_gjam
