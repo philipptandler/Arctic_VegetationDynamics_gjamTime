@@ -1362,6 +1362,11 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R", local = environm
     ptrn <- .out_pattern(b_name)
     l <- list(outfolder = argument, pattern = ptrn)
     return(l)
+  }
+  if(dir.exists(file.path(path_gjamTime_out, argument))){
+    ptrn <- .out_pattern(b_name)
+    l <- list(outfolder = file.path(path_gjamTime_out, argument), pattern = ptrn)
+    return(l)
   } 
   if(!file.exists(argument)){stop("Invalid Argument: ", argument)}
   call <- .initialize_and_validate_call(argument, task_id=NULL)

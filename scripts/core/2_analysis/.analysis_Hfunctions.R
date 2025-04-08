@@ -17,7 +17,7 @@ source("scripts/core/2_analysis/.chunk_process.R")
   if(type != "call.rds" && type != "output.rdata" && type != "dir"){
     stop("invalid argument type:", type)
   }
-  if(file.exists(arg)){
+  if(file.exists(arg) && !dir.exists(arg)){
     helper_env <- new.env()
     source("scripts/core/1_gjamTime/.gjamTime_Hfunctions.R", local = helper_env)
     call <- helper_env$.initialize_and_validate_call(arg)

@@ -6,7 +6,7 @@ source("config/config_local.R")
 source("scripts/core/1_gjamTime/gjamTime_geospatial.R")
 
 # set calling script here
-call_scrpt <- "scripts/project/1_gjamTime/call_gjamTime_test1.R"
+call_scrpt <- "scripts/project/1_gjamTime/call_probe1_base_exploreVMSc.R"
 
 
 ## call gjamTime_goespatial()
