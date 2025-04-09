@@ -2,9 +2,9 @@
 #SBATCH -n 1
 #SBATCH --time 48:00:00
 #SBATCH --mem-per-cpu=124G
-#SBATCH --job-name=find_fixpt_probe2
-#SBATCH --output=find_fixpt_probe2.out
-#SBATCH --error=find_fixpt_probe2.err
+#SBATCH --job-name=find_fixpt_probe1
+#SBATCH --output=find_fixpt_probe1.out
+#SBATCH --error=find_fixpt_probe1.err
 #SBATCH --open-mode=append
 #SBATCH --mail-type=END,FAIL
 
