@@ -647,6 +647,11 @@ source("scripts/core/2_analysis/.chunk_process.R")
   w_star_list
 }
 
+################################################################################
+## write observed rasters for response (given in yvars) ####
+################################################################################
+
+
 # returns list of observed rasters, writes them as w_obs
 .observed_rasters <- function(argument,
                               out_folder = NULL,
@@ -670,7 +675,6 @@ source("scripts/core/2_analysis/.chunk_process.R")
     files_list <- henv$.get_filenames(tm, call$yvars)
     files <- files_list$files
     vars <- files_list$variables
-    
     file_paths_in <- file.path(path_gjamTime_in, files)
     
     # load raster
@@ -679,12 +683,13 @@ source("scripts/core/2_analysis/.chunk_process.R")
     
     # crop with out_mask or subset of call
     r_raw <- .crop_output_ext(r_raw, call, output_mask)
+    
     # write
     writeRaster(r_raw, file.path(out_folder, paste0("w_obs_", tm, ".tif")))
+    
     # write entry
     w_obs_list[[tm]] <- r_raw
-    
   }
-  
+  w_obs_list
 }
 
