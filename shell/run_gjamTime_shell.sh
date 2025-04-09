@@ -1,11 +1,11 @@
 #!/bin/bash
 #SBATCH -n 1
-#SBATCH --time 02:00:00
+#SBATCH --time 04:00:00
 #SBATCH --mem-per-cpu=124G
 #SBATCH --array=[1-40]%1
-#SBATCH --job-name=gjam_probe1_gjam
-#SBATCH --output=gjam_probe1_gjam.out
-#SBATCH --error=gjam_probe1_gjam.err
+#SBATCH --job-name=gjam_probe2_gjamTime
+#SBATCH --output=gjam_probe2_gjamTime.out
+#SBATCH --error=gjam_probe2_gjamTime.err
 #SBATCH --open-mode=append
 #SBATCH --mail-type=END,FAIL
 
