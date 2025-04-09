@@ -18,5 +18,5 @@ for arg in "${SETUP_ARGUMENTS[@]}"; do
     
     # Submit find_fixpt_shell.sh with dependency on summarize_gjamTime_sheel.sh
     jobid3=$(sbatch --dependency=afterok:$jobid2 shell/find_fixpt_shell.sh "$arg" | awk '{print $4}')
-    echo "Submitted run_gjamTime_shell.sh with Job ID $jobid3 and argument $arg"
+    echo "Submitted find_fixpt_shell.sh with Job ID $jobid3 and argument $arg"
 done
