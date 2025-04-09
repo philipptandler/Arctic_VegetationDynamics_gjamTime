@@ -617,7 +617,7 @@ source("scripts/core/2_analysis/.chunk_process.R")
   alpha = output$alphaMu
   if(!is.null(beta))beta <- t(beta)
   if(!is.null(rho))rho <- t(rho)
-  if(!is.null(alpha))alpha <- t(alpha)
+  if(!is.null(alpha))alpha <- alpha
   
   # load_predictor_raster(call)
   x_list <-.load_predictor_rasters(call, times_out, output_mask, lyr_names=colnames(rho))
