@@ -3,7 +3,7 @@ library(here)
 setwd(here::here())
 
 source("config/config_local.R")
-source("scripts/core/2_analysis/fixpt_geospatial.R")
+source("scripts/core/2_analysis/fixpt.R")
 
 output <- .get_argument("gjam_interaction", "output.rdata")
 
