@@ -5,7 +5,7 @@ setwd(here::here())
 source("config/config_local.R")
 source("scripts/core/2_analysis/fixpt_geospatial.R")
 
-arg <- "probe1_base"
+arg <- "probe1_base_regular"
 times_out = c(T,F,F,T,F,T)
 
 ## call fixpt_geospatial()
