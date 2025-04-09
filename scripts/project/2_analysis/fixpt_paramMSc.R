@@ -5,8 +5,11 @@ setwd(here::here())
 source("config/config_local.R")
 source("scripts/core/2_analysis/fixpt_geospatial.R")
 
-arg <- "probe1_highorder2"
-times_out = c(T,F,F,T,F,T)
+output <- .get_argument("gjam_interaction", "output.rdata")
+
+alpha <- output$alphaMu
+rho <- t(output$rhoMu)
+x <- rast(file.path(path_analysis, "gjam_interaction", "x_1990.tif"))
 
 ## call fixpt_geospatial()
-wstar <- fixpt_geospatial(argument = arg, times_out = times_out, data_type = "INT2S")
+wstar <- fixpt(rho, alpha, x, chunk_process = TRUE, n_chunks = 100)
