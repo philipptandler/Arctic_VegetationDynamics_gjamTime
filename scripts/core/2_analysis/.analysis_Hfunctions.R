@@ -653,11 +653,11 @@ source("scripts/core/2_analysis/.chunk_process.R")
 
 
 # returns list of observed rasters, writes them as w_obs
-.observed_rasters <- function(argument,
-                              out_folder = NULL,
-                              output_mask = NULL,
-                              times_out = NULL,
-                              save = TRUE){
+.wobs_geospatial <- function(argument,
+                             out_folder = NULL,
+                             output_mask = NULL,
+                             times_out = NULL,
+                             save = TRUE){
   
   call <- .get_argument(argument, "call.rds", where = path_gjamTime_out)
 
@@ -684,9 +684,10 @@ source("scripts/core/2_analysis/.chunk_process.R")
     # crop with out_mask or subset of call
     r_raw <- .crop_output_ext(r_raw, call, output_mask)
     
-    # write
-    writeRaster(r_raw, file.path(out_folder, paste0("w_obs_", tm, ".tif")))
-    
+    if(save){
+      # write
+      writeRaster(r_raw, file.path(out_folder, paste0("w_obs_", tm, ".tif")))
+    }
     # write entry
     w_obs_list[[tm]] <- r_raw
   }
