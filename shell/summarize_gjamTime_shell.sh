@@ -2,9 +2,9 @@
 #SBATCH -n 1
 #SBATCH --time 00:05:00
 #SBATCH --mem-per-cpu=124G
-#SBATCH --job-name=gjam_probe1_summary
-#SBATCH --output=gjam_probe1_summary.out
-#SBATCH --error=gjam_probe1_summary.err
+#SBATCH --job-name=gjam_probe2_summary
+#SBATCH --output=gjam_probe2_summary.out
+#SBATCH --error=gjam_probe2_summary.err
 #SBATCH --open-mode=append
 #SBATCH --mail-type=END,FAIL
 
