@@ -21,29 +21,35 @@ source("scripts/core/2_analysis/.chunk_process.R")
     helper_env <- new.env()
     source("scripts/core/1_gjamTime/.gjamTime_Hfunctions.R", local = helper_env)
     call <- helper_env$.initialize_and_validate_call(arg)
-    call <- helper_env$.prepare_gjamTime_outfolder(call, arg, create.if.notFound = F)
-    if(type == "call.rds") return(call)
-    if(type == "output.rdata") return(.load_output_Rdata(call$outfolderBase))
-    if(type == "dir") return(call$outfolderBase)
-  } else if (dir.exists(arg)){
+    if(!file.exists(file.path("scripts/project/.parameters/",
+                              paste(call$name, type, sep="_")))){
+      call <- helper_env$.prepare_gjamTime_outfolder(call, arg, create.if.notFound = F)
+      if(type == "call.rds") return(call)
+      if(type == "output.rdata") return(.load_output_Rdata(call$outfolderBase))
+      if(type == "dir") return(call$outfolderBase)
+    }
+    arg = call$name
+  }
+  if(dir.exists(arg)){
     if(type == "call.rds") return(readRDS(file.path(arg,
                                                     type)))
     if(type == "output.rdata")return(.load_output_Rdata(arg))
     if(type == "dir") return(arg)
-  } else if (dir.exists(file.path(where, arg)) &&
-             (type == "dir" || (type != "dir" && file.exists(file.path(where, arg, type))))
-             ){
+  }
+  if(dir.exists(file.path(where, arg)) &&
+     (type == "dir" || (type != "dir" && file.exists(file.path(where, arg, type))))){
     if(type == "call.rds") return(readRDS(file.path(where, arg, type)))
     if(type == "output.rdata") return(.load_output_Rdata(file.path(where, arg)))
     if(type == "dir") return(file.path(where, arg))
-  } else if (file.exists(file.path("scripts/project/.parameters/",
-                                   paste(arg, type, sep="_")
-                                   ))){
+  }
+  if(file.exists(file.path("scripts/project/.parameters/",
+                           paste(arg, type, sep="_")))){
     if(type == "call.rds") return(readRDS(file.path("scripts/project/.parameters/",
                                                     paste(arg, type, sep="_"))))
     if(type == "output.rdata") return(.load_output_Rdata("scripts/project/.parameters/", prename=paste0(arg, "_")))
     if(type == "dir") stop("argument", arg, "requires type=='call.rds' or 'output.rdata'")
-    } else {
+    }
+  {
     stop("Not found:", arg)
   }
 }
