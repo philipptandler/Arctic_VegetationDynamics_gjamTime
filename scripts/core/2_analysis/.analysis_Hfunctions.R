@@ -699,3 +699,128 @@ source("scripts/core/2_analysis/.chunk_process.R")
   w_obs_list
 }
 
+
+################################################################################
+## write change of rasters ####
+################################################################################
+
+.wrate_geospatial <- function(files,
+                              outfolder = NULL,
+                              mean = TRUE,
+                              save = TRUE,
+                              rate = TRUE,
+                              linear_model = FALSE,
+                              datatype = NULL){
+  
+  n_files <- length(files) # number of files
+  n_diff <- n_files-1 # number of differences
+  
+  # check if length is long enough
+  if(n_diff <= 0) return(NULL)
+  
+  # prepare
+  result <- list()
+  if(is.null(outfolder)){
+    outfolder <- dirname(files[1])
+  } else {
+    if(!dir.exists(outfolder)){stop("invalid outfolder specified")}
+  }
+
+  # rate of change
+  if(rate){
+    for (i in 1:n_diff){
+      name = paste0("diff_", i)
+      r1 <- rast(files[i])
+      r2 <- rast(files[i+1])
+      diff <- r2 - r1
+      if(save){
+        fname <- paste0("w_rate_diff_", i, ".tif")
+        writeRaster(diff, file.path(outfolder, fname),
+                    overwrite = TRUE,
+                    datatype = datatype)
+        cat("saved", fname, "in", outfolder, "\n")
+      }
+      result[[name]] <- diff
+    }
+  }
+  # average change
+  if(mean){
+    sum_changes <- Reduce(`+`, lapply(c(1:n_diff), function(v) result[[v]]))
+    mean <- sum_changes/n_diff
+    result[["mean_change"]] <- mean
+    if(save){
+      fname <- "w_rate_diff_mean.tif"
+      writeRaster(mean, file.path(outfolder, fname),
+                  overwrite = TRUE,
+                  datatype = datatype)
+      cat("saved", fname, "in", outfolder, "\n")
+    }
+  }
+  
+  # linear model of change
+  if(linear_model){
+    ref_raster <- rast(files[1])
+    
+    intercepts <- list()
+    slopes <- list()
+    
+    n_lyr <- nlyr(ref_raster)
+    lyrnames <- names(ref_raster)
+    # check for unique layer names
+    if(length(unique(lyrnames)) < n_lyr){
+      warning("non-unique layer names enountered.\nConsider renaming your raster layers given in files.\n")
+      lyrnames <- paste0("var", c(1:n_lyr))
+    }
+    
+    # linear model for each variable in the predictor raster
+    for(lyr in 1:n_lyr){
+      r_lyr <- list() # collect individual rasters for a given layer
+      for(tm in 1:n_files){
+        r_lyr[[tm]] <- rast(files[tm])[[lyr]]
+      }
+      rstack <- rast(r_lyr)
+      outname <- paste0("w_rate_lm-bySpec_", lyrnames[lyr], ".tif" )
+      lm_rast <- regress(y = rstack,
+                         x = c(1:n_files),
+                         formula = y~x, 
+                         na.rm = TRUE, 
+                         filename = file.path(outfolder, outname),
+                         overwrite = TRUE,
+                         datatype = datatype)
+      cat("saved", outname, "in", outfolder, "\n")
+      
+      intercepts[[lyrnames[lyr]]] <- lm_rast[[1]]
+      slopes[[lyrnames[lyr]]] <- lm_rast[[2]]
+    }
+    # save all interacepts
+    result[["intercept"]] <- rast(intercepts)
+    writeRaster(result[["intercept"]],
+                file.path(outfolder, "w_rate_lm_intercept.tif"),
+                overwrite = TRUE,
+                datatype = datatype)
+    cat("saved w_rate_lm_intercept.tif in", outfolder, "\n")
+    
+    # save all slopes
+    result[["slope"]] <- rast(slopes)
+    writeRaster(result[["slope"]],
+                file.path(outfolder, "w_rate_lm_slope.tif"),
+                overwrite = TRUE,
+                datatype = datatype)
+    cat("saved w_rate_lm_slope.tif in", outfolder, "\n")
+  }
+  result
+}
+
+################################################################################
+## write change of rasters ####
+################################################################################
+
+.jacobian_geospatial <- function(files,
+                                 outfolder = NULL,
+                                 mean = TRUE,
+                                 save = TRUE,
+                                 rate = TRUE,
+                                 linear_model = FALSE,
+                                 datatype = NULL){
+  
+}
