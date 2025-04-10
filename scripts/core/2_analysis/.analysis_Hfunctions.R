@@ -30,7 +30,7 @@ source("scripts/core/2_analysis/.chunk_process.R")
     }
     arg = call$name
   }
-  if(dir.exists(arg)){
+  if(dir.exists(arg) && dirname(arg) == path_gjamTime_out){
     if(type == "call.rds") return(readRDS(file.path(arg,
                                                     type)))
     if(type == "output.rdata")return(.load_output_Rdata(arg))
@@ -43,15 +43,13 @@ source("scripts/core/2_analysis/.chunk_process.R")
     if(type == "dir") return(file.path(where, arg))
   }
   if(file.exists(file.path("scripts/project/.parameters/",
-                           paste(arg, type, sep="_")))){
+                           paste(basename(arg), type, sep="_")))){
     if(type == "call.rds") return(readRDS(file.path("scripts/project/.parameters/",
                                                     paste(arg, type, sep="_"))))
     if(type == "output.rdata") return(.load_output_Rdata("scripts/project/.parameters/", prename=paste0(arg, "_")))
     if(type == "dir") stop("argument", arg, "requires type=='call.rds' or 'output.rdata'")
-    }
-  {
-    stop("Not found:", arg)
   }
+  stop("Not found:", arg)
 }
 
 # loads function in local env
@@ -395,6 +393,30 @@ source("scripts/core/2_analysis/.chunk_process.R")
   }
 }
 
+# Treats spatial raster M as nXn matrix and w as lenght n vector
+# M is interpreted by first filling the rows
+# only implemented for 4x4 matrix currently
+# TODO currently implemented only for dim = 4
+.rasterMatrixProd <- function(M, w){
+  if(nlyr(M) != 4**2){stop("dimensions do not match in matrix product")}
+  result_list <- list()
+  for(i in 1:4){
+    layer <- rast(nrows = nrow(w), 
+                  ncols = ncol(w), 
+                  nlyrs = 1, 
+                  crs = crs(w), 
+                  ext = ext(w),
+                  vals = 0)
+    for(j in 1:4){
+      layer <- layer + M[[pos(i, j)]]*w[[j]]
+    }
+    result_list[[i]] <- layer
+  }
+  result <- rast(result_list)
+  names(result) <- names(w)
+  return(result)
+}
+
 
 ################################################################################
 ## calculate fixed point ####
@@ -652,10 +674,42 @@ source("scripts/core/2_analysis/.chunk_process.R")
   w_star_list
 }
 
+
+################################################################################
+## calculate jacobian matrix ####
+################################################################################
+
+.jacobian_geospatial <- function(argument,
+                                 fixed_point_files = NULL,
+                                 out_folder = NULL,
+                                 output_mask = NULL,
+                                 times_out = NULL,
+                                 chunk_process = TRUE,
+                                 n_chunks = 100,
+                                 chunk_size = NULL,
+                                 save = TRUE,
+                                 data_type = NULL){
+  
+  call <- .get_argument(argument, "call.rds", where = path_gjamTime_out)
+  output <- .get_argument(argument, "output.rdata", where = path_gjamTime_out)
+  
+  # outfolder
+  out_folder <- .parse_outfolder(call, out_folder)
+  
+  # assign parameters
+  beta = output$betaMu
+  rho = output$rhoMu
+  alpha = output$alphaMu
+  if(!is.null(beta))beta <- t(beta)
+  if(!is.null(rho))rho <- t(rho)
+  if(!is.null(alpha))alpha <- alpha
+  
+}
+
+
 ################################################################################
 ## write observed rasters for response (given in yvars) ####
 ################################################################################
-
 
 # returns list of observed rasters, writes them as w_obs
 .wobs_geospatial <- function(argument,
@@ -809,18 +863,4 @@ source("scripts/core/2_analysis/.chunk_process.R")
     cat("saved w_rate_lm_slope.tif in", outfolder, "\n")
   }
   result
-}
-
-################################################################################
-## write change of rasters ####
-################################################################################
-
-.jacobian_geospatial <- function(files,
-                                 outfolder = NULL,
-                                 mean = TRUE,
-                                 save = TRUE,
-                                 rate = TRUE,
-                                 linear_model = FALSE,
-                                 datatype = NULL){
-  
 }
