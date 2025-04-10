@@ -14,5 +14,9 @@ x <- rast(file.path(path_analysis, "gjam_interaction", "x_1990.tif"))
 ## call fixpt_geospatial()
 wstar <- fixpt(rho, alpha, x, chunk_process = TRUE, n_chunks = 100)
 
+cat("print(wstar)\n")
+print(wstar)
+cat("writing raster\n")
 writeRaster(wstar, file.path(path_analysis, "gjam_interaction", "w_star_1900.tif"),
             datatype = "INT2S")
+cat("done.\n")
