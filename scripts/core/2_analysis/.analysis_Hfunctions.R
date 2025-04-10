@@ -625,12 +625,17 @@ source("scripts/core/2_analysis/.chunk_process.R")
   # calc_fixpt(alpha, rho, x)
   cat("iterating through all ouput rasters\n")
   w_star_list <- list()
+  mastermask <- rast(file.path(path_masks, name_master_mask))
+  if(length(x_list) > 0){
+    mastermask <- crop(mastermask, x_list[[1]])
+  }
   for (entry in names(x_list)){
     cat("calculate fixed point raster for time", entry, "\n")
     w_star <- .fixpt(beta, rho, alpha, x_list[[entry]],
                      chunk_process = chunk_process,
                      n_chunks = n_chunks,
                      chunk_size = chunk_size)
+    w_star <- mask(w_star, mastermask, maskvalues=0, updatevalue=NA)
     if(save){
       valid_datatypes <- c("INT1U", "INT2U", "INT2S", "INT4U", "INT4S", "FLT4S", "FLT8S")
       if(is.null(data_type) || !(data_type %in% valid_datatypes)){
