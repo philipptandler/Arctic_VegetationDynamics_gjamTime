@@ -30,10 +30,17 @@ source("scripts/core/2_analysis/.chunk_process.R")
     }
     arg = call$name
   }
+  if(file.exists(file.path("scripts/project/.parameters/",
+                           paste(basename(arg), type, sep="_")))){
+    if(type == "call.rds") return(readRDS(file.path("scripts/project/.parameters/",
+                                                    paste(arg, type, sep="_"))))
+    if(type == "output.rdata") return(.load_output_Rdata("scripts/project/.parameters/", prename=paste0(arg, "_")))
+    if(type == "dir") stop("argument", arg, "requires type=='call.rds' or 'output.rdata'")
+  }
   if(dir.exists(arg) && dirname(arg) == path_gjamTime_out){
     if(type == "call.rds") return(readRDS(file.path(arg,
                                                     type)))
-    if(type == "output.rdata")return(.load_output_Rdata(arg))
+    if(type == "output.rdata") return(.load_output_Rdata(arg))
     if(type == "dir") return(arg)
   }
   if(dir.exists(file.path(where, arg)) &&
@@ -41,13 +48,6 @@ source("scripts/core/2_analysis/.chunk_process.R")
     if(type == "call.rds") return(readRDS(file.path(where, arg, type)))
     if(type == "output.rdata") return(.load_output_Rdata(file.path(where, arg)))
     if(type == "dir") return(file.path(where, arg))
-  }
-  if(file.exists(file.path("scripts/project/.parameters/",
-                           paste(basename(arg), type, sep="_")))){
-    if(type == "call.rds") return(readRDS(file.path("scripts/project/.parameters/",
-                                                    paste(arg, type, sep="_"))))
-    if(type == "output.rdata") return(.load_output_Rdata("scripts/project/.parameters/", prename=paste0(arg, "_")))
-    if(type == "dir") stop("argument", arg, "requires type=='call.rds' or 'output.rdata'")
   }
   stop("Not found:", arg)
 }
@@ -76,7 +76,8 @@ source("scripts/core/2_analysis/.chunk_process.R")
       out_folder <- file.path(path_analysis, basename(out_folder))
     }
   }
-  if(!dir.exists(out_folder)) dir.create(out_folder, recursive = TRUE,showWarnings = FALSE)
+  if(!dir.exists(out_folder)) dir.create(out_folder, recursive = TRUE,
+                                         showWarnings = FALSE)
   
   out_folder
 }
@@ -575,7 +576,8 @@ source("scripts/core/2_analysis/.chunk_process.R")
                              extra_args=list(
                                beta=beta,
                                rho=rho,
-                               alpha=alpha
+                               alpha=alpha,
+                               chunk_process=FALSE
                              ))
     return(w_star)
   }
@@ -651,6 +653,7 @@ source("scripts/core/2_analysis/.chunk_process.R")
   if(length(x_list) > 0){
     mastermask <- crop(mastermask, x_list[[1]])
   }
+  # for all times
   for (entry in names(x_list)){
     cat("calculate fixed point raster for time", entry, "\n")
     w_star <- .fixpt(beta, rho, alpha, x_list[[entry]],
@@ -679,16 +682,80 @@ source("scripts/core/2_analysis/.chunk_process.R")
 ## calculate jacobian matrix ####
 ################################################################################
 
+.jacobian <- function (rho, alpha, x, w_star, chunk_process = FALSE,
+                       n_chunks = NULL, chunk_size = NULL,
+                       regular = TRUE, inverse = FALSE){
+  if(chunk_process){
+    jacobian <- .chunk_process(rasters=list(
+                                 x=x,
+                                 w_star = w_star),
+                               FUN = .jacobian,
+                               n_chunks = n_chunks,
+                               chunk_size = chunk_size,
+                               extra_args=list(
+                                 rho=rho,
+                                 alpha=alpha,
+                                 chunk_process=FALSE,
+                                 regular=regular,
+                                 inverse=inverse
+                               ))
+                             
+    return(jacobian)
+  }
+  # raster storing which combination of layers is zero
+  wstar_zerocode <- .get_wstar_zerocode(w_star) # TODO
+  
+  jacobian_list <- list()
+  jacobianInv_list <- list()
+  
+  # for all combinations of 0 for w_star (since w_i == 0 simplifies the calculation)
+  for(zero_code in 0:15){
+    # select and mask only for given combination
+    combination <- .decode_code(zero_code)
+    mask_comb <- (wstar_zerocode == zero_code)
+    x_comb <- mask(x, mask_comb, maskvalues=0, updatevalue=NA)
+    w_star_comb <- mask(w_star, mask_comb, maskvalues=0, updatevalue=NA)
+    
+    # calculate jacobian and its inverse for this combination
+    jacobian_comb <- .get_jacobian(alpha = alpha,
+                                   rho = rho,
+                                   w = w_star_comb,
+                                   x = x_comb,
+                                   mask = mask_comb,
+                                   combination = combination,
+                                   regular = regular,
+                                   inverse = inverse) # TODO
+                                  
+    
+    # jacobian_subs_thiscomb <- WriteAndLoad(jacobian_subs_thiscomb, paste0("jacobian_subs_thiscomb_", zero_code))
+    jacobian_list[[zero_code+1]] <- jacobian_comb$regular
+    jacobianInv_list[[zero_code+1]] <- jacobian_comb$inverse
+  }
+  
+  jac_reg <- do.call(mosaic, jacobian_list)
+  jac_inv <- do.call(mosaic, jacobianInv_list)
+  
+  jac_list <- list(jac_reg, jac_inv)
+  jacobian <- rast(jac_list)
+  
+  return(jacobian)
+}
+
+
+
+#' argument is folder name in analysis, folder name in gjamTime/out, name of 
+#' call and output in scripts/project/.parameters
 .jacobian_geospatial <- function(argument,
                                  fixed_point_files = NULL,
                                  out_folder = NULL,
                                  output_mask = NULL,
                                  times_out = NULL,
+                                 regular = TRUE,
+                                 inverse = FALSE,
                                  chunk_process = TRUE,
                                  n_chunks = 100,
                                  chunk_size = NULL,
-                                 save = TRUE,
-                                 data_type = NULL){
+                                 save = TRUE){
   
   call <- .get_argument(argument, "call.rds", where = path_gjamTime_out)
   output <- .get_argument(argument, "output.rdata", where = path_gjamTime_out)
@@ -704,6 +771,55 @@ source("scripts/core/2_analysis/.chunk_process.R")
   if(!is.null(rho))rho <- t(rho)
   if(!is.null(alpha))alpha <- alpha
   
+  # load_predictor_raster(call)
+  x_list <-.load_predictor_rasters(call, times_out, output_mask, lyr_names=colnames(rho))
+  
+  cat("iterating through all fixed points\n")
+  jacobian_list <- list()
+  
+  # for all times
+  n_iter <- length(x_list)
+  i <- 1
+  for (entry in names(x_list)){
+    cat("calculate jacobian for time", entry, ",(", i, "/", n_iter, ")","\n")
+    if(!is.null(fixed_point_files)){
+      w_star <- rast(fixed_point_files[i])
+    } else {
+      w_star <- rast(file.path(out_folder, paste0("w_star_", entry, ".tif")))
+    }
+    dim <- nlyr(w_star)
+    jacobian <- .jacobian(rho, alpha, w_star,
+                          chunk_process = chunk_process,
+                          n_chunks = n_chunks,
+                          chunk_size = chunk_size,
+                          regular = regular,
+                          inverse = inverse)
+    
+    if(regular){
+      jac_reg <- jacobian[[1:dim**2]]
+      jacobian_list$regular[[entry]] <- jac_reg
+      if(save){
+        writeRaster(jac_reg, file.path(out_folder, paste0("jacobian_", entry, ".tif")))
+      }
+    }
+    if(inverse){
+      from <- 1
+      to <- dim**2
+      if(regular){
+        from <- from + dim**2
+        to <- to + dim**2
+      }
+      jac_inv <- jacobian[[from:to]]
+      jacobian_list$inverse[[entry]] <- jac_inv
+      if(save){
+        writeRaster(jac_inv, file.path(out_folder, paste0("jacobianInv_", entry, ".tif")))
+      }
+    }
+    cat("\n")
+    i = i+1
+  }
+  # return
+  jacobian_list
 }
 
 
@@ -801,7 +917,7 @@ source("scripts/core/2_analysis/.chunk_process.R")
   if(mean){
     sum_changes <- Reduce(`+`, lapply(c(1:n_diff), function(v) result[[v]]))
     mean <- sum_changes/n_diff
-    result[["mean_change"]] <- mean
+    result$mean_change <- mean
     if(save){
       fname <- "w_rate_diff_mean.tif"
       writeRaster(mean, file.path(outfolder, fname),
@@ -847,15 +963,15 @@ source("scripts/core/2_analysis/.chunk_process.R")
       slopes[[lyrnames[lyr]]] <- lm_rast[[2]]
     }
     # save all interacepts
-    result[["intercept"]] <- rast(intercepts)
-    writeRaster(result[["intercept"]],
+    result$intercept <- rast(intercepts)
+    writeRaster(result$intercept,
                 file.path(outfolder, "w_rate_lm_intercept.tif"),
                 overwrite = TRUE,
                 datatype = datatype)
     cat("saved w_rate_lm_intercept.tif in", outfolder, "\n")
     
     # save all slopes
-    result[["slope"]] <- rast(slopes)
+    result$slope <- rast(slopes)
     writeRaster(result[["slope"]],
                 file.path(outfolder, "w_rate_lm_slope.tif"),
                 overwrite = TRUE,
