@@ -682,6 +682,142 @@ source("scripts/core/2_analysis/.chunk_process.R")
 ## calculate jacobian matrix ####
 ################################################################################
 
+# binary code what layers are == 0
+.get_wstar_zerocode <- function(w){
+  w_nonzero <- (w >= 1)
+  codes <- Reduce(`+`, lapply(c(1:nlyr(w_nonzero)), function(x) w_nonzero[[x]]*(2**(x-1))))
+  return(codes)
+}
+.decode_zerocode <- function(code, dim) {
+  # Convert the code to binary and split into a vector of digits
+  bin_digits <- as.integer(intToBits(code)[1:dim])
+  # Convert to TRUE/FALSE (1 -> TRUE, 0 -> FALSE)
+  return(bin_digits == 1)
+}
+
+# get d
+#' d is the linearisation at the fixed point in the direction of the trivial dimension
+# for wi*(rho*x + sum(aij*wj, j)), the linearisation d/dwi at
+# wi = 0 is rho*x + sum(aij*wj, j) =: di
+.get_di <- function(i, alpha, rho, x, w, nontriv_ind){
+  di <- .matrixProd(rho[i,], x)
+  if(length(nontriv_ind) > 0){
+    alphaW <- .matrixProd(alpha[i,nontriv_ind], w[[nontriv_ind]])
+    di <- di+alphaW
+  }
+  # di must be <= 0 (as a consequence of the linear complementry problem)
+  # therefore we assert this by overwriting with a minimal negative value
+  mask_di_pos <- (di > alpha[i,i])
+  di <- mask(di,mask_di_pos, maskvalues = 1, updatevalue = alpha[i,i])
+  return(di)
+}
+
+# create names for jacobian and jacobian inversed
+.get_namesJ <- function(n, name){
+  
+  # Generate names for the Jacobian entries (by row)
+  jacobian_names <- as.vector(sapply(1:n, function(i) sapply(1:n, function(j) paste0(name, "_[", i, ",", j, "]"))))
+  
+  jacobian_names
+}
+
+## calculate jacobian and jacobian inverse
+# returns a spatial raster r which holds the jacobian and the 
+# jacobian^-1 filled by row
+# for a given combination of 0 (trivial) and nonzero (nontrivial) solutions in wstar
+.get_jacobian <- function(rho, alpha, x, w, mask, combination, regular, inverse){
+  
+  dim <- nlyr(w)
+  
+  pos <- function(row, col){
+    m <- matrix(c(1:dim**2), byrow = T, ncol = dim)
+    if(missing(row)){row <- 1:dim}
+    return(as.vector(t(m[row, col])))
+  }
+  
+  
+  # get indices
+  nontriv_ind <- c(1:dim)[combination]
+  triv_ind <- c(1:dim)[!combination]
+  n_nontriv <- length(nontriv_ind)
+  n_triv <- length(triv_ind)
+  
+  # create raster to fill
+  if(regular){Jr <- list() }# regular jacobian
+  if(inverse){Ji <- list() }# inverse jacobian
+  reclass_matrix <- matrix(c(0, NA,   # map 0 -> NA
+                             1, 0),   # map 1 -> 0
+                           ncol = 2, byrow = TRUE)
+  
+  if(n_triv > 0){
+    # create zerolayer
+    zero_layer <- classify(mask, reclass_matrix)
+    # fill zero lines
+    for(i in triv_ind){
+      for(j in c(1:dim)[-i]){
+        if(regular) Jr[[pos(i,j)]] <- zero_layer
+        if(inverse) Ji[[pos(i,j)]] <- zero_layer
+      }
+      # calculate diagonal elements for trivial solutions
+      d_i <- .get_di(i, alpha, rho, x, w, nontriv_ind) #rho*x + sum(aij*wj), contros if d == 0, add d <- aii
+      if(regular) Jr[[pos(i,i)]] <- d_i
+      if(inverse) Ji[[pos(i,i)]] <- 1/d_i
+    }
+  }
+  
+  if(n_nontriv > 0){
+    if(inverse){
+      if(n_nontriv >= 2){
+        inv_alphaSubs <- inv(alpha[nontriv_ind, nontriv_ind])
+      }else{ #i.e. if n_nontriv == 1
+        inv_alphaSubs <- as.matrix(1/(alpha[nontriv_ind, nontriv_ind]))
+      }
+      if(n_triv > 0){
+        inv_alpha_box <- inv_alphaSubs %*% alpha[nontriv_ind, triv_ind]
+      }
+    }
+    for(i in nontriv_ind){
+      ## jacobian
+      if(regular){
+        for(j in 1:dim){
+          Jr[[pos(i,j)]] <- alpha[i,j]*w[[i]]
+        }
+      }
+      ## inv(jacobian)
+      if(inverse){
+        # calculate outBlocks [non_tirv, non_triv]
+        for(j in nontriv_ind){
+          inv_alphaSubs_ij <- inv_alphaSubs[which(nontriv_ind==i), which(nontriv_ind==j)]
+          Ji[[pos(i,j)]] <- inv_alphaSubs_ij/w[[j]]
+        }
+        # calculate inBlocks [non_tirv, triv]
+        for(j in triv_ind){
+          inv_alpha_box_ij <- inv_alpha_box[which(nontriv_ind==i), which(triv_ind==j)]
+          Ji[[pos(i,j)]] <- -inv_alpha_box_ij*Ji[[pos(j,j)]]
+        }
+      }
+    }
+  }
+  J_regular <- NULL
+  J_inverse <- NULL
+  if(regular){
+    J_regular <- rast(Jr)
+    names(J_regular) <- .get_namesJ(dim, "J")
+  }
+  if(inverse){
+    J_inverse <- rast(Ji)
+    names(J_inverse) <- .get_namesJ(dim, "Jinv")
+  } 
+  J_rast <- list(
+    regular = J_regular,
+    inverse = J_inverse
+  )
+  return(J_rast)
+}
+
+
+# returns jacobian matrix by row as layers of the raster
+# first jacobian regular, second inverse if specified
 .jacobian <- function (rho, alpha, x, w_star, chunk_process = FALSE,
                        n_chunks = NULL, chunk_size = NULL,
                        regular = TRUE, inverse = FALSE){
@@ -699,44 +835,44 @@ source("scripts/core/2_analysis/.chunk_process.R")
                                  regular=regular,
                                  inverse=inverse
                                ))
-                             
     return(jacobian)
   }
+  
   # raster storing which combination of layers is zero
-  wstar_zerocode <- .get_wstar_zerocode(w_star) # TODO
+  wstar_zerocode <- .get_wstar_zerocode(w_star)
   
-  jacobian_list <- list()
-  jacobianInv_list <- list()
+  if(regular) jacobian_list <- list()
+  if(inverse) jacobianInv_list <- list()
   
+  dim <- nlyr(w_star)
   # for all combinations of 0 for w_star (since w_i == 0 simplifies the calculation)
-  for(zero_code in 0:15){
+  for(zero_code in 0:(dim**2-1)){
     # select and mask only for given combination
-    combination <- .decode_code(zero_code)
+    combination <- .decode_zerocode(zero_code, dim)
     mask_comb <- (wstar_zerocode == zero_code)
     x_comb <- mask(x, mask_comb, maskvalues=0, updatevalue=NA)
     w_star_comb <- mask(w_star, mask_comb, maskvalues=0, updatevalue=NA)
     
     # calculate jacobian and its inverse for this combination
-    jacobian_comb <- .get_jacobian(alpha = alpha,
-                                   rho = rho,
-                                   w = w_star_comb,
+    jacobian_comb <- .get_jacobian(rho = rho,
+                                   alpha = alpha,
                                    x = x_comb,
+                                   w = w_star_comb,
                                    mask = mask_comb,
                                    combination = combination,
                                    regular = regular,
-                                   inverse = inverse) # TODO
-                                  
-    
+                                   inverse = inverse)
+
     # jacobian_subs_thiscomb <- WriteAndLoad(jacobian_subs_thiscomb, paste0("jacobian_subs_thiscomb_", zero_code))
-    jacobian_list[[zero_code+1]] <- jacobian_comb$regular
-    jacobianInv_list[[zero_code+1]] <- jacobian_comb$inverse
+    if(regular) jacobian_list[[zero_code+1]] <- jacobian_comb$regular
+    if(inverse) jacobianInv_list[[zero_code+1]] <- jacobian_comb$inverse
   }
+  jac_reg <- NULL
+  jac_inv <- NULL
+  if(regular) jac_reg <- do.call(mosaic, jacobian_list)
+  if(inverse) jac_inv <- do.call(mosaic, jacobianInv_list)
   
-  jac_reg <- do.call(mosaic, jacobian_list)
-  jac_inv <- do.call(mosaic, jacobianInv_list)
-  
-  jac_list <- list(jac_reg, jac_inv)
-  jacobian <- rast(jac_list)
+  jacobian <- c(jac_reg, jac_inv)
   
   return(jacobian)
 }
@@ -788,7 +924,10 @@ source("scripts/core/2_analysis/.chunk_process.R")
       w_star <- rast(file.path(out_folder, paste0("w_star_", entry, ".tif")))
     }
     dim <- nlyr(w_star)
-    jacobian <- .jacobian(rho, alpha, w_star,
+    jacobian <- .jacobian(rho = rho, 
+                          alpha = alpha, 
+                          x = x_list[[entry]], 
+                          w_star = w_star,
                           chunk_process = chunk_process,
                           n_chunks = n_chunks,
                           chunk_size = chunk_size,
@@ -799,7 +938,10 @@ source("scripts/core/2_analysis/.chunk_process.R")
       jac_reg <- jacobian[[1:dim**2]]
       jacobian_list$regular[[entry]] <- jac_reg
       if(save){
-        writeRaster(jac_reg, file.path(out_folder, paste0("jacobian_", entry, ".tif")))
+        writeRaster(jac_reg, file.path(out_folder, paste0("jacobian_", entry, ".tif")),
+                    overwrite = TRUE)
+        cat("saved", paste0("jacobian_", entry, ".tif"), "in", 
+            out_folder, "\n")
       }
     }
     if(inverse){
@@ -812,7 +954,10 @@ source("scripts/core/2_analysis/.chunk_process.R")
       jac_inv <- jacobian[[from:to]]
       jacobian_list$inverse[[entry]] <- jac_inv
       if(save){
-        writeRaster(jac_inv, file.path(out_folder, paste0("jacobianInv_", entry, ".tif")))
+        writeRaster(jac_inv, file.path(out_folder, paste0("jacobianInv_", entry, ".tif")),
+                    overwrite = TRUE)
+        cat("saved", paste0("jacobianInv_", entry, ".tif"), "in", 
+            out_folder, "\n")
       }
     }
     cat("\n")
