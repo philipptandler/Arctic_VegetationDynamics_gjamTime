@@ -1021,17 +1021,15 @@ source("scripts/core/2_analysis/.chunk_process.R")
 
 .wrate_geospatial <- function(files,
                               outfolder = NULL,
-                              mean = TRUE,
-                              save = TRUE,
+                              mean = FALSE,
                               rate = TRUE,
+                              mean_rate = TRUE,
                               linear_model = FALSE,
+                              save = TRUE,
                               datatype = NULL){
   
   n_files <- length(files) # number of files
   n_diff <- n_files-1 # number of differences
-  
-  # check if length is long enough
-  if(n_diff <= 0) return(NULL)
   
   # prepare
   result <- list()
@@ -1040,7 +1038,31 @@ source("scripts/core/2_analysis/.chunk_process.R")
   } else {
     if(!dir.exists(outfolder)){stop("invalid outfolder specified")}
   }
+  
+  # check if length is long enough
+  if(n_files <= 0) return(NULL)
+  
+  # mean of files
+  if(mean){
+    rasters <- list()
+    for(i in 1:n_files){
+      rasters[[i]] <- rast(files[i])
+    }
+    sum <- Reduce(`+`, lapply(c(1:n_files), function(v) rasters[[v]]))
+    res <- sum/n_files
+    result$mean <- res
+    if(save){
+      fname <- "w_mean.tif"
+      writeRaster(mean, file.path(outfolder, fname),
+                  overwrite = TRUE,
+                  datatype = datatype)
+      cat("saved", fname, "in", outfolder, "\n")
+    }
+  }
 
+  # check if length is long enough
+  if(n_diff <= 0) return(NULL)
+  
   # rate of change
   if(rate){
     for (i in 1:n_diff){
@@ -1057,21 +1079,21 @@ source("scripts/core/2_analysis/.chunk_process.R")
       }
       result[[name]] <- diff
     }
-  }
-  # average change
-  if(mean){
-    sum_changes <- Reduce(`+`, lapply(c(1:n_diff), function(v) result[[v]]))
-    mean <- sum_changes/n_diff
-    result$mean_change <- mean
-    if(save){
-      fname <- "w_rate_diff_mean.tif"
-      writeRaster(mean, file.path(outfolder, fname),
-                  overwrite = TRUE,
-                  datatype = datatype)
-      cat("saved", fname, "in", outfolder, "\n")
+    # average change
+    if(mean_rate){
+      sum_changes <- Reduce(`+`, lapply(c(1:n_diff), function(v) result[[v]]))
+      res <- sum_changes/n_diff
+      result$mean_change <- res
+      if(save){
+        fname <- "w_rate_diff_mean.tif"
+        writeRaster(res, file.path(outfolder, fname),
+                    overwrite = TRUE,
+                    datatype = datatype)
+        cat("saved", fname, "in", outfolder, "\n")
+      }
     }
   }
-  
+
   # linear model of change
   if(linear_model){
     ref_raster <- rast(files[1])
