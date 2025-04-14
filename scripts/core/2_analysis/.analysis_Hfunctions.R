@@ -1042,6 +1042,11 @@ source("scripts/core/2_analysis/.chunk_process.R")
   # check if length is long enough
   if(n_files <= 0) return(NULL)
   
+  cat("processing files:\n")
+  for(i in 1:n_files){
+    cat(i, ":", files[i], "\n")
+  }
+  
   # mean of files
   if(mean){
     rasters <- list()

@@ -13,4 +13,5 @@ files <- list.files(file.path(path_analysis, folder), pattern = type,
                     full.names = TRUE)
 
 ## call fixpt_geospatial()
-wobs <- wrate_geospatial(files, rate = FALSE, linear_model = TRUE, datatype = "INT2S")
+wobs <- wrate_geospatial(files, rate = TRUE, mean_rate = TRUE, linear_model = TRUE, 
+                         save = TRUE, datatype = "INT2S")
