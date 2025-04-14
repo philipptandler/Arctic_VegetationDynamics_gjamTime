@@ -6,8 +6,8 @@ SETUP_ARGUMENTS=(
         # "scripts/project/1_gjamTime/call_probe2_highorder1.R"
         # "scripts/project/1_gjamTime/call_probe2_highorder2.R"
         "probe1_base"
-        "probe1_highorder1"
-        "probe1_highorder2"
+        # "probe1_highorder1"
+        # "probe1_highorder2"
 	)
 
 for arg in "${SETUP_ARGUMENTS[@]}"; do
