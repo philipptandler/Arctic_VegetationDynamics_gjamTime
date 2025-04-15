@@ -7,6 +7,18 @@ library(matlib)
 
 source("scripts/core/2_analysis/.chunk_process.R")
 
+################################################################################
+## timing ####
+################################################################################
+
+.start_time <- function(){
+  start_time <- Sys.time()
+  return(start_time)
+}
+.end_time <- function(time){
+  delta <- format(round(Sys.time() - time, 2))
+  return(delta)
+}
 
 ################################################################################
 ## retrieve parameters ####
@@ -1019,12 +1031,48 @@ source("scripts/core/2_analysis/.chunk_process.R")
 ## write change of rasters ####
 ################################################################################
 
+# calls regression for chunks
+.cell_regression <- function(raster, chunk_process = FALSE,
+                             n_chunks = NULL, chunk_size = NULL,
+                             outfolder = NULL, outname = NULL,
+                             datatype = NULL){
+  if(chunk_process){
+    lmraster <- .chunk_process(rasters=list(
+                                 raster=raster),
+                               FUN = .cell_regression,
+                               n_chunks = n_chunks,
+                               chunk_size = chunk_size,
+                               extra_args=list(
+                                 chunk_process=FALSE,
+                                 outfolder=outfolder,
+                                 outname=outname,
+                                 datatype=datatype)
+                               )
+    return(lmraster)
+  }
+  
+  
+  lm_rast <- regress(y = raster,
+                     x = c(1:nlyr(raster)),
+                     formula = y~x,
+                     na.rm = TRUE,
+                     filename = file.path(outfolder, outname),
+                     overwrite = TRUE,
+                     datatype = datatype)
+  
+  lm_rast
+}
+
+## returning w as mean, difference, mean_difference, linear model
 .wrate_geospatial <- function(files,
                               outfolder = NULL,
                               mean = FALSE,
                               rate = TRUE,
                               mean_rate = TRUE,
                               linear_model = FALSE,
+                              chunk_process = FALSE,
+                              n_chunks = 100,
+                              chunk_size = NULL,
                               save = TRUE,
                               datatype = NULL){
   
@@ -1116,20 +1164,19 @@ source("scripts/core/2_analysis/.chunk_process.R")
     
     # linear model for each variable in the predictor raster
     for(lyr in 1:n_lyr){
+      cat("linear model for layer:", lyrnames[lyr], "\n")
       r_lyr <- list() # collect individual rasters for a given layer
       for(tm in 1:n_files){
         r_lyr[[tm]] <- rast(files[tm])[[lyr]]
       }
       rstack <- rast(r_lyr)
       outname <- paste0("w_rate_lm-bySpec_", lyrnames[lyr], ".tif" )
-      lm_rast <- regress(y = rstack,
-                         x = c(1:n_files),
-                         formula = y~x, 
-                         na.rm = TRUE, 
-                         filename = file.path(outfolder, outname),
-                         overwrite = TRUE,
-                         datatype = datatype)
-      cat("saved", outname, "in", outfolder, "\n")
+      lm_rast <- .cell_regression(rstack, chunk_process = chunk_process,
+                                  n_chunks = n_chunks, chunk_size = chunk_size,
+                                  outfolder = outfolder, outname = outname,
+                                  datatype = datatype)
+
+      cat("saved", outname, "in", outfolder, "\n\n")
       
       intercepts[[lyrnames[lyr]]] <- lm_rast[[1]]
       slopes[[lyrnames[lyr]]] <- lm_rast[[2]]
@@ -1144,7 +1191,7 @@ source("scripts/core/2_analysis/.chunk_process.R")
     
     # save all slopes
     result$slope <- rast(slopes)
-    writeRaster(result[["slope"]],
+    writeRaster(result$slope,
                 file.path(outfolder, "w_rate_lm_slope.tif"),
                 overwrite = TRUE,
                 datatype = datatype)
