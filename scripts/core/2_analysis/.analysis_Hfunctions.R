@@ -951,7 +951,7 @@ source("scripts/core/2_analysis/.chunk_process.R")
       jac_reg <- jacobian[[1:dim**2]]
       jacobian_list$regular[[entry]] <- jac_reg
       if(save){
-        writeRaster(jac_reg, file.path(out_folder, paste0("jacobian_", entry, ".tif")),
+        writeRaster(jac_reg, file.path(out_folder, paste0("jacobian_", w, "_", entry, ".tif")),
                     overwrite = TRUE)
         cat("saved", paste0("jacobian_", entry, ".tif"), "in", 
             out_folder, "\n")
@@ -967,7 +967,7 @@ source("scripts/core/2_analysis/.chunk_process.R")
       jac_inv <- jacobian[[from:to]]
       jacobian_list$inverse[[entry]] <- jac_inv
       if(save){
-        writeRaster(jac_inv, file.path(out_folder, paste0("jacobianInv_", entry, ".tif")),
+        writeRaster(jac_inv, file.path(out_folder, paste0("jacobianInv_", w, "_", entry, ".tif")),
                     overwrite = TRUE)
         cat("saved", paste0("jacobianInv_", entry, ".tif"), "in", 
             out_folder, "\n")
