@@ -898,6 +898,7 @@ source("scripts/core/2_analysis/.chunk_process.R")
                                  out_folder = NULL,
                                  output_mask = NULL,
                                  times_out = NULL,
+                                 w = "w_star",
                                  regular = TRUE,
                                  inverse = FALSE,
                                  chunk_process = TRUE,
@@ -933,7 +934,7 @@ source("scripts/core/2_analysis/.chunk_process.R")
     if(!is.null(fixed_point_files)){
       w_star <- rast(fixed_point_files[i])
     } else {
-      w_star <- rast(file.path(out_folder, paste0("w_star_", entry, ".tif")))
+      w_star <- rast(file.path(out_folder, paste0(w, "_", entry, ".tif")))
     }
     dim <- nlyr(w_star)
     jacobian <- .jacobian(rho = rho, 
