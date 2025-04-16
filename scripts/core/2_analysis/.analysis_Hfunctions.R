@@ -898,6 +898,7 @@ source("scripts/core/2_analysis/.chunk_process.R")
                                  out_folder = NULL,
                                  output_mask = NULL,
                                  times_out = NULL,
+                                 w = "w_star",
                                  regular = TRUE,
                                  inverse = FALSE,
                                  chunk_process = TRUE,
@@ -933,7 +934,7 @@ source("scripts/core/2_analysis/.chunk_process.R")
     if(!is.null(fixed_point_files)){
       w_star <- rast(fixed_point_files[i])
     } else {
-      w_star <- rast(file.path(out_folder, paste0("w_star_", entry, ".tif")))
+      w_star <- rast(file.path(out_folder, paste0(w, "_", entry, ".tif")))
     }
     dim <- nlyr(w_star)
     jacobian <- .jacobian(rho = rho, 
@@ -1033,9 +1034,7 @@ source("scripts/core/2_analysis/.chunk_process.R")
 
 # calls regression for chunks
 .cell_regression <- function(raster, chunk_process = FALSE,
-                             n_chunks = NULL, chunk_size = NULL,
-                             outfolder = NULL, outname = NULL,
-                             datatype = NULL){
+                             n_chunks = NULL, chunk_size = NULL){
   if(chunk_process){
     lmraster <- .chunk_process(rasters=list(
                                  raster=raster),
@@ -1043,24 +1042,19 @@ source("scripts/core/2_analysis/.chunk_process.R")
                                n_chunks = n_chunks,
                                chunk_size = chunk_size,
                                extra_args=list(
-                                 chunk_process=FALSE,
-                                 outfolder=outfolder,
-                                 outname=outname,
-                                 datatype=datatype)
+                                 chunk_process=FALSE)
                                )
     return(lmraster)
   }
-  
   
   lm_rast <- regress(y = raster,
                      x = c(1:nlyr(raster)),
                      formula = y~x,
                      na.rm = TRUE,
-                     filename = file.path(outfolder, outname),
-                     overwrite = TRUE,
-                     datatype = datatype)
+                     filename = "",
+                     overwrite = TRUE)
   
-  lm_rast
+  return(lm_rast)
 }
 
 ## returning w as mean, difference, mean_difference, linear model
@@ -1171,11 +1165,11 @@ source("scripts/core/2_analysis/.chunk_process.R")
       }
       rstack <- rast(r_lyr)
       outname <- paste0("w_rate_lm-bySpec_", lyrnames[lyr], ".tif" )
+      outfile <- file.path(outfolder, outname)
       lm_rast <- .cell_regression(rstack, chunk_process = chunk_process,
-                                  n_chunks = n_chunks, chunk_size = chunk_size,
-                                  outfolder = outfolder, outname = outname,
-                                  datatype = datatype)
-
+                                  n_chunks = n_chunks, chunk_size = chunk_size)
+      writeRaster(lm_rast, outfile, datatype = datatype,
+                  overwrite=TRUE)
       cat("saved", outname, "in", outfolder, "\n\n")
       
       intercepts[[lyrnames[lyr]]] <- lm_rast[[1]]
