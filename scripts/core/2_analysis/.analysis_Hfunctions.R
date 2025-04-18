@@ -1195,3 +1195,58 @@ source("scripts/core/2_analysis/.chunk_process.R")
   }
   result
 }
+
+
+
+################################################################################
+## eigenvalues ####
+################################################################################
+
+.compute_eigenvalues <- function(cell_values, dim) {
+  
+  if (any(is.na(cell_values))) {
+    return(rep(NA, dim))  # Return 4 NAs if there's any NA in the input
+  }
+  
+  # Reshape the vector of length 16 into a 4x4 matrix
+  jacobian <- matrix(cell_values, nrow = 4, ncol = 4)
+  
+  # Compute the eigenvalues of the matrix
+  eigenvals <- Re(eigen(jacobian)$values)
+  
+  return(eigenvals)
+}
+
+
+
+# jacobian must be a raster of n**2 layers, interpreted by row
+# ([row, col]:[1,1] = [[1]], [1,2]=[[2]])
+# retrns raster of n or 2n layers with Real (RE=TRUE) and/or Imaginary Parts (Im=TRUE) 
+.eigen <- function(jacobian, chunk_process = FALSE,
+                   n_chunks = NULL, chunk_size = NULL,
+                   Re=TRUE, Im=FALSE){
+  
+  if(chunk_process){
+    lambda <- .chunk_process(rasters = list(jacobian = jacobian),
+                             FUN = .eigen,
+                             n_chunks = n_chunks,
+                             chunk_size = chunk_size,
+                             extra_args=list(
+                               Re=Re,
+                               Im=Im
+                             ))
+    return(lambda)
+  }
+  
+  dim <- sqrt(nlyr(jacobian))
+  if(!is.integer(dim)){stop("Invalid number of layers in jacobian, must represent n x n matrix")}
+  lamda_subs <- app(J_subs, .compute_eigenvalues, dim=dim)
+  
+  
+}
+
+
+
+.eigenvalues_geospatial <- function(){
+  
+}
