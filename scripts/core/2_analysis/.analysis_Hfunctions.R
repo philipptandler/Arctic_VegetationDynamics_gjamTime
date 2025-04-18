@@ -930,7 +930,7 @@ source("scripts/core/2_analysis/.chunk_process.R")
   n_iter <- length(x_list)
   i <- 1
   for (entry in names(x_list)){
-    cat("calculate jacobian for time", entry, ",(", i, "/", n_iter, ")","\n")
+    cat("calculate jacobian for time", entry, "(", i, "/", n_iter, ")...","\n")
     if(!is.null(fixed_point_files)){
       w_star <- rast(fixed_point_files[i])
     } else {
@@ -946,7 +946,9 @@ source("scripts/core/2_analysis/.chunk_process.R")
                           chunk_size = chunk_size,
                           regular = regular,
                           inverse = inverse)
-    
+    tmp_name <- file.path(out_folder, paste0("jacobian_tmp_", entry, ".tif"))
+    writeRaster(jacobian, tmp_name, overwrite=TRUE)
+    jacobian <- rast(tmp_name)
     if(regular){
       jac_reg <- jacobian[[1:dim**2]]
       jacobian_list$regular[[entry]] <- jac_reg
