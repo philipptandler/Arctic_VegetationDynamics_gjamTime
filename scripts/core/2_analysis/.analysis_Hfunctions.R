@@ -946,7 +946,7 @@ source("scripts/core/2_analysis/.chunk_process.R")
                           chunk_size = chunk_size,
                           regular = regular,
                           inverse = inverse)
-    tmp_name <- file.path(out_folder, paste0("jacobian_tmp_", entry, ".tif"))
+    tmp_name <- file.path(path_analysis_tmp, paste0("jacobian_tmp_", entry, ".tif"))
     writeRaster(jacobian, tmp_name, overwrite=TRUE)
     jacobian <- rast(tmp_name)
     if(regular){
@@ -1202,19 +1202,22 @@ source("scripts/core/2_analysis/.chunk_process.R")
 ## eigenvalues ####
 ################################################################################
 
-.compute_eigenvalues <- function(cell_values, dim) {
+.compute_eigenvalues <- function(cell_values, dim, Re=TRUE, Im=FALSE) {
   
   if (any(is.na(cell_values))) {
     return(rep(NA, dim))  # Return 4 NAs if there's any NA in the input
   }
   
   # Reshape the vector of length 16 into a 4x4 matrix
-  jacobian <- matrix(cell_values, nrow = 4, ncol = 4)
+  jacobian <- matrix(cell_values, byrow = TRUE, nrow = dim, ncol = dim)
   
   # Compute the eigenvalues of the matrix
-  eigenvals <- Re(eigen(jacobian)$values)
+  eigenvals <- eigen(jacobian)$values
+  result <- c()
+  if(Re){result <- append(result, Re(eigenvals))}
+  if(Im){result <- append(result, Im(eigenvals))}
   
-  return(eigenvals)
+  return(result)
 }
 
 
@@ -1239,14 +1242,46 @@ source("scripts/core/2_analysis/.chunk_process.R")
   }
   
   dim <- sqrt(nlyr(jacobian))
-  if(!is.integer(dim)){stop("Invalid number of layers in jacobian, must represent n x n matrix")}
-  lamda_subs <- app(J_subs, .compute_eigenvalues, dim=dim)
   
+  if(dim%%1 != 0){stop("Invalid number of layers in jacobian, must represent n x n matrix")}
   
+  lamda <- app(jacobian, .compute_eigenvalues, dim=dim, Re=Re, Im=Im)
+  
+  lamda
 }
 
 
-
-.eigenvalues_geospatial <- function(){
+# receives a vector of paths for raters that are interpreteed as jacobian matrixes byrow
+# returns list of rasters where each entry cooresponds to the eigenvalues of jacobian raster
+.eigenvalues_geospatial <- function(jacobian_list, chunk_process = TRUE,
+                                    n_chunks = 100, chunk_size = NULL,
+                                    Re=TRUE, Im=FALSE){
   
+  n_files <- length(jacobian_list)
+  
+  lambda_list <- list()
+  
+  for(tm in 1:n_files){
+    file_name <- jacobian_list[tm]
+    jacobian <- rast(file_name)
+    lambda <- .eigen(jacobian=jacobian, chunk_process=chunk_process,
+                    n_chunks=n_chunks, chunk_size=chunk_size, Re=Re, Im=Im)
+    tmp_name <- file.path(path_analysis_tmp, paste0("lambda_tmp_", basename(file_name)))
+    writeRaster(lambda, tmp_name)
+    lambda <- rast(tmp_name)
+    dim <- sqrt(nlyr(jacobian))
+    outfolder <- dirname(file_name)
+    if(Re){
+      lambdaRe <- lambda[[1:dim]]
+      writeRaster(lambdaRe, file.path(outfolder, paste0("lambda_Re_", basename(file_name))))
+    }
+    if(Im){
+      fromto <- c(1, dim)
+      if(Re) fromto <- fromto + dim
+      lambdaIm <- lambda[[fromto[1]:fromto[2]]]
+      writeRaster(lambdaRe, file.path(outfolder, paste0("lambda_Im_", basename(file_name))))
+    }
+    lambda_list[[tm]] <- lambda
+  }
+  lambda_list
 }
