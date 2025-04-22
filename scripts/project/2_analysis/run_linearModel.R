@@ -32,21 +32,16 @@ predictor_list <- list(
   lamda_wrate_sh = c(lambda_sh, wrate_sh)
 )
 
-# load list with linear models
-if(file.exists(file.path(path_analysis, folder, "linear_models.rds"))){
-  linear_models <- readRDS(file.path(path_analysis, folder, "linear_models.rds"))
-} else {
-  linear_models <- list()
-}
-
+# write summary in file
 sink(file.path(path_analysis, folder,"linear_models_out.txt"))
 
+linear_models_summary <- list()
 # iterate through all models
 for(response in response_list){
   for(predictor in predictor_list){
     lm_return <- lm_geospatial(y = response, x = predictor, subsample = FALSE)
-    linear_models[[lm_return$name]] <- lm_return$lm
+    linear_models_summary[[lm_return$name]] <- summary(lm_return$lm)$coefficients
   }
 }
 sink()
-saveRDS(linear_models, file.path(path_analysis, folder, "linear_models.rds"))
+saveRDS(linear_models_summary, file.path(path_analysis, folder, "linear_models_summary_coef.rds"))
