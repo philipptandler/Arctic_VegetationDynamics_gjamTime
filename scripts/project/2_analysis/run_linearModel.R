@@ -44,7 +44,7 @@ sink(file.path(path_analysis, folder,"linear_models_out.txt"))
 # iterate through all models
 for(response in response_list){
   for(predictor in predictor_list){
-    lm_return <- lm_geospatial(y = response, x = predictor)
+    lm_return <- lm_geospatial(y = response, x = predictor, subsample = FALSE)
     linear_models[[lm_return$name]] <- lm_return$lm
   }
 }

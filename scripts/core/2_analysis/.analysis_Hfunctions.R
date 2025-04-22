@@ -1294,7 +1294,7 @@ source("scripts/core/2_analysis/.chunk_process.R")
 # y is raster of one layer, x is raster of same extent as y with n layers
 # returns linear model for all data points
 .lm_geospatial <- function(y, x, interaction = FALSE,
-                           subsample = TRUE, seed = 1234, max_size=1e4){
+                           subsample = FALSE, seed = 1234, max_size=1e4){
   
   if(nlyr(y) != 1){
     y <- y[[1]]
