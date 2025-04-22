@@ -8,8 +8,6 @@ source("scripts/core/2_analysis/lm_geospatial.R")
 # names NDVI files
 name_ndvi_trend <- "ndvi_trend"
 name_ndvi_sig <- "ndvi_sig"
-name_ndvi_abs_trend <- "ndvi_abs_trend"
-name_ndvi_abs_sig <- "ndvi_abs_sig"
 
 ## load response
 ndvi_trend <- rast(file.path(path_NDVI_Ju, paste0(name_ndvi_trend, ".tif")))
@@ -41,12 +39,14 @@ if(file.exists(file.path(path_analysis, folder, "linear_models.rds"))){
   linear_models <- list()
 }
 
-# iterate through all modelsr <- rast(nrows=10, ncols=10, nlyrs=3)
-values(r) <- runif(ncell(r) * nlyr(r))
+sink(file.path(path_analysis, folder,"linear_models_out.txt"))
+
+# iterate through all models
 for(response in response_list){
   for(predictor in predictor_list){
-    lm_return <- lm_geospatial(y = response, x = predictor, max_size=1e5)
+    lm_return <- lm_geospatial(y = response, x = predictor)
     linear_models[[lm_return$name]] <- lm_return$lm
   }
 }
+sink()
 saveRDS(linear_models, file.path(path_analysis, folder, "linear_models.rds"))
