@@ -1285,3 +1285,60 @@ source("scripts/core/2_analysis/.chunk_process.R")
   }
   lambda_list
 }
+
+
+################################################################################
+## linear model geospatial ####
+################################################################################
+
+# y is raster of one layer, x is raster of same extent as y with n layers
+# returns linear model for all data points
+.lm_geospatial <- function(y, x, interaction = FALSE,
+                           subsample = TRUE, seed = 1234, max_size=1e4){
+  
+  if(nlyr(y) != 1){
+    y <- y[[1]]
+    warning("y raster must be of one layer, use only 1st layer")
+  }
+  n_pred <- nlyr(x)
+  yx_rast <- c(y, x)
+  
+  # initialize response and predictors (= variabes)
+  # use predictor_names for display and calculation, must be unique
+  response_name <- names(y)
+  predictor_names <- names(x)
+  # assert uniqueness of vars
+  if(length(unique(predictor_names)) != length(predictor_names)){
+    predictor_names <- paste(predictor_names, c(1:n_pred), sep="-")
+  }
+  # subsample (for large spatial datasets)
+  if(subsample){
+    set.seed(seed)
+    yx_rast <- spatSample(yx_rast, min(max_size, ncell(y)), as.raster=TRUE)
+  }
+  # create dataframe for linear model
+  df <- data.frame(
+    response_name = values(yx_rast[[1]])
+  )
+  for(i in 1:n_pred){
+    df[[predictor_names[i]]] <- values(yx_rast[[i+1]])
+  }
+  # additive or interaction effect
+  modus <- "+"
+  if(interaction){
+    modus <- "*"
+  }
+  # linear regression
+  cat("================================================================================\n")
+  lm_name <- paste(response_name, " ~ ", paste(predictor_names, collapse = modus))
+  formula <- as.formula(lm_name)
+  cat("Linear Model:", lm_name, ":\n")
+  lin_reg <- lm(formula, data = df)
+  print(summary(lin_reg))
+  # return
+  lm_list <- list(
+    name = lm_name,
+    lm = lin_reg
+  )
+  lm_list
+}
