@@ -5,43 +5,44 @@ setwd(here::here())
 source("config/config_local.R")
 source("scripts/core/2_analysis/lm_geospatial.R")
 
-# names NDVI files
-name_ndvi_trend <- "ndvi_trend"
-name_ndvi_sig <- "ndvi_sig"
+folder <- "probe1_base"
 
-## load response
-ndvi_trend <- rast(file.path(path_NDVI_Ju, paste0(name_ndvi_trend, ".tif")))
+## load response and name if necessary
+ndvi_trend <- rast(file.path(path_NDVI_Ju, "ndvi_trend.tif"))
 names(ndvi_trend) <- "NDVI_trend"
-ndvi_sig <- rast(file.path(path_NDVI_Ju, paste0(name_ndvi_sig, ".tif")))
+ndvi_sig <- rast(file.path(path_NDVI_Ju, "ndvi_sig.tif"))
 names(ndvi_sig) <- "NDVI_trend_significance"
+
+## load predictors
+lambda_sh <- rast(file.path(path_analysis, folder, "lambda_sh_mean.tif"))
+wrate_sh <- rast(file.path(path_analysis, folder, "w_rate_lm_slope_sh.tif"))
+lambda_cf <- rast(file.path(path_analysis, folder, "lambda_cf_mean.tif"))
+wrate_cf <- rast(file.path(path_analysis, folder, "w_rate_lm_slope_cf.tif"))
+lambda_sh <- rast(file.path(path_analysis, folder, "lambda_shcf_mean.tif"))
+wrate_sh <- rast(file.path(path_analysis, folder, "w_rate_lm_slope_shcf.tif"))
+
+# prepare lists
 
 response_list <- list(
   ndvi_trend=ndvi_trend,
   ndvi_sig=ndvi_sig
 )
 
-# load predictors
-folder <- "probe1_base"
-lambda_sh <- rast(file.path(path_analysis, folder, "lambda_sh_mean.tif"))
-wrate_sh <- rast(file.path(path_analysis, folder, "w_rate_lm_slope_sh.tif"))
-
-
 predictor_list <- list(
+  lambda_sh=lambda_sh,
+  wrate_sh = wrate_sh,
+  lamda_wrate_sh = c(lambda_sh, wrate_sh),
+  lambda_sh=lambda_sh,
+  wrate_sh = wrate_sh,
+  lamda_wrate_sh = c(lambda_sh, wrate_sh),
   lambda_sh=lambda_sh,
   wrate_sh = wrate_sh,
   lamda_wrate_sh = c(lambda_sh, wrate_sh)
 )
 
-# write summary in file
-sink(file.path(path_analysis, folder,"linear_models_out.txt"))
 
-linear_models_summary <- list()
-# iterate through all models
-for(response in response_list){
-  for(predictor in predictor_list){
-    lm_return <- lm_geospatial(y = response, x = predictor, subsample = FALSE)
-    linear_models_summary[[lm_return$name]] <- summary(lm_return$lm)$coefficients
-  }
-}
-sink()
-saveRDS(linear_models_summary, file.path(path_analysis, folder, "linear_models_summary_coef.rds"))
+lm_geospatial(response_list, predictor_list, mode="factorial", 
+              path_save = file.path(path_analysis, folder),
+              save = TRUE, subsample = FALSE,
+              sink = TRUE, sink_file = "linear_models_out.txt")
+

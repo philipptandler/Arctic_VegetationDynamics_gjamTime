@@ -1293,8 +1293,8 @@ source("scripts/core/2_analysis/.chunk_process.R")
 
 # y is raster of one layer, x is raster of same extent as y with n layers
 # returns linear model for all data points
-.lm_geospatial <- function(y, x, interaction = FALSE,
-                           subsample = FALSE, seed = 1234, max_size=1e4){
+.raster_regression <- function(y, x, interaction = FALSE,
+                               subsample = FALSE, seed = 1234, max_size=1e4){
   
   if(nlyr(y) != 1){
     y <- y[[1]]
@@ -1330,15 +1330,62 @@ source("scripts/core/2_analysis/.chunk_process.R")
   }
   # linear regression
   cat("================================================================================\n")
-  lm_name <- paste(response_name, " ~ ", paste(predictor_names, collapse = modus))
+  lm_name <- paste0(response_name, " ~ ", paste(predictor_names, collapse = modus))
   formula <- as.formula(lm_name)
   cat("Linear Model:", lm_name, ":\n")
   lin_reg <- lm(formula, data = df)
   print(summary(lin_reg))
   # return
+  modus_name <- "_plus_"
+  if(interaction){modus_name <- "_times_"}
+  lm_name <- paste0(response_name, "__on__", paste(predictor_names, collapse = modus_name))
   lm_list <- list(
     name = lm_name,
     lm = lin_reg
   )
   lm_list
+}
+
+# returns list of summary(linear_model)$coefficients
+
+.lm_geospatial <- function(r_list, p_list, mode = c("pairwise", "factorial"), 
+                           save = TRUE, path_save = path_analysis,
+                           sink = TRUE, sink_file = "linear_models_out.txt",
+                           interaction = FALSE,
+                           subsample = TRUE, seed = 1234, max_size=1e5){
+  mode <- match.arg(mode)
+  linear_models_summary <- list()
+  
+  # sink outputs
+  if(sink){sink(file.path(path_save, sink_file))}
+  
+  # pairwise mode
+  if(mode == "pairwise"){
+    if(length(r_list) != length(p_list)){
+      stop("For 'pairwise' mode, responses and predictors must have the same length.")
+    }
+    n_mod <- length(r_list)
+    for(i in 1:n_mod){
+      lm_return <- .raster_regression(y = r_list[[i]], x = p_list[[i]], 
+                                      interaction=interaction, subsample=subsample,
+                                      seed=seed, max_size=max_size)
+      linear_models_summary[[lm_return$name]] <- summary(lm_return$lm)$coefficients
+    }
+  }
+  #factorial mode
+  if(mode == "factorial"){
+    for(r in r_list){
+      for(p in p_list){
+        lm_return <- .raster_regression(y = r, x = p,
+                                        interaction=interaction, subsample=subsample,
+                                        seed=seed, max_size=max_size)
+        linear_models_summary[[lm_return$name]] <- summary(lm_return$lm)$coefficients
+      }
+    }
+  }
+  # save
+  if(sink){sink()}
+  if(save) saveRDS(linear_models_summary, file.path(path_save, "linear_models_summary_coef.rds"))
+  #return
+  linear_models_summary
 }

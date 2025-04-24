@@ -1,3 +1,5 @@
+## this script to manipulate and order rasters and layers
+
 library(here)
 # Set working directory only if not already set
 setwd(here::here())
