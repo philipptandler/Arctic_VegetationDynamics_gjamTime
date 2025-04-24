@@ -46,7 +46,7 @@ for(i in 1:length(jacobian_files)){
   cat("(", i, "/", length(jacobian_files), ")\n")
   raster <- rast(jacobian_files[i])[[c(1,2,5,6)]]
   raster <- mask(raster, mastermask, maskvalues=0, updatevalue=NA)
-  writeRaster(raster, file.path(path_analysis, folder, gsub("jacobian_w_star_", "jacobian_w_star_shcf", jacobian_files[i])), overwrite=T)
+  writeRaster(raster, file.path(gsub("jacobian_w_star_", "jacobian_w_star_shcf_", jacobian_files[i])), overwrite=T)
 }
 cat("done.\n")
 # ## write w_rate_sh as (w_rate_lm_slope[[1]])
