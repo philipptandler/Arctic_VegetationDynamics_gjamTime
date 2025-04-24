@@ -43,3 +43,6 @@ for(dir in dirs){
     dir.create(dir, recursive = TRUE, showWarnings = FALSE)
   }
 }
+
+## define further useful paths here ####
+path_NDVI_Ju <- "data/NDVI_trends_Ju"

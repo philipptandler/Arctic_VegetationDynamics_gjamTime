@@ -7,6 +7,18 @@ library(matlib)
 
 source("scripts/core/2_analysis/.chunk_process.R")
 
+################################################################################
+## timing ####
+################################################################################
+
+.start_time <- function(){
+  start_time <- Sys.time()
+  return(start_time)
+}
+.end_time <- function(time){
+  delta <- format(round(Sys.time() - time, 2))
+  return(delta)
+}
 
 ################################################################################
 ## retrieve parameters ####
@@ -30,10 +42,17 @@ source("scripts/core/2_analysis/.chunk_process.R")
     }
     arg = call$name
   }
-  if(dir.exists(arg)){
+  if(file.exists(file.path("scripts/project/.parameters/",
+                           paste(basename(arg), type, sep="_")))){
+    if(type == "call.rds") return(readRDS(file.path("scripts/project/.parameters/",
+                                                    paste(arg, type, sep="_"))))
+    if(type == "output.rdata") return(.load_output_Rdata("scripts/project/.parameters/", prename=paste0(arg, "_")))
+    if(type == "dir") stop("argument", arg, "requires type=='call.rds' or 'output.rdata'")
+  }
+  if(dir.exists(arg) && dirname(arg) == path_gjamTime_out){
     if(type == "call.rds") return(readRDS(file.path(arg,
                                                     type)))
-    if(type == "output.rdata")return(.load_output_Rdata(arg))
+    if(type == "output.rdata") return(.load_output_Rdata(arg))
     if(type == "dir") return(arg)
   }
   if(dir.exists(file.path(where, arg)) &&
@@ -42,16 +61,7 @@ source("scripts/core/2_analysis/.chunk_process.R")
     if(type == "output.rdata") return(.load_output_Rdata(file.path(where, arg)))
     if(type == "dir") return(file.path(where, arg))
   }
-  if(file.exists(file.path("scripts/project/.parameters/",
-                           paste(arg, type, sep="_")))){
-    if(type == "call.rds") return(readRDS(file.path("scripts/project/.parameters/",
-                                                    paste(arg, type, sep="_"))))
-    if(type == "output.rdata") return(.load_output_Rdata("scripts/project/.parameters/", prename=paste0(arg, "_")))
-    if(type == "dir") stop("argument", arg, "requires type=='call.rds' or 'output.rdata'")
-    }
-  {
-    stop("Not found:", arg)
-  }
+  stop("Not found:", arg)
 }
 
 # loads function in local env
@@ -78,7 +88,8 @@ source("scripts/core/2_analysis/.chunk_process.R")
       out_folder <- file.path(path_analysis, basename(out_folder))
     }
   }
-  if(!dir.exists(out_folder)) dir.create(out_folder, recursive = TRUE,showWarnings = FALSE)
+  if(!dir.exists(out_folder)) dir.create(out_folder, recursive = TRUE,
+                                         showWarnings = FALSE)
   
   out_folder
 }
@@ -395,6 +406,30 @@ source("scripts/core/2_analysis/.chunk_process.R")
   }
 }
 
+# Treats spatial raster M as nXn matrix and w as lenght n vector
+# M is interpreted by first filling the rows
+# only implemented for 4x4 matrix currently
+# TODO currently implemented only for dim = 4
+.rasterMatrixProd <- function(M, w){
+  if(nlyr(M) != 4**2){stop("dimensions do not match in matrix product")}
+  result_list <- list()
+  for(i in 1:4){
+    layer <- rast(nrows = nrow(w), 
+                  ncols = ncol(w), 
+                  nlyrs = 1, 
+                  crs = crs(w), 
+                  ext = ext(w),
+                  vals = 0)
+    for(j in 1:4){
+      layer <- layer + M[[pos(i, j)]]*w[[j]]
+    }
+    result_list[[i]] <- layer
+  }
+  result <- rast(result_list)
+  names(result) <- names(w)
+  return(result)
+}
+
 
 ################################################################################
 ## calculate fixed point ####
@@ -553,7 +588,8 @@ source("scripts/core/2_analysis/.chunk_process.R")
                              extra_args=list(
                                beta=beta,
                                rho=rho,
-                               alpha=alpha
+                               alpha=alpha,
+                               chunk_process=FALSE
                              ))
     return(w_star)
   }
@@ -625,12 +661,18 @@ source("scripts/core/2_analysis/.chunk_process.R")
   # calc_fixpt(alpha, rho, x)
   cat("iterating through all ouput rasters\n")
   w_star_list <- list()
+  mastermask <- rast(file.path(path_masks, name_master_mask))
+  if(length(x_list) > 0){
+    mastermask <- crop(mastermask, x_list[[1]])
+  }
+  # for all times
   for (entry in names(x_list)){
     cat("calculate fixed point raster for time", entry, "\n")
     w_star <- .fixpt(beta, rho, alpha, x_list[[entry]],
                      chunk_process = chunk_process,
                      n_chunks = n_chunks,
                      chunk_size = chunk_size)
+    w_star <- mask(w_star, mastermask, maskvalues=0, updatevalue=NA)
     if(save){
       valid_datatypes <- c("INT1U", "INT2U", "INT2S", "INT4U", "INT4S", "FLT4S", "FLT8S")
       if(is.null(data_type) || !(data_type %in% valid_datatypes)){
@@ -647,17 +689,310 @@ source("scripts/core/2_analysis/.chunk_process.R")
   w_star_list
 }
 
+
+################################################################################
+## calculate jacobian matrix ####
+################################################################################
+
+# binary code what layers are == 0
+.get_wstar_zerocode <- function(w){
+  w_nonzero <- (w >= 1)
+  codes <- Reduce(`+`, lapply(c(1:nlyr(w_nonzero)), function(x) w_nonzero[[x]]*(2**(x-1))))
+  return(codes)
+}
+.decode_zerocode <- function(code, dim) {
+  # Convert the code to binary and split into a vector of digits
+  bin_digits <- as.integer(intToBits(code)[1:dim])
+  # Convert to TRUE/FALSE (1 -> TRUE, 0 -> FALSE)
+  return(bin_digits == 1)
+}
+
+# get d
+#' d is the linearisation at the fixed point in the direction of the trivial dimension
+# for wi*(rho*x + sum(aij*wj, j)), the linearisation d/dwi at
+# wi = 0 is rho*x + sum(aij*wj, j) =: di
+.get_di <- function(i, alpha, rho, x, w, nontriv_ind){
+  di <- .matrixProd(rho[i,], x)
+  if(length(nontriv_ind) > 0){
+    alphaW <- .matrixProd(alpha[i,nontriv_ind], w[[nontriv_ind]])
+    di <- di+alphaW
+  }
+  # di must be <= 0 (as a consequence of the linear complementry problem)
+  # therefore we assert this by overwriting with a minimal negative value
+  mask_di_pos <- (di > alpha[i,i])
+  di <- mask(di,mask_di_pos, maskvalues = 1, updatevalue = alpha[i,i])
+  return(di)
+}
+
+# create names for jacobian and jacobian inversed
+.get_namesJ <- function(n, name){
+  
+  # Generate names for the Jacobian entries (by row)
+  jacobian_names <- as.vector(sapply(1:n, function(i) sapply(1:n, function(j) paste0(name, "_[", i, ",", j, "]"))))
+  
+  jacobian_names
+}
+
+## calculate jacobian and jacobian inverse
+# returns a spatial raster r which holds the jacobian and the 
+# jacobian^-1 filled by row
+# for a given combination of 0 (trivial) and nonzero (nontrivial) solutions in wstar
+.get_jacobian <- function(rho, alpha, x, w, mask, combination, regular, inverse){
+  
+  dim <- nlyr(w)
+  
+  pos <- function(row, col){
+    m <- matrix(c(1:dim**2), byrow = T, ncol = dim)
+    if(missing(row)){row <- 1:dim}
+    return(as.vector(t(m[row, col])))
+  }
+  
+  
+  # get indices
+  nontriv_ind <- c(1:dim)[combination]
+  triv_ind <- c(1:dim)[!combination]
+  n_nontriv <- length(nontriv_ind)
+  n_triv <- length(triv_ind)
+  
+  # create raster to fill
+  if(regular){Jr <- list() }# regular jacobian
+  if(inverse){Ji <- list() }# inverse jacobian
+  reclass_matrix <- matrix(c(0, NA,   # map 0 -> NA
+                             1, 0),   # map 1 -> 0
+                           ncol = 2, byrow = TRUE)
+  
+  if(n_triv > 0){
+    # create zerolayer
+    zero_layer <- classify(mask, reclass_matrix)
+    # fill zero lines
+    for(i in triv_ind){
+      for(j in c(1:dim)[-i]){
+        if(regular) Jr[[pos(i,j)]] <- zero_layer
+        if(inverse) Ji[[pos(i,j)]] <- zero_layer
+      }
+      # calculate diagonal elements for trivial solutions
+      d_i <- .get_di(i, alpha, rho, x, w, nontriv_ind) #rho*x + sum(aij*wj), contros if d == 0, add d <- aii
+      if(regular) Jr[[pos(i,i)]] <- d_i
+      if(inverse) Ji[[pos(i,i)]] <- 1/d_i
+    }
+  }
+  
+  if(n_nontriv > 0){
+    if(inverse){
+      if(n_nontriv >= 2){
+        inv_alphaSubs <- inv(alpha[nontriv_ind, nontriv_ind])
+      }else{ #i.e. if n_nontriv == 1
+        inv_alphaSubs <- as.matrix(1/(alpha[nontriv_ind, nontriv_ind]))
+      }
+      if(n_triv > 0){
+        inv_alpha_box <- inv_alphaSubs %*% alpha[nontriv_ind, triv_ind]
+      }
+    }
+    for(i in nontriv_ind){
+      ## jacobian
+      if(regular){
+        for(j in 1:dim){
+          Jr[[pos(i,j)]] <- alpha[i,j]*w[[i]]
+        }
+      }
+      ## inv(jacobian)
+      if(inverse){
+        # calculate outBlocks [non_tirv, non_triv]
+        for(j in nontriv_ind){
+          inv_alphaSubs_ij <- inv_alphaSubs[which(nontriv_ind==i), which(nontriv_ind==j)]
+          Ji[[pos(i,j)]] <- inv_alphaSubs_ij/w[[j]]
+        }
+        # calculate inBlocks [non_tirv, triv]
+        for(j in triv_ind){
+          inv_alpha_box_ij <- inv_alpha_box[which(nontriv_ind==i), which(triv_ind==j)]
+          Ji[[pos(i,j)]] <- -inv_alpha_box_ij*Ji[[pos(j,j)]]
+        }
+      }
+    }
+  }
+  J_regular <- NULL
+  J_inverse <- NULL
+  if(regular){
+    J_regular <- rast(Jr)
+    names(J_regular) <- .get_namesJ(dim, "J")
+  }
+  if(inverse){
+    J_inverse <- rast(Ji)
+    names(J_inverse) <- .get_namesJ(dim, "Jinv")
+  } 
+  J_rast <- list(
+    regular = J_regular,
+    inverse = J_inverse
+  )
+  return(J_rast)
+}
+
+
+# returns jacobian matrix by row as layers of the raster
+# first jacobian regular, second inverse if specified
+.jacobian <- function (rho, alpha, x, w_star, chunk_process = FALSE,
+                       n_chunks = NULL, chunk_size = NULL,
+                       regular = TRUE, inverse = FALSE){
+  if(chunk_process){
+    jacobian <- .chunk_process(rasters=list(
+                                 x=x,
+                                 w_star = w_star),
+                               FUN = .jacobian,
+                               n_chunks = n_chunks,
+                               chunk_size = chunk_size,
+                               extra_args=list(
+                                 rho=rho,
+                                 alpha=alpha,
+                                 chunk_process=FALSE,
+                                 regular=regular,
+                                 inverse=inverse
+                               ))
+    return(jacobian)
+  }
+  
+  # raster storing which combination of layers is zero
+  wstar_zerocode <- .get_wstar_zerocode(w_star)
+  
+  if(regular) jacobian_list <- list()
+  if(inverse) jacobianInv_list <- list()
+  
+  dim <- nlyr(w_star)
+  # for all combinations of 0 for w_star (since w_i == 0 simplifies the calculation)
+  for(zero_code in 0:(dim**2-1)){
+    # select and mask only for given combination
+    combination <- .decode_zerocode(zero_code, dim)
+    mask_comb <- (wstar_zerocode == zero_code)
+    x_comb <- mask(x, mask_comb, maskvalues=0, updatevalue=NA)
+    w_star_comb <- mask(w_star, mask_comb, maskvalues=0, updatevalue=NA)
+    
+    # calculate jacobian and its inverse for this combination
+    jacobian_comb <- .get_jacobian(rho = rho,
+                                   alpha = alpha,
+                                   x = x_comb,
+                                   w = w_star_comb,
+                                   mask = mask_comb,
+                                   combination = combination,
+                                   regular = regular,
+                                   inverse = inverse)
+
+    # jacobian_subs_thiscomb <- WriteAndLoad(jacobian_subs_thiscomb, paste0("jacobian_subs_thiscomb_", zero_code))
+    if(regular) jacobian_list[[zero_code+1]] <- jacobian_comb$regular
+    if(inverse) jacobianInv_list[[zero_code+1]] <- jacobian_comb$inverse
+  }
+  jac_reg <- NULL
+  jac_inv <- NULL
+  if(regular) jac_reg <- do.call(mosaic, jacobian_list)
+  if(inverse) jac_inv <- do.call(mosaic, jacobianInv_list)
+  
+  jacobian <- c(jac_reg, jac_inv)
+  
+  return(jacobian)
+}
+
+
+
+#' argument is folder name in analysis, folder name in gjamTime/out, name of 
+#' call and output in scripts/project/.parameters
+.jacobian_geospatial <- function(argument,
+                                 fixed_point_files = NULL,
+                                 out_folder = NULL,
+                                 output_mask = NULL,
+                                 times_out = NULL,
+                                 w = "w_star",
+                                 regular = TRUE,
+                                 inverse = FALSE,
+                                 chunk_process = TRUE,
+                                 n_chunks = 100,
+                                 chunk_size = NULL,
+                                 save = TRUE){
+  
+  call <- .get_argument(argument, "call.rds", where = path_gjamTime_out)
+  output <- .get_argument(argument, "output.rdata", where = path_gjamTime_out)
+  
+  # outfolder
+  out_folder <- .parse_outfolder(call, out_folder)
+  
+  # assign parameters
+  beta = output$betaMu
+  rho = output$rhoMu
+  alpha = output$alphaMu
+  if(!is.null(beta))beta <- t(beta)
+  if(!is.null(rho))rho <- t(rho)
+  if(!is.null(alpha))alpha <- alpha
+  
+  # load_predictor_raster(call)
+  x_list <-.load_predictor_rasters(call, times_out, output_mask, lyr_names=colnames(rho))
+  
+  cat("iterating through all fixed points\n")
+  jacobian_list <- list()
+  
+  # for all times
+  n_iter <- length(x_list)
+  i <- 1
+  for (entry in names(x_list)){
+    cat("calculate jacobian for time", entry, "(", i, "/", n_iter, ")...","\n")
+    if(!is.null(fixed_point_files)){
+      w_star <- rast(fixed_point_files[i])
+    } else {
+      w_star <- rast(file.path(out_folder, paste0(w, "_", entry, ".tif")))
+    }
+    dim <- nlyr(w_star)
+    jacobian <- .jacobian(rho = rho, 
+                          alpha = alpha, 
+                          x = x_list[[entry]], 
+                          w_star = w_star,
+                          chunk_process = chunk_process,
+                          n_chunks = n_chunks,
+                          chunk_size = chunk_size,
+                          regular = regular,
+                          inverse = inverse)
+    tmp_name <- file.path(path_analysis_tmp, paste0("jacobian_tmp_", entry, ".tif"))
+    writeRaster(jacobian, tmp_name, overwrite=TRUE)
+    jacobian <- rast(tmp_name)
+    if(regular){
+      jac_reg <- jacobian[[1:dim**2]]
+      jacobian_list$regular[[entry]] <- jac_reg
+      if(save){
+        writeRaster(jac_reg, file.path(out_folder, paste0("jacobian_", w, "_", entry, ".tif")),
+                    overwrite = TRUE)
+        cat("saved", paste0("jacobian_", entry, ".tif"), "in", 
+            out_folder, "\n")
+      }
+    }
+    if(inverse){
+      from <- 1
+      to <- dim**2
+      if(regular){
+        from <- from + dim**2
+        to <- to + dim**2
+      }
+      jac_inv <- jacobian[[from:to]]
+      jacobian_list$inverse[[entry]] <- jac_inv
+      if(save){
+        writeRaster(jac_inv, file.path(out_folder, paste0("jacobianInv_", w, "_", entry, ".tif")),
+                    overwrite = TRUE)
+        cat("saved", paste0("jacobianInv_", entry, ".tif"), "in", 
+            out_folder, "\n")
+      }
+    }
+    cat("\n")
+    i = i+1
+  }
+  # return
+  jacobian_list
+}
+
+
 ################################################################################
 ## write observed rasters for response (given in yvars) ####
 ################################################################################
 
-
 # returns list of observed rasters, writes them as w_obs
-.observed_rasters <- function(argument,
-                              out_folder = NULL,
-                              output_mask = NULL,
-                              times_out = NULL,
-                              save = TRUE){
+.wobs_geospatial <- function(argument,
+                             out_folder = NULL,
+                             output_mask = NULL,
+                             times_out = NULL,
+                             save = TRUE){
   
   call <- .get_argument(argument, "call.rds", where = path_gjamTime_out)
 
@@ -684,12 +1019,376 @@ source("scripts/core/2_analysis/.chunk_process.R")
     # crop with out_mask or subset of call
     r_raw <- .crop_output_ext(r_raw, call, output_mask)
     
-    # write
-    writeRaster(r_raw, file.path(out_folder, paste0("w_obs_", tm, ".tif")))
-    
+    if(save){
+      # write
+      writeRaster(r_raw, file.path(out_folder, paste0("w_obs_", tm, ".tif")))
+    }
     # write entry
     w_obs_list[[tm]] <- r_raw
   }
   w_obs_list
 }
 
+
+################################################################################
+## write change of rasters ####
+################################################################################
+
+# calls regression for chunks
+.cell_regression <- function(raster, chunk_process = FALSE,
+                             n_chunks = NULL, chunk_size = NULL){
+  if(chunk_process){
+    lmraster <- .chunk_process(rasters=list(
+                                 raster=raster),
+                               FUN = .cell_regression,
+                               n_chunks = n_chunks,
+                               chunk_size = chunk_size,
+                               extra_args=list(
+                                 chunk_process=FALSE)
+                               )
+    return(lmraster)
+  }
+  
+  lm_rast <- regress(y = raster,
+                     x = c(1:nlyr(raster)),
+                     formula = y~x,
+                     na.rm = TRUE,
+                     filename = "",
+                     overwrite = TRUE)
+  
+  return(lm_rast)
+}
+
+## returning w as mean, difference, mean_difference, linear model
+.wrate_geospatial <- function(files,
+                              outfolder = NULL,
+                              mean = FALSE,
+                              rate = TRUE,
+                              mean_rate = TRUE,
+                              linear_model = FALSE,
+                              chunk_process = FALSE,
+                              n_chunks = 100,
+                              chunk_size = NULL,
+                              save = TRUE,
+                              datatype = NULL){
+  
+  n_files <- length(files) # number of files
+  n_diff <- n_files-1 # number of differences
+  
+  # prepare
+  result <- list()
+  if(is.null(outfolder)){
+    outfolder <- dirname(files[1])
+  } else {
+    if(!dir.exists(outfolder)){stop("invalid outfolder specified")}
+  }
+  
+  # check if length is long enough
+  if(n_files <= 0) return(NULL)
+  
+  cat("processing files:\n")
+  for(i in 1:n_files){
+    cat(i, ":", files[i], "\n")
+  }
+  
+  # mean of files
+  if(mean){
+    rasters <- list()
+    for(i in 1:n_files){
+      rasters[[i]] <- rast(files[i])
+    }
+    sum <- Reduce(`+`, lapply(c(1:n_files), function(v) rasters[[v]]))
+    res <- sum/n_files
+    result$mean <- res
+    if(save){
+      fname <- "w_mean.tif"
+      writeRaster(mean, file.path(outfolder, fname),
+                  overwrite = TRUE,
+                  datatype = datatype)
+      cat("saved", fname, "in", outfolder, "\n")
+    }
+  }
+
+  # check if length is long enough
+  if(n_diff <= 0) return(NULL)
+  
+  # rate of change
+  if(rate){
+    for (i in 1:n_diff){
+      name = paste0("diff_", i)
+      r1 <- rast(files[i])
+      r2 <- rast(files[i+1])
+      diff <- r2 - r1
+      if(save){
+        fname <- paste0("w_rate_diff_", i, ".tif")
+        writeRaster(diff, file.path(outfolder, fname),
+                    overwrite = TRUE,
+                    datatype = datatype)
+        cat("saved", fname, "in", outfolder, "\n")
+      }
+      result[[name]] <- diff
+    }
+    # average change
+    if(mean_rate){
+      sum_changes <- Reduce(`+`, lapply(c(1:n_diff), function(v) result[[v]]))
+      res <- sum_changes/n_diff
+      result$mean_change <- res
+      if(save){
+        fname <- "w_rate_diff_mean.tif"
+        writeRaster(res, file.path(outfolder, fname),
+                    overwrite = TRUE,
+                    datatype = datatype)
+        cat("saved", fname, "in", outfolder, "\n")
+      }
+    }
+  }
+
+  # linear model of change
+  if(linear_model){
+    ref_raster <- rast(files[1])
+    
+    intercepts <- list()
+    slopes <- list()
+    
+    n_lyr <- nlyr(ref_raster)
+    lyrnames <- names(ref_raster)
+    # check for unique layer names
+    if(length(unique(lyrnames)) < n_lyr){
+      warning("non-unique layer names enountered.\nConsider renaming your raster layers given in files.\n")
+      lyrnames <- paste0("var", c(1:n_lyr))
+    }
+    
+    # linear model for each variable in the predictor raster
+    for(lyr in 1:n_lyr){
+      cat("linear model for layer:", lyrnames[lyr], "\n")
+      r_lyr <- list() # collect individual rasters for a given layer
+      for(tm in 1:n_files){
+        r_lyr[[tm]] <- rast(files[tm])[[lyr]]
+      }
+      rstack <- rast(r_lyr)
+      outname <- paste0("w_rate_lm-bySpec_", lyrnames[lyr], ".tif" )
+      outfile <- file.path(outfolder, outname)
+      lm_rast <- .cell_regression(rstack, chunk_process = chunk_process,
+                                  n_chunks = n_chunks, chunk_size = chunk_size)
+      writeRaster(lm_rast, outfile, datatype = datatype,
+                  overwrite=TRUE)
+      cat("saved", outname, "in", outfolder, "\n\n")
+      
+      intercepts[[lyrnames[lyr]]] <- lm_rast[[1]]
+      slopes[[lyrnames[lyr]]] <- lm_rast[[2]]
+    }
+    # save all interacepts
+    result$intercept <- rast(intercepts)
+    writeRaster(result$intercept,
+                file.path(outfolder, "w_rate_lm_intercept.tif"),
+                overwrite = TRUE,
+                datatype = datatype)
+    cat("saved w_rate_lm_intercept.tif in", outfolder, "\n")
+    
+    # save all slopes
+    result$slope <- rast(slopes)
+    writeRaster(result$slope,
+                file.path(outfolder, "w_rate_lm_slope.tif"),
+                overwrite = TRUE,
+                datatype = datatype)
+    cat("saved w_rate_lm_slope.tif in", outfolder, "\n")
+  }
+  result
+}
+
+
+
+################################################################################
+## eigenvalues ####
+################################################################################
+
+.compute_eigenvalues <- function(cell_values, dim, Re=TRUE, Im=FALSE) {
+  
+  if (any(is.na(cell_values))) {
+    return(rep(NA, dim))  # Return 4 NAs if there's any NA in the input
+  }
+  
+  # Reshape the vector of length 16 into a 4x4 matrix
+  jacobian <- matrix(cell_values, byrow = TRUE, nrow = dim, ncol = dim)
+  
+  # Compute the eigenvalues of the matrix
+  eigenvals <- eigen(jacobian)$values
+  result <- c()
+  if(Re){result <- append(result, Re(eigenvals))}
+  if(Im){result <- append(result, Im(eigenvals))}
+  
+  return(result)
+}
+
+
+
+# jacobian must be a raster of n**2 layers, interpreted by row
+# ([row, col]:[1,1] = [[1]], [1,2]=[[2]])
+# retrns raster of n or 2n layers with Real (RE=TRUE) and/or Imaginary Parts (Im=TRUE) 
+.eigen <- function(jacobian, chunk_process = FALSE,
+                   n_chunks = NULL, chunk_size = NULL,
+                   Re=TRUE, Im=FALSE){
+  
+  if(chunk_process){
+    lambda <- .chunk_process(rasters = list(jacobian = jacobian),
+                             FUN = .eigen,
+                             n_chunks = n_chunks,
+                             chunk_size = chunk_size,
+                             extra_args=list(
+                               Re=Re,
+                               Im=Im
+                             ))
+    return(lambda)
+  }
+  
+  dim <- sqrt(nlyr(jacobian))
+  
+  if(dim%%1 != 0){stop("Invalid number of layers in jacobian, must represent n x n matrix")}
+  
+  lamda <- app(jacobian, .compute_eigenvalues, dim=dim, Re=Re, Im=Im)
+  
+  lamda
+}
+
+
+# receives a vector of paths for raters that are interpreteed as jacobian matrixes byrow
+# returns list of rasters where each entry cooresponds to the eigenvalues of jacobian raster
+.eigenvalues_geospatial <- function(jacobian_list, chunk_process = TRUE,
+                                    n_chunks = 100, chunk_size = NULL,
+                                    Re=TRUE, Im=FALSE){
+  
+  n_files <- length(jacobian_list)
+  
+  lambda_list <- list()
+  
+  for(tm in 1:n_files){
+    cat("Calculating eigenvalues for", jacobian_list[tm], "\n")
+    file_name <- jacobian_list[tm]
+    jacobian <- rast(file_name)
+    lambda <- .eigen(jacobian=jacobian, chunk_process=chunk_process,
+                    n_chunks=n_chunks, chunk_size=chunk_size, Re=Re, Im=Im)
+    tmp_name <- file.path(path_analysis_tmp, paste0("lambda_tmp_", basename(file_name)))
+    writeRaster(lambda, tmp_name)
+    lambda <- rast(tmp_name)
+    dim <- sqrt(nlyr(jacobian))
+    outfolder <- dirname(file_name)
+    if(Re){
+      lambdaRe <- lambda[[1:dim]]
+      writeRaster(lambdaRe, file.path(outfolder, paste0("lambda_Re_", basename(file_name))))
+    }
+    if(Im){
+      fromto <- c(1, dim)
+      if(Re) fromto <- fromto + dim
+      lambdaIm <- lambda[[fromto[1]:fromto[2]]]
+      writeRaster(lambdaRe, file.path(outfolder, paste0("lambda_Im_", basename(file_name))))
+    }
+    lambda_list[[tm]] <- lambda
+    cat("\n\n")
+  }
+  cat("done. \n")
+  lambda_list
+}
+
+
+################################################################################
+## linear model geospatial ####
+################################################################################
+
+# y is raster of one layer, x is raster of same extent as y with n layers
+# returns linear model for all data points
+.raster_regression <- function(y, x, interaction = FALSE,
+                               subsample = FALSE, seed = 1234, max_size=1e4){
+  
+  if(nlyr(y) != 1){
+    y <- y[[1]]
+    warning("y raster must be of one layer, use only 1st layer")
+  }
+  n_pred <- nlyr(x)
+  yx_rast <- c(y, x)
+  
+  # initialize response and predictors (= variabes)
+  # use predictor_names for display and calculation, must be unique
+  response_name <- names(y)
+  predictor_names <- names(x)
+  # assert uniqueness of vars
+  if(length(unique(predictor_names)) != length(predictor_names)){
+    predictor_names <- paste(predictor_names, c(1:n_pred), sep="-")
+  }
+  # subsample (for large spatial datasets)
+  if(subsample){
+    set.seed(seed)
+    yx_rast <- spatSample(yx_rast, min(max_size, ncell(y)), as.raster=TRUE)
+  }
+  # create dataframe for linear model
+  df <- data.frame(
+    response_name = values(yx_rast[[1]])
+  )
+  for(i in 1:n_pred){
+    df[[predictor_names[i]]] <- values(yx_rast[[i+1]])
+  }
+  # additive or interaction effect
+  modus <- "+"
+  if(interaction){
+    modus <- "*"
+  }
+  # linear regression
+  cat("================================================================================\n")
+  lm_name <- paste0(response_name, " ~ ", paste(predictor_names, collapse = modus))
+  formula <- as.formula(lm_name)
+  cat("Linear Model:", lm_name, ":\n")
+  lin_reg <- lm(formula, data = df)
+  print(summary(lin_reg))
+  # return
+  modus_name <- "_plus_"
+  if(interaction){modus_name <- "_times_"}
+  lm_name <- paste0(response_name, "__on__", paste(predictor_names, collapse = modus_name))
+  lm_list <- list(
+    name = lm_name,
+    lm = lin_reg
+  )
+  lm_list
+}
+
+# returns list of summary(linear_model)$coefficients
+
+.lm_geospatial <- function(r_list, p_list, mode = c("pairwise", "factorial"), 
+                           save = TRUE, path_save = path_analysis,
+                           sink = TRUE, sink_file = "linear_models_out.txt",
+                           interaction = FALSE,
+                           subsample = TRUE, seed = 1234, max_size=1e5){
+  mode <- match.arg(mode)
+  linear_models_summary <- list()
+  
+  # sink outputs
+  if(sink){sink(file.path(path_save, sink_file))}
+  
+  # pairwise mode
+  if(mode == "pairwise"){
+    if(length(r_list) != length(p_list)){
+      stop("For 'pairwise' mode, responses and predictors must have the same length.")
+    }
+    n_mod <- length(r_list)
+    for(i in 1:n_mod){
+      lm_return <- .raster_regression(y = r_list[[i]], x = p_list[[i]], 
+                                      interaction=interaction, subsample=subsample,
+                                      seed=seed, max_size=max_size)
+      linear_models_summary[[lm_return$name]] <- summary(lm_return$lm)$coefficients
+    }
+  }
+  #factorial mode
+  if(mode == "factorial"){
+    for(r in r_list){
+      for(p in p_list){
+        lm_return <- .raster_regression(y = r, x = p,
+                                        interaction=interaction, subsample=subsample,
+                                        seed=seed, max_size=max_size)
+        linear_models_summary[[lm_return$name]] <- summary(lm_return$lm)$coefficients
+      }
+    }
+  }
+  # save
+  if(sink){sink()}
+  if(save) saveRDS(linear_models_summary, file.path(path_save, "linear_models_summary_coef.rds"))
+  #return
+  linear_models_summary
+}
