@@ -1262,6 +1262,7 @@ source("scripts/core/2_analysis/.chunk_process.R")
   lambda_list <- list()
   
   for(tm in 1:n_files){
+    cat("Calculating eigenvalues for", jacobian_list[tm], "\n")
     file_name <- jacobian_list[tm]
     jacobian <- rast(file_name)
     lambda <- .eigen(jacobian=jacobian, chunk_process=chunk_process,
@@ -1282,7 +1283,9 @@ source("scripts/core/2_analysis/.chunk_process.R")
       writeRaster(lambdaRe, file.path(outfolder, paste0("lambda_Im_", basename(file_name))))
     }
     lambda_list[[tm]] <- lambda
+    cat("\n\n")
   }
+  cat("done. \n")
   lambda_list
 }
 

@@ -15,4 +15,4 @@ files <- list.files(file.path(path_analysis, folder), pattern = type,
                     full.names = TRUE)
 
 ## call eigenvalues_geospatial()
-lamda <- eigenvalues_geospatial(jacobian_list = files, n_chunks = 5)
+lamda <- eigenvalues_geospatial(jacobian_list = files, n_chunks = 100)
