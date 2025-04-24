@@ -51,10 +51,10 @@ for(i in 1:length(jacobian_files)){
   writeRaster(raster, file.path(gsub("jacobian_w_star_", "jacobian_w_star_shcf_", jacobian_files[i])), overwrite=T)
 }
 cat("done.\n")
-# ## write w_rate_sh as (w_rate_lm_slope[[1]])
-# 
+
+# ## write w_rate_cf as (w_rate_lm_slope[[2]])
 # w_rate <- rast(file.path(path_analysis, folder, "w_rate_lm_slope.tif"))
-# w_rate_sh <- w_rate[[1]]
-# w_rate_sh <- mask(w_rate_sh, mastermask, maskvalues=0, updatevalue=NA)
-# names(w_rate_sh) <- "w_rate_sh"
-# writeRaster(w_rate_sh, file.path(path_analysis, folder, "w_rate_lm_slope_sh.tif"), overwrite=T)
+# w_rate <- w_rate[[2]]
+# w_rate <- mask(w_rate, mastermask, maskvalues=0, updatevalue=NA)
+# names(w_rate) <- "w_rate_cf"
+# writeRaster(w_rate, file.path(path_analysis, folder, "w_rate_lm_slope_cf.tif"), overwrite=T)
