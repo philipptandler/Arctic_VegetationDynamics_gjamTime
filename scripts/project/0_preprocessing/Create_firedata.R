@@ -17,7 +17,7 @@ mastermask <- rast("data/masks/master_mask.tif")
 ## parameter
 selectTimeperiod <- TRUE
 cutOffYear <- 1978
-cutInYear <- 2014
+cutInYear <- 2020
 
 
 ## process polygon layer ####

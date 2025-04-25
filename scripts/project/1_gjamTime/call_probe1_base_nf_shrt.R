@@ -2,7 +2,7 @@
 #' folders in path_gjam_out and in path_analysis
 #' The only strictly required entry is yvars (the response variable)
 
-name <- "probe1_base_nf"
+name <- "probe1_base_nf_shrt"
 
 # continue <- "e4ca783bd375"
 
@@ -35,8 +35,7 @@ times <- c("1984-1990",
            "1991-1996",
            "1997-2002",
            "2003-2008",
-           "2009-2014",
-           "2015-2020")
+           "2009-2014")
 
 # what version of the data is used
 version <- "full"
@@ -51,14 +50,14 @@ version <- "full"
 subsample <- list(
   doSubsample = TRUE, #recommended TRUE: FALSE might crash due to memory overflow
   mode = "random",
-  # if 'regular' distance between grid points, if 'random' number of subsamples
+  # if 'regular' distance between grid points, if 'random' number of sub samples
   size = 10e3,
-  seed = 1 # sets a seed for the first run, will change for further subsamples
+  seed = 1 # sets a seed for the first run, will change for further sub samples
 )
 
 subset <- list(
   doSubset = TRUE, #if TRUE, set mask for subset
-  mask = "wildfire_mask_1978-2020.tif"
+  mask = "wildfire_mask_1978-2014.tif"
 )
 
 
