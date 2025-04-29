@@ -16,4 +16,4 @@ arg="$1"
 # arg="scripts/project/1_gjamTime/call_probe1_base_regular.R"
 
 # Only find 1st, 4th, and 6th fixed point
-Rscript scripts/masterscripts/find_fixpt_batch.R "$arg" "F,T,T,F,T,F"
+Rscript scripts/masterscripts/find_fixpt_batch.R "$arg"
