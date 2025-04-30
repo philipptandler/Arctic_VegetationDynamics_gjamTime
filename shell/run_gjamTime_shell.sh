@@ -2,7 +2,7 @@
 #SBATCH -n 1
 #SBATCH --time 04:00:00
 #SBATCH --mem-per-cpu=124G
-#SBATCH --array=[1-40]%1
+#SBATCH --array=[1-4]%1
 #SBATCH --job-name=gjam_probe2_gjamTime
 #SBATCH --output=gjam_probe2_gjamTime.out
 #SBATCH --error=gjam_probe2_gjamTime.err
@@ -13,8 +13,8 @@ module load stack/2024-06 r/4.4.0 udunits/2.2.28 gdal/3.4.3 proj/9.2.1 sqlite/3.
 cd ~/masterthesis				# Change directory
 
 # Define calling script:
-scrpt="$1"
-# scrpt="scripts/project/1_gjamTime/call_probe1_base.R"
+# scrpt="$1"
+scrpt="scripts/project/1_gjamTime/call_probe1_base_nf.R"
 
 # run as array by selecting random number
 Rscript scripts/masterscripts/run_gjamTime_batch.R "$scrpt" "$SLURM_ARRAY_TASK_ID"
