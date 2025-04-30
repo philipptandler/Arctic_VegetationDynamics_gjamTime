@@ -1377,9 +1377,9 @@ source("scripts/core/1_gjamTime/.gjamTime_officialFunctions.R", local = environm
     namestring <- append(namestring,"alldata")
   } else {
     namestring <- append(namestring,
-                         tools::file_path_sans_ext(basename(
-                           .toLowerCamelCase(call$subset$mask)))
-    )
+                         .toLowerCamelCase(tools::file_path_sans_ext(
+                           basename(call$subset$mask)))
+                         )
   }
   namestring <- append(namestring, call$version)
   namestring <- paste(namestring, collapse = "[^/]*")
