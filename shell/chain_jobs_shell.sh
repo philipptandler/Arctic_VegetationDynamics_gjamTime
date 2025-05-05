@@ -2,7 +2,7 @@
 
 # Define arguments
 SETUP_ARGUMENTS=(
-        "scripts/project/1_gjamTime/call_probe1_base_nf.R"
+        "probe1_base_nf"
 	)
 
 for arg in "${SETUP_ARGUMENTS[@]}"; do
@@ -11,7 +11,7 @@ for arg in "${SETUP_ARGUMENTS[@]}"; do
     # echo "Submitted run_gjamTime_shell.sh with Job ID $jobid1 and argument $arg"
 
     # Submit summarize_gjamTime_shell.sh with dependency on run_gjamTime_shell.sh
-    jobid2=$(sbatch --dependency=afterok:30486297 shell/summarize_gjamTime_shell.sh "$arg" | awk '{print $4}')
+    jobid2=$(sbatch shell/summarize_gjamTime_shell.sh "$arg" | awk '{print $4}')
     echo "Submitted summarize_gjamTime_shell.sh with Job ID $jobid2 and argument $arg"
     
     # Submit find_fixpt_shell.sh with dependency on summarize_gjamTime_shell.sh
