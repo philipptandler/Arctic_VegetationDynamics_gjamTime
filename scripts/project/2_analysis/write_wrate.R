@@ -7,7 +7,7 @@ source("scripts/core/2_analysis/wrate_geospatial.R")
 
 folder <- "probe1_base_nf"
 # folder <- "test_higherorder1_alphaNeg1"
-type = "w_star" # match file name
+type = "^w_star" # match file name
 
 # assert correct order
 files <- list.files(file.path(path_analysis, folder), pattern = type,
