@@ -16,7 +16,7 @@ mastermask <- rast(file.path(path_masks, "wildfire_mask_1978-2014.tif"))
 ## write lambda_sh as mean(jacobian_1984-1990[[1]], jacobian_1991-1996[[1]], ...)
 
 lambda_sh_list <- list()
-jacobian_files <- list.files(file.path(path_analysis, folder), pattern = "jacobian_",
+jacobian_files <- list.files(file.path(path_analysis, folder), pattern = "jacobian_w_star_shcf_",
                       full.names = TRUE)
 for(i in 1:length(jacobian_files)){
   lambda_sh_list[[i]] = rast(jacobian_files[i])[[1]]
@@ -27,13 +27,13 @@ names(lambda_sh) <- "lambda_sh"
 writeRaster(lambda_sh, file.path(path_analysis, folder, "lambda_sh_mean.tif"), overwrite=T)
 
 
-## write lambda_cf as mean(jacobian_1984-1990[[1]], jacobian_1991-1996[[1]], ...)
+## write lambda_cf as mean(jacobian_1984-1990[[6]], jacobian_1991-1996[[6]], ...)
 cat("writing lambda_cf ...\n")
 lambda_cf_list <- list()
-jacobian_files <- list.files(file.path(path_analysis, folder), pattern = "jacobian_w_star_",
+jacobian_files <- list.files(file.path(path_analysis, folder), pattern = "jacobian_w_star_shcf_",
                              full.names = TRUE)
 for(i in 1:length(jacobian_files)){
-  lambda_cf_list[[i]] = rast(jacobian_files[i])[[6]]
+  lambda_cf_list[[i]] = rast(jacobian_files[i])[[4]]
 }
 lambda_cf <- mean(rast(lambda_cf_list))
 lambda_cf <- mask(lambda_cf, mastermask, maskvalues=0, updatevalue=NA)
