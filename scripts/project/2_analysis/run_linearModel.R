@@ -18,8 +18,8 @@ lambda_sh <- rast(file.path(path_analysis, folder, "lambda_sh_mean.tif"))
 wrate_sh <- rast(file.path(path_analysis, folder, "w_rate_lm_slope_sh.tif"))
 lambda_cf <- rast(file.path(path_analysis, folder, "lambda_cf_mean.tif"))
 wrate_cf <- rast(file.path(path_analysis, folder, "w_rate_lm_slope_cf.tif"))
-lambda_sh <- rast(file.path(path_analysis, folder, "lambda_shcf_mean.tif"))
-wrate_sh <- rast(file.path(path_analysis, folder, "w_rate_lm_slope_shcf.tif"))
+lambda_shcf <- rast(file.path(path_analysis, folder, "lambda_shcf_mean.tif"))
+wrate_shcf <- rast(file.path(path_analysis, folder, "w_rate_lm_slope_shcf.tif"))
 
 # prepare lists
 
@@ -32,12 +32,12 @@ predictor_list <- list(
   lambda_sh=lambda_sh,
   wrate_sh = wrate_sh,
   lamda_wrate_sh = c(lambda_sh, wrate_sh),
-  lambda_sh=lambda_sh,
-  wrate_sh = wrate_sh,
-  lamda_wrate_sh = c(lambda_sh, wrate_sh),
-  lambda_sh=lambda_sh,
-  wrate_sh = wrate_sh,
-  lamda_wrate_sh = c(lambda_sh, wrate_sh)
+  lambda_cf=lambda_cf,
+  wrate_cf = wrate_cf,
+  lamda_wrate_cf = c(lambda_cf, wrate_cf),
+  lambda_shcf=lambda_shcf,
+  wrate_shcf = wrate_shcf,
+  lamda_wrate_shcf = c(lambda_shcf, wrate_shcf)
 )
 
 
