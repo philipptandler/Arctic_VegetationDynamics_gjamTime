@@ -7,8 +7,8 @@ setwd(here::here())
 source("config/config_local.R")
 source("scripts/core/2_analysis/lm_geospatial.R")
 
-folder <- "probe1_base"
-mastermask <- rast(file.path(path_masks, name_master_mask))
+folder <- "probe1_base_nf"
+mastermask <- rast(file.path(path_masks, "wildfire_mask_1978-2014.tif"))
 
 ## This script is just used to prepare raster layers for linear model:
 # select layer and mask with mastermask and name layer
@@ -28,18 +28,19 @@ mastermask <- rast(file.path(path_masks, name_master_mask))
 
 
 ## write lambda_cf as mean(jacobian_1984-1990[[1]], jacobian_1991-1996[[1]], ...)
-cat("writing lambda_cf ...\n")
-lambda_cf_list <- list()
-jacobian_files <- list.files(file.path(path_analysis, folder), pattern = "jacobian_w_star_",
-                             full.names = TRUE)
-for(i in 1:length(jacobian_files)){
-  lambda_cf_list[[i]] = rast(jacobian_files[i])[[6]]
-}
-lambda_cf <- mean(rast(lambda_cf_list))
-lambda_cf <- mask(lambda_cf, mastermask, maskvalues=0, updatevalue=NA)
-names(lambda_cf) <- "lambda_cf"
-writeRaster(lambda_cf, file.path(path_analysis, folder, "lambda_cf_mean.tif"), overwrite=T)
-cat("done.\n")
+# cat("writing lambda_cf ...\n")
+# lambda_cf_list <- list()
+# jacobian_files <- list.files(file.path(path_analysis, folder), pattern = "jacobian_w_star_",
+#                              full.names = TRUE)
+# for(i in 1:length(jacobian_files)){
+#   lambda_cf_list[[i]] = rast(jacobian_files[i])[[6]]
+# }
+# lambda_cf <- mean(rast(lambda_cf_list))
+# lambda_cf <- mask(lambda_cf, mastermask, maskvalues=0, updatevalue=NA)
+# names(lambda_cf) <- "lambda_cf"
+# writeRaster(lambda_cf, file.path(path_analysis, folder, "lambda_cf_mean.tif"), overwrite=T)
+# cat("done.\n")
+
 ## write lambda_shcf for each period (jacobian_1984-1990[[c(1,2,5,6)]], jacobian_1991-1996[[c(1,2,5,6)]], ...)
 cat("Writing jacobian_shrub_conifer ... \n")
 jacobian_files <- list.files(file.path(path_analysis, folder), pattern = "jacobian_w_star_",

@@ -5,7 +5,7 @@ setwd(here::here())
 source("config/config_local.R")
 source("scripts/core/2_analysis/wrate_geospatial.R")
 
-folder <- "probe1_base"
+folder <- "probe1_base_nf"
 # folder <- "test_higherorder1_alphaNeg1"
 type = "w_star" # match file name
 
@@ -14,5 +14,5 @@ files <- list.files(file.path(path_analysis, folder), pattern = type,
                     full.names = TRUE)
 
 ## call fixpt_geospatial()
-wobs <- wrate_geospatial(files, rate = FALSE, mean_rate = FALSE, linear_model = TRUE, 
+wobs <- wrate_geospatial(files[1:5], rate = FALSE, mean_rate = FALSE, linear_model = TRUE, 
                          save = TRUE, chunk_process = TRUE, n_chunks = 100, datatype = "INT2S")
