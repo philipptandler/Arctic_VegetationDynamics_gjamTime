@@ -5,7 +5,7 @@ setwd(here::here())
 source("config/config_local.R")
 source("scripts/core/2_analysis/eigenvalues_geospatial.R")
 
-folder <- "probe1_base"
+folder <- "probe1_base_nf"
 # folder <- "test_higherorder1_alphaNeg1"
 
 type = "jacobian_w_star_shcf_" # match file name !jacobian_... and jacobinaInv_ may exist
