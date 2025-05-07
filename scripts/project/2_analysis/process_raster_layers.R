@@ -21,7 +21,7 @@ jacobian_files <- list.files(file.path(path_analysis, folder), pattern = "jacobi
 for(i in 1:length(jacobian_files)){
   lambda_sh_list[[i]] = rast(jacobian_files[i])[[1]]
 }
-lambda_sh <- mean(rast(lamda_sh_list))
+lambda_sh <- mean(rast(lambda_sh_list))
 lambda_sh <- mask(lambda_sh, mastermask, maskvalues=0, updatevalue=NA)
 names(lambda_sh) <- "lambda_sh"
 writeRaster(lambda_sh, file.path(path_analysis, folder, "lambda_sh_mean.tif"), overwrite=T)
