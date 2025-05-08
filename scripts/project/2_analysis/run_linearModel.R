@@ -16,22 +16,24 @@ names(ndvi_sig) <- "NDVI_trend_significance"
 ## load predictors
 lambda_sh <- rast(file.path(path_analysis, folder, "lambda_sh_mean.tif"))
 wrate_sh <- rast(file.path(path_analysis, folder, "w_rate_lm_slope_sh.tif"))
-# lambda_cf <- rast(file.path(path_analysis, folder, "lambda_cf_mean.tif"))
-# wrate_cf <- rast(file.path(path_analysis, folder, "w_rate_lm_slope_cf.tif"))
+lambda_cf <- rast(file.path(path_analysis, folder, "lambda_cf_mean.tif"))
+wrate_cf <- rast(file.path(path_analysis, folder, "w_rate_lm_slope_cf.tif"))
 # lambda_shcf <- rast(file.path(path_analysis, folder, "lambda_shcf_mean.tif"))
 # wrate_shcf <- rast(file.path(path_analysis, folder, "w_rate_lm_slope_shcf.tif"))
 
 # prepare lists
 
 response_list <- list(
-  ndvi_trend=ndvi_trend,
-  ndvi_sig=ndvi_sig
+  ndvi_trend=ndvi_trend
 )
 
 predictor_list <- list(
   lambda_sh = lambda_sh,
   wrate_sh = wrate_sh,
-  lamda_wrate_sh = c(lambda_sh, wrate_sh)
+  lamda_wrate_sh = c(lambda_sh, wrate_sh),
+  lambda_cf = lambda_cf,
+  wrate_cf = wrate_cf,
+  lamda_wrate_cf = c(lambda_cf, wrate_cf)
 )
 
 # predictor_list <- list(
