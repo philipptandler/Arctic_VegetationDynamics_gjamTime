@@ -16,7 +16,7 @@ mastermask <- rast(file.path(path_masks, "wildfire_mask_1978-2014.tif"))
 ## write lambda_sh as mean(jacobian_1984-1990[[1]], jacobian_1991-1996[[1]], ...)
 
 lambda_sh_list <- list()
-jacobian_files <- list.files(file.path(path_analysis, folder), pattern = "jacobian_w_star_shcf_",
+jacobian_files <- list.files(file.path(path_analysis, folder), pattern = "^jacobian_w_star_shcf_",
                       full.names = TRUE)
 for(i in 1:length(jacobian_files)){
   lambda_sh_list[[i]] = rast(jacobian_files[i])[[1]]
@@ -30,7 +30,7 @@ writeRaster(lambda_sh, file.path(path_analysis, folder, "lambda_sh_mean.tif"), o
 ## write lambda_cf as mean(jacobian_1984-1990[[6]], jacobian_1991-1996[[6]], ...)
 cat("writing lambda_cf ...\n")
 lambda_cf_list <- list()
-jacobian_files <- list.files(file.path(path_analysis, folder), pattern = "jacobian_w_star_shcf_",
+jacobian_files <- list.files(file.path(path_analysis, folder), pattern = "^jacobian_w_star_shcf_",
                              full.names = TRUE)
 for(i in 1:length(jacobian_files)){
   lambda_cf_list[[i]] = rast(jacobian_files[i])[[4]]
@@ -52,6 +52,22 @@ cat("done.\n")
 #   writeRaster(raster, file.path(gsub("jacobian_w_star_", "jacobian_w_star_shcf_", jacobian_files[i])), overwrite=T)
 # }
 # cat("done.\n")
+
+
+## harmonic mean for summarizing eigenvalues at a given time
+lambda_shcf_list <- list()
+eigenvalue_files <- list.files(file.path(path_analysis, folder), pattern = "lambda_Re_jacobian_w_star_shcf_",
+                               full.names = TRUE)
+for(i in 1:length(eigenvalue_files)){
+  cat("processing", eigenvalue_files[i], "\n")
+  eigenvals <- rast(eigenvalue_files[i])
+  hmean <- 2/(1/eigenvals[[1]] + 1/eigenvals[[2]])
+  lambda_shcf_list[[i]] <- hmean
+}
+lambda_shcf <- mean(rast(lambda_shcf_list))
+lambda_shcf <- mask(lambda_shcf, mastermask, maskvalues=0, updatevalue=NA)
+names(lambda_shcf) <- "lambda_shcf_hmean"
+writeRaster(lambda_shcf, file.path(path_analysis, folder, "lambda_shcf_mean.tif"), overwrite=T)
 
 # ## write w_rate_sh as (w_rate_lm_slope[[1]])
 w_rate <- rast(file.path(path_analysis, folder, "w_rate_lm_slope.tif"))
