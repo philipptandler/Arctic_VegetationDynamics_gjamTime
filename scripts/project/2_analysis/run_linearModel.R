@@ -5,7 +5,7 @@ setwd(here::here())
 source("config/config_local.R")
 source("scripts/core/2_analysis/lm_geospatial.R")
 
-folder <- "probe1_base_nf"
+folder <- "probe1_base"
 
 ## load response and name if necessary
 ndvi_trend <- rast(file.path(path_NDVI_Ju, "ndvi_trend.tif"))
