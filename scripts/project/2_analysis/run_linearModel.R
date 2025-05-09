@@ -7,6 +7,9 @@ source("scripts/core/2_analysis/lm_geospatial.R")
 
 folder <- "probe1_base"
 
+# mask 
+mask_nofire <- rast(file.path(path_masks, "wildfire_mask_1978-2014.tif"))
+
 ## load response and name if necessary
 ndvi_trend <- rast(file.path(path_NDVI_Ju, "ndvi_trend.tif"))
 names(ndvi_trend) <- "NDVI_trend"
@@ -52,5 +55,6 @@ predictor_list <- list(
 lm_geospatial(response_list, predictor_list, mode="factorial", 
               path_save = file.path(path_analysis, folder),
               save = TRUE, subsample = FALSE,
+              mask = mask_nofire,
               sink = TRUE, sink_file = "linear_models_out.txt")
 

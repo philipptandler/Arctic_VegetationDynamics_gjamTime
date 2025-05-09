@@ -1355,6 +1355,7 @@ source("scripts/core/2_analysis/.chunk_process.R")
                            save = TRUE, path_save = path_analysis,
                            sink = TRUE, sink_file = "linear_models_out.txt",
                            interaction = FALSE,
+                           mask = NULL,
                            subsample = TRUE, seed = 1234, max_size=1e5){
   mode <- match.arg(mode)
   linear_models_summary <- list()
@@ -1369,7 +1370,13 @@ source("scripts/core/2_analysis/.chunk_process.R")
     }
     n_mod <- length(r_list)
     for(i in 1:n_mod){
-      lm_return <- .raster_regression(y = r_list[[i]], x = p_list[[i]], 
+      r <- r_list[[i]]
+      p <- p_list[[i]]
+      if(!is.null(mask)){
+        r <- mask(r, mask, maskvalues=0, updatevalue=NA)
+        p <- mask(p, mask, maskvalues=0, updatevalue=NA)
+      }
+      lm_return <- .raster_regression(y = r, x = p, 
                                       interaction=interaction, subsample=subsample,
                                       seed=seed, max_size=max_size)
       linear_models_summary[[lm_return$name]] <- summary(lm_return$lm)$coefficients
@@ -1379,6 +1386,10 @@ source("scripts/core/2_analysis/.chunk_process.R")
   if(mode == "factorial"){
     for(r in r_list){
       for(p in p_list){
+        if(!is.null(mask)){
+          r <- mask(r, mask, maskvalues=0, updatevalue=NA)
+          p <- mask(p, mask, maskvalues=0, updatevalue=NA)
+        }
         lm_return <- .raster_regression(y = r, x = p,
                                         interaction=interaction, subsample=subsample,
                                         seed=seed, max_size=max_size)
