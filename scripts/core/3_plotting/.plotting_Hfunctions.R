@@ -85,6 +85,7 @@ library(grid)
 }
 
 .hexplot_geospatial <- function(y, x,
+                                mask = NULL,
                                 n_bins = 80,
                                 abline = TRUE,
                                 abline_horizontal = TRUE,
@@ -112,6 +113,9 @@ library(grid)
   }
   # concatenate raster
   r <- c(y, x)
+  if(!is.null(mask)){
+    r <- mask(r, mask, maskvalues=0, updatevalue=NA)
+  }
   # for many samples
   plotlist <- list()
   for(samp in 1:n_samples){
@@ -119,8 +123,8 @@ library(grid)
     set.seed(seed+(samp-1))
     if(subsample) rs <- spatSample(r, min(ncell(r), size))
     else rs <- spatSample(r, ncell(r)) #TODO check
-    y <- rs[,1]
-    x <- rs[,2]
+    y <- rs[,1] # y shadows original y
+    x <- rs[,2] # x shadows original x
     df <- data.frame(y = y, x = x)
     df <- df[is.finite(df$x) & is.finite(df$y), ]
     # check linear model
