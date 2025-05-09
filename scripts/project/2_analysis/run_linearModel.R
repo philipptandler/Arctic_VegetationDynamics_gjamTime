@@ -56,5 +56,6 @@ lm_geospatial(response_list, predictor_list, mode="factorial",
               path_save = file.path(path_analysis, folder),
               save = TRUE, subsample = FALSE,
               mask = mask_nofire,
-              sink = TRUE, sink_file = "linear_models_out_nf.txt")
+              sink = TRUE, sink_file = "linear_models_out_nf.txt",
+              save_file = "linear_models_summary_coef_nf.rds")
 

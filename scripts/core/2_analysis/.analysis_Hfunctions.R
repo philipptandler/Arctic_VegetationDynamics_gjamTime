@@ -1354,6 +1354,7 @@ source("scripts/core/2_analysis/.chunk_process.R")
 .lm_geospatial <- function(r_list, p_list, mode = c("pairwise", "factorial"), 
                            save = TRUE, path_save = path_analysis,
                            sink = TRUE, sink_file = "linear_models_out.txt",
+                           save_file = "linear_models_summary_coef.rds",
                            interaction = FALSE,
                            mask = NULL,
                            subsample = TRUE, seed = 1234, max_size=1e5){
@@ -1399,7 +1400,9 @@ source("scripts/core/2_analysis/.chunk_process.R")
   }
   # save
   if(sink){sink()}
-  if(save) saveRDS(linear_models_summary, file.path(path_save, "linear_models_summary_coef.rds"))
+  if(save){
+    saveRDS(linear_models_summary, file.path(path_save, save_file))
+  } 
   #return
   linear_models_summary
 }
